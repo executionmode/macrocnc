@@ -1,7 +1,7 @@
 /* Service worker — deixa o app funcionando offline.
  * Ao publicar uma versão nova, mude CACHE (ex.: macro-cnc-v22) para os aparelhos baixarem tudo de novo.
  */
-const CACHE = 'macro-cnc-v24';
+const CACHE = 'macro-cnc-v25';
 const ASSETS = [
   './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './config.js', './programs.js', './training.js', './gcode.js', './macrosim.js', './stock3d.js', './assistant.js', './app.js', './manifest.json',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
@@ -23,6 +23,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;                     // chamadas do assistente (POST) vão direto para a rede
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.indexOf('/videos/') >= 0) return;   // vídeos vêm direto da rede (arquivos grandes)
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then((hit) => {
       const net = fetch(req).then((res) => {

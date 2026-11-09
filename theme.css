@@ -260,3 +260,10 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
 .tr-video > span:first-child .ic { width: 20px; height: 20px; }
 .tr-video > span:nth-child(2) { flex: 1; } .tr-video b { display: block; font-size: 16px; } .tr-video small { color: var(--ui-mut); font-size: 13px; }
 .tr-video .mi-chev { width: 18px; color: var(--ui-mut); }
+
+.tr-vid { margin: 0 0 16px; padding: 12px; border-radius: 16px; border: 1px solid rgba(255,80,80,.45); background: linear-gradient(135deg, rgba(255,60,60,.14), rgba(11,21,38,.9)); }
+.tr-vid-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tr-vid-h > span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #ff3b3b; color: #fff; flex: none; }
+.tr-vid-h .ic { width: 14px; height: 14px; }
+.tr-vid video { display: block; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 9 / 16; border-radius: 12px; background: #000; }
+.tr-t small.tr-hasvid { color: #ff6b6b; font-weight: 700; }

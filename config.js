@@ -3,12 +3,12 @@
  * Assim, quem instalar o app já usa o assistente sem configurar nada.
  */
 window.APP_CONFIG = {
-  version: '3.6.1',
+  version: '3.6.2',
   proxyUrl: '',                 // ex.: 'https://macro-cnc-proxy.seunome.workers.dev'
   model: 'claude-sonnet-5-5',
   maxTokens: 8000,
-  // Vídeos do treinamento: número do capítulo -> link do YouTube (vazio = botão escondido)
+  // Vídeos do treinamento: número do capítulo -> arquivo .mp4 do app (videos/...) ou link do YouTube
   videos: {
-    '7': ''   // Faceamento O1611
+    '7': 'videos/faceamento_O1611.mp4'   // Faceamento O1611
   }
 };

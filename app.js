@@ -750,7 +750,7 @@
       for (var i = g[1]; i < Math.min(g[2], n); i++) {
         var c = TR.chapters[i], sp = trSplit(c.t), done = read.indexOf(i) >= 0;
         h += '<button type="button" class="tr-item' + (done ? ' done' : '') + '" data-cap="' + i + '"><span class="tr-num">' + (done ? '✓' : esc(sp.n)) + '</span><span class="tr-t">' + esc(sp.t) +
-          (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
+          (((window.APP_CONFIG || {}).videos || {})[sp.n] ? '<small class="tr-hasvid">▶ com vídeo</small>' : '') + (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
       }
       h += '</div>';
     });
@@ -767,7 +767,8 @@
     var h = '';
     if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>Ponto-chave</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
     var vids = (window.APP_CONFIG && window.APP_CONFIG.videos) || {}, vurl = vids[sp.n];
-    if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>Assistir vídeo</b><small>Explicação passo a passo, com animação</small></span><span class="mi-chev" data-icon="chev"></span></a>';
+    if (vurl && /\.mp4$/i.test(vurl)) h += '<div class="tr-vid"><div class="tr-vid-h"><span data-icon="play"></span><b>Vídeo: passo a passo com animação</b></div><video src="' + esc(vurl) + '" poster="' + esc(vurl.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video></div>';
+    else if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>Assistir vídeo</b><small>Explicação passo a passo, com animação</small></span><span class="mi-chev" data-icon="chev"></span></a>';
     h += c.html || '';
     if (c.rules) h += rulesHtml();
     if (c.quiz) h += c.quiz.map(function (q, k) {
