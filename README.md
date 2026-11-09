@@ -2,7 +2,7 @@
 
 App instalável (PWA), funciona offline:
 
-- **Programas**: a biblioteca do operador. São 9 macros G65 (O16xx com o principal O00xx) e 9 parametrizados, cada um marcado como *Aprovado na máquina*, *Revisado, sem teste*, *Não testado* ou *Com problema*. Você toca no programa, troca as letras do G65 ou as variáveis #, e o app gera o programa, simula e entrega o arquivo `.txt` do principal e do sub. A aba **Regras** mostra o padrão.
+- **Programas**: a biblioteca do operador. São 9 macros G65 (O16xx com o principal O00xx) e 9 parametrizados, cada um marcado como *Aprovado na máquina*, *Revisado, sem teste*, *Não testado* ou *Com problema*. Você toca no programa, troca as letras do G65 ou as variáveis #, e o app gera o programa, simula e entrega o arquivo `.txt` do principal e do sub. A aba **Treinamento** ensina Custom Macro B do zero, com as macros da biblioteca explicadas bloco a bloco, exercícios, teste rápido e o padrão da oficina.
 - **Pedir programa**: você descreve a peça e o assistente (Claude) monta o programa no mesmo padrão. As regras e os programas da biblioteca vão junto como exemplo.
 - **Editor**: cole ou abra qualquer programa, simule (o simulador executa Macro B de verdade: #, IF/GOTO, THEN, WHILE, G65, G52, G2/G3) e confira erros.
 - **Meus**: programas salvos. Marque *testado na máquina* para o assistente usar o programa como exemplo também.

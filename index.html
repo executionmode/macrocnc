@@ -41,7 +41,7 @@
         <div class="menu">
           <button type="button" class="menu-item" data-go="programas" data-cat="macro"><span class="mi-ico" data-icon="list"></span><span class="mi-txt"><b>Programas</b><small>Macros G65 e exemplos</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="paramintro"><span class="mi-ico" data-icon="cog"></span><span class="mi-txt"><b>Parametrizados</b><small>Variáveis e cálculos</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="regras"><span class="mi-ico" data-icon="rules"></span><span class="mi-txt"><b>Regras</b><small>Padrão, lógica e condições</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="treinamento"><span class="mi-ico" data-icon="cap"></span><span class="mi-txt"><b>Treinamento</b><small>Macros do zero, passo a passo</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="meus"><span class="mi-ico" data-icon="box"></span><span class="mi-txt"><b>Meus Programas</b><small>Biblioteca pessoal</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="editor"><span class="mi-ico" data-icon="edit"></span><span class="mi-txt"><b>Editor de Programa</b><small>Escrever, conferir e simular</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="pedir"><span class="mi-ico" data-icon="chat"></span><span class="mi-txt"><b>Pedir Programa</b><small>O assistente monta no seu padrão</small></span><span class="mi-chev" data-icon="chev"></span></button>
@@ -61,7 +61,7 @@
           <button type="button" data-cat="teste">Em teste</button>
         </div>
         <div id="progList" class="plist"></div>
-        <button type="button" class="info-card" data-go="regras"><span class="ic-circle" data-icon="info"></span><span>Aprenda e aplique<br>programas reais na sua máquina.</span></button>
+        <button type="button" class="info-card" data-go="treinamento"><span class="ic-circle" data-icon="info"></span><span>Aprenda e aplique<br>programas reais na sua máquina.</span></button>
       </div>
     </section>
 
@@ -77,7 +77,7 @@
 
     <!-- PARAMETRIZADOS (apresentação) -->
     <section id="view-paramintro" class="view">
-      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Parametrizados</h1><button type="button" class="ui-ico" data-go="regras" aria-label="Regras"><span data-icon="dots"></span></button></header>
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Parametrizados</h1><button type="button" class="ui-ico" data-go="treinamento" aria-label="Treinamento"><span data-icon="dots"></span></button></header>
       <div class="banner tall"><img src="img/param.jpg" alt=""><div class="banner-title">Programação Parametrizada</div></div>
       <div class="ui-pad">
         <p class="lead">Use variáveis, cálculos e condições para criar programas flexíveis.</p>
@@ -91,10 +91,26 @@
       </div>
     </section>
 
-    <!-- REGRAS -->
-    <section id="view-regras" class="view">
-      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Regras</h1><span class="ui-ico ghost"></span></header>
-      <div class="ui-pad"><p class="lead">O padrão de programação que todos os programas do app seguem.</p><div id="rulesList"></div></div>
+    <!-- TREINAMENTO -->
+    <section id="view-treinamento" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Treinamento</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad">
+        <div class="tr-hero"><span class="tr-hero-ico" data-icon="cap"></span><div><b>Macros FANUC do zero</b><small>Custom Macro B, com as macros reais da biblioteca explicadas bloco a bloco.</small></div></div>
+        <div class="tr-prog"><div class="tr-bar"><div id="trBar"></div></div><span id="trPct">0 de 0 lidos</span></div>
+        <button type="button" class="ui-btn primary center" id="trContinue">Começar</button>
+        <div id="trIntro" class="tr-body"></div>
+        <div id="trList"></div>
+      </div>
+    </section>
+
+    <!-- CAPÍTULO -->
+    <section id="view-capitulo" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="treinamento" aria-label="Voltar"><span data-icon="back"></span></button><h1 id="capTitle">Capítulo</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad">
+        <h2 class="cap-h" id="capH"></h2>
+        <div id="capBody" class="tr-body"></div>
+        <div class="cap-nav"><button type="button" class="ui-btn" id="capPrev">‹ Anterior</button><button type="button" class="ui-btn primary" id="capNext">Próximo ›</button></div>
+      </div>
     </section>
 
     <!-- DETALHE DO PROGRAMA -->
@@ -276,6 +292,7 @@
 
   <script src="config.js"></script>
   <script src="programs.js"></script>
+  <script src="training.js"></script>
   <script src="gcode.js"></script>
   <script src="macrosim.js"></script>
   <script src="stock3d.js"></script>

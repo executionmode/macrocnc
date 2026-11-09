@@ -66,12 +66,14 @@
   }
 
   /* ---------- navegação ---------- */
-  var VIEWS = ['home', 'programas', 'exemplos', 'paramintro', 'regras', 'prog', 'pedir', 'editor', 'meus', 'favoritos', 'perfil', 'config', 'sim'];
-  var TAB_OF = { home: 'home', programas: 'home', exemplos: 'home', paramintro: 'home', regras: 'home', prog: 'home', pedir: 'home', editor: 'home',
+  var VIEWS = ['home', 'programas', 'exemplos', 'paramintro', 'treinamento', 'capitulo', 'prog', 'pedir', 'editor', 'meus', 'favoritos', 'perfil', 'config', 'sim'];
+  var TAB_OF = { home: 'home', programas: 'home', exemplos: 'home', paramintro: 'home', treinamento: 'home', capitulo: 'home', prog: 'home', pedir: 'home', editor: 'home',
     meus: 'meus', favoritos: 'favoritos', perfil: 'perfil', config: 'perfil', sim: null };
   var curView = 'home';
   function show(v, noHash) {
+    if (v === 'regras') v = 'treinamento';
     if (VIEWS.indexOf(v) < 0) v = 'home';
+    if (v === 'capitulo' && capIdx < 0) v = 'treinamento';
     if (v === 'prog' && !cur.p) v = 'programas';
     if (v === 'sim' && !(simView && simView.sim)) v = 'home';
     document.body.classList.toggle('simfull', v === 'sim');
@@ -84,7 +86,7 @@
     curView = v;
     if (v === 'programas') renderList();
     if (v === 'exemplos') renderExemplos();
-    if (v === 'regras') renderRules();
+    if (v === 'treinamento') renderTraining();
     if (v === 'meus') renderLib();
     if (v === 'favoritos') renderFavs();
     if (v === 'pedir') { checkChatSetup(); scrollChat(); }
@@ -718,10 +720,89 @@
     $('#exList').innerHTML = list.map(function (p) { return progCard(p, true); }).join('');
     bindRows($('#exList'));
   }
-  function renderRules() {
-    $('#rulesList').innerHTML = RULES.map(function (r) {
+  function rulesHtml() {
+    return RULES.map(function (r) {
       return '<div class="card rule"><h2>' + esc(r.t) + '</h2><ul>' + r.items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>';
     }).join('');
+  }
+
+  /* ---------- treinamento ---------- */
+  var TR = window.TRAINING || { chapters: [], intro: '' };
+  var capIdx = -1;
+  function trRead() { return store.get('tr.read', []) || []; }
+  function trMark(i) { var r = trRead(); if (r.indexOf(i) < 0) { r.push(i); store.set('tr.read', r); } }
+  function trSplit(t) { var m = /^(\d+)\.\s*(.*)$/.exec(t); return m ? { n: m[1], t: m[2] } : { n: '★', t: t }; }
+  function renderTraining() {
+    var read = trRead(), n = TR.chapters.length;
+    $('#trBar').style.width = Math.round(100 * read.length / Math.max(1, n)) + '%';
+    $('#trPct').textContent = read.length + ' de ' + n + ' lidos';
+    var next = 0; while (next < n && read.indexOf(next) >= 0) next++;
+    if (next >= n) next = 0;
+    var bt = $('#trContinue');
+    bt.textContent = read.length ? (read.length >= n ? 'Rever do início' : 'Continuar: ' + trSplit(TR.chapters[next].t).t) : 'Começar o treinamento';
+    bt.onclick = function () { openCap(next); };
+    $('#trIntro').innerHTML = read.length ? '' : TR.intro;
+    var groups = [['Comece aqui', 0, 1], ['Base: a linguagem', 1, 7], ['As macros, uma por uma', 7, 18], ['Na máquina', 18, 20], ['Pratique', 20, 23], ['Consulta', 23, n]];
+    var h = '';
+    groups.forEach(function (g) {
+      if (g[1] >= n) return;
+      h += '<div class="tr-group">' + esc(g[0]) + '</div><div class="tr-list">';
+      for (var i = g[1]; i < Math.min(g[2], n); i++) {
+        var c = TR.chapters[i], sp = trSplit(c.t), done = read.indexOf(i) >= 0;
+        h += '<button type="button" class="tr-item' + (done ? ' done' : '') + '" data-cap="' + i + '"><span class="tr-num">' + (done ? '✓' : esc(sp.n)) + '</span><span class="tr-t">' + esc(sp.t) +
+          (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
+      }
+      h += '</div>';
+    });
+    $('#trList').innerHTML = h;
+    $$('#trList [data-cap]').forEach(function (b) { b.addEventListener('click', function () { openCap(+b.dataset.cap); }); });
+    paintArt($('#view-treinamento'));
+  }
+  function openCap(i) {
+    var c = TR.chapters[i]; if (!c) return;
+    capIdx = i;
+    var sp = trSplit(c.t);
+    $('#capTitle').textContent = sp.n === '★' ? 'Treinamento' : 'Capítulo ' + sp.n;
+    $('#capH').textContent = sp.t;
+    var h = '';
+    if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>Ponto-chave</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
+    h += c.html || '';
+    if (c.rules) h += rulesHtml();
+    if (c.quiz) h += c.quiz.map(function (q, k) {
+      return '<div class="quiz" data-a="' + q.a + '"><p><b>' + (k + 1) + '.</b> ' + esc(q.q) + '</p>' + q.o.map(function (o, j) { return '<button type="button" class="qopt" data-j="' + j + '">' + esc(o) + '</button>'; }).join('') + '<div class="qres"></div></div>';
+    }).join('') + '<div class="qscore" id="qScore"></div>';
+    if (c.sims && c.sims.length) {
+      h += '<div class="tr-sims"><b>Pratique no app</b><small>Abra, mude as letras e simule em 3D.</small>';
+      c.sims.forEach(function (id) {
+        var p = PROGRAMS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
+        h += '<button type="button" class="tr-sim" data-prog="' + esc(id) + '"><span data-icon="play"></span><span><b>' + esc(p.title) + '</b><small class="mono">' + esc(nums(p)) + '</small></span><span class="mi-chev" data-icon="chev"></span></button>';
+      });
+      h += '</div>';
+    }
+    $('#capBody').innerHTML = h;
+    $$('#capBody [data-prog]').forEach(function (b) { b.addEventListener('click', function () { openProg(b.dataset.prog); }); });
+    $$('#capBody .quiz').forEach(function (qz) {
+      qz.querySelectorAll('.qopt').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (qz.dataset.done) return; qz.dataset.done = 1;
+          var ok = +b.dataset.j === +qz.dataset.a;
+          b.classList.add(ok ? 'ok' : 'bad');
+          qz.querySelectorAll('.qopt')[+qz.dataset.a].classList.add('ok');
+          qz.querySelector('.qres').textContent = ok ? 'Certo!' : 'Não foi dessa vez.';
+          var all = $$('#capBody .quiz'), done = all.filter(function (x) { return x.dataset.done; });
+          if (done.length === all.length) {
+            var pts = all.filter(function (x) { return x.querySelector('.qopt.bad') === null; }).length;
+            $('#qScore').textContent = 'Você acertou ' + pts + ' de ' + all.length + '.';
+          }
+        });
+      });
+    });
+    $('#capPrev').disabled = i === 0;
+    $('#capNext').textContent = i >= TR.chapters.length - 1 ? 'Concluir ✓' : 'Próximo ›';
+    $('#capPrev').onclick = function () { trMark(capIdx); openCap(capIdx - 1); };
+    $('#capNext').onclick = function () { trMark(capIdx); if (capIdx >= TR.chapters.length - 1) show('treinamento'); else openCap(capIdx + 1); };
+    show('capitulo');
+    paintArt($('#view-capitulo'));
   }
 
   /* miniaturas: a peça pronta desenhada pelo próprio simulador */

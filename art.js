@@ -92,6 +92,7 @@
     box: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>',
     edit: '<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
     spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>',
+    cap: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5 2.5 9Z"/><path d="M6.5 11v4.5c1.5 1.6 3.4 2.4 5.5 2.4s4-.8 5.5-2.4V11M21.5 9v5.5"/>',
     play: '<path d="M8 5v14l11-7L8 5Z" fill="currentColor"/>',
     home: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z"/>',
     folder: '<path d="M3.5 7.5h17v12h-17zM3.5 7.5V5h6l2 2.5"/><path d="M9 12.5h6"/>',
