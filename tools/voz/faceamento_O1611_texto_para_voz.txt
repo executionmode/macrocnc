@@ -8,30 +8,30 @@ Na máquina, você só muda as letras do G sessenta e cinco. A macro ninguém me
 Cada letra do G sessenta e cinco vira uma variável dentro da macro.
 X e Y são o tamanho da área: duzentos e quinze por duzentos e quinze.
 W é o topo da peça. Z é o Z final.
-K é o passe em Z. T é o diâmetro da fresa.
+K é o passe em Z. T é o diâmetro da frésa.
 Q é o passo lateral. A é a folga fora da peça.
 R é o plano de segurança e F é o avanço.
 
-Primeiro bloco: o raio da fresa.
-T é 50, então a variável cem vale 50 dividido por 2: 25.
+Primeiro bloco: o raio da frésa.
+T é cinquenta, então a variável cem vale cinquenta dividido por dois: vinte e cinco.
 
-Agora, até onde o centro da fresa vai em X.
-Metade da área, cento e sete e meio, mais o raio, 25, mais a folga, 5.
-Dá cento e trinta e sete e meio. Assim a fresa sai inteira para fora da peça.
+Agora, até onde o centro da frésa vai em X.
+Metade da área, cento e sete e meio, mais o raio, vinte e cinco, mais a folga, cinco.
+Dá cento e trinta e sete e meio. Assim a frésa sai inteira para fora da peça.
 
-Em Y, a última linha fica em cento e sete e meio menos 25.
-Dá oitenta e dois e meio. A borda da fresa para exatamente no limite da área.
-Se a fresa for maior que a área, o IF faz uma linha só, no meio.
+Em Y, a última linha fica em cento e sete e meio menos vinte e cinco.
+Dá oitenta e dois e meio. A borda da frésa para exatamente no limite da área.
+Se a frésa for maior que a área, o IF faz uma linha só, no meio.
 
 Antes de mexer, a macro confere os dados.
-Z acima do topo, K zero, Q zero ou Q maior que a fresa: alarmes cento e um a cento e quatro.
+Z acima do topo, K zero, Q zero ou Q maior que a frésa: alarmes cento e um a cento e quatro.
 Melhor parar com alarme do que cortar errado.
 
 A superfície atual começa no topo: a variável cento e quatro recebe W, que é zero.
 N dez: cada camada desce K. Zero menos dois e meio dá Z menos dois e meio.
-O IF garante que a fresa nunca passa do Z final.
+O IF garante que a frésa nunca passa do Z final.
 
-A fresa vai em rápido para X menos cento e trinta e sete e meio, Y menos oitenta e dois e meio, fora da peça.
+A frésa vai em rápido para X menos cento e trinta e sete e meio, Y menos oitenta e dois e meio, fora da peça.
 Desce em rápido até o plano de segurança: Z vinte e cinco.
 E entra em avanço até Z menos dois e meio, ainda no ar, fora da peça.
 
@@ -42,7 +42,7 @@ Y passa por menos oitenta e dois e meio, menos cinquenta e dois e meio, menos vi
 A próxima seria noventa e sete e meio. Passa do limite, então o IF trava em oitenta e dois e meio.
 GOTO vinte repete o corte. No total são 7 linhas.
 
-N trinta: terminou a camada, a fresa sobe para o plano de segurança.
+N trinta: terminou a camada, a frésa sobe para o plano de segurança.
 Se ainda falta chegar no Z final, volta ao N dez para a próxima camada.
 Por exemplo, com Z menos cinco e K dois e meio, seriam duas camadas.
 Chegou no fundo? M noventa e nove volta para o programa principal.
