@@ -1,0 +1,57 @@
+Nesta aula, vamos ver por dentro a macro de furos em círculo, a O dezesseis doze.
+O foco são as contas: como a macro acha sozinha a posição de cada furo.
+
+No programa principal, a linha G sessenta e cinco P dezesseis doze chama a macro e passa as medidas.
+X e Y: centro do círculo. J: diâmetro, trezentos e setenta e cinco. B: doze furos. A: primeiro furo a quinze graus.
+H zero: furar. W e Z: topo e fundo. R: plano de segurança. Q: bicada. F: avanço.
+Cada letra vira uma variável: J vira a variável cinco, B vira a dois, e A vira a um. Agora, a macro por dentro.
+
+A primeira linha da macro é uma conferência.
+Se B for menor que um, não existe furo para fazer, e o alarme cento e onze para a máquina.
+Aqui B é doze. Doze não é menor que um, então a macro segue.
+
+Agora a primeira conta: o raio do círculo.
+A variável vinte e sete recebe a variável cinco dividida por dois. E a cinco é o J, o diâmetro do círculo: trezentos e setenta e cinco.
+Trezentos e setenta e cinco dividido por dois dá cento e oitenta e sete e meio. Esse é o raio: a distância do centro até cada furo.
+Atenção: J é o diâmetro. Se colocar o raio no J, os furos saem na metade da distância.
+
+Segunda conta: o ângulo entre um furo e o próximo.
+Uma volta completa tem trezentos e sessenta graus. A macro divide pela quantidade de furos: trezentos e sessenta dividido pela variável dois.
+Trezentos e sessenta dividido por doze dá trinta. Então, a cada trinta graus tem um furo.
+E a variável vinte e nove começa valendo um. Ela é o contador: diz em qual furo a macro está.
+
+O N dez é onde começa cada furo. A primeira conta é o ângulo dele.
+A variável trinta é o ângulo do primeiro furo, mais quantos furos já passaram, vezes trinta.
+No furo um: quinze, mais um menos um, que é zero, vezes trinta. Fica quinze graus.
+No furo dois: quinze, mais uma vez trinta. Dá quarenta e cinco graus.
+No furo três: quinze, mais duas vezes trinta: setenta e cinco graus. Sempre a partir do X positivo, no sentido anti-horário.
+
+Com o ângulo, a macro acha o X do furo usando o cosseno.
+Pense no raio como uma régua inclinada a quinze graus. O cosseno diz quanto dessa régua fica deitado, na direção X.
+O cosseno de quinze graus é zero vírgula nove meia meia. Então cento e oitenta e sete e meio vezes zero vírgula nove meia meia dá cento e oitenta e um vírgula onze.
+Somando o centro X, que é zero, a variável trinta e um fica cento e oitenta e um vírgula onze.
+
+O Y é igual, mas com o seno: quanto da régua fica em pé, na direção Y.
+O seno de quinze graus é zero vírgula dois cinco nove. Cento e oitenta e sete e meio vezes zero vírgula dois cinco nove dá quarenta e oito vírgula cinquenta e três.
+Somando o centro Y, que é zero, a variável trinta e dois fica quarenta e oito vírgula cinquenta e três. Pronto: a posição do furo um.
+
+E quando o furo fica do outro lado do centro? Veja o furo quatro, a cento e cinco graus.
+O cosseno de cento e cinco graus é negativo: menos zero vírgula dois cinco nove. Então o X dá menos quarenta e oito vírgula cinquenta e três, à esquerda do centro.
+A macro não precisa de IF para isso. O seno e o cosseno já trazem o sinal certo em cada lado.
+
+Com X e Y prontos, o H escolhe a operação. H zero é furar, H um chama a hélice e H dois chama a rosca.
+Com H zero e Q maior que zero, a macro vai para o N quinze: G oitenta e três, furação com bicada.
+Na hora de executar, cada variável vira número. X trinta e um vira X cento e oitenta e um vírgula um um um, Y trinta e dois vira Y quarenta e oito vírgula cinco dois nove, e o R fica zero mais cinco: R cinco.
+A broca desce oito milímetros por vez, sobe para tirar o cavaco e volta, até Z menos trinta.
+
+No N quarenta, a macro pergunta: a variável vinte e nove já chegou em B? Um é maior ou igual a doze? Não.
+Então a vinte e nove recebe ela mesma mais um. O contador vai para dois, e o GOTO dez volta para o começo.
+Tudo se repete: novo ângulo, novo X e Y, nova furação. Furo por furo, até o último.
+No furo doze, a resposta é sim, e a macro pula para o N cinquenta.
+
+No N cinquenta, o G oitenta cancela o ciclo de furação, para a máquina não furar no próximo movimento.
+O G noventa e oito volta ao padrão, e o M noventa e nove volta para o programa principal.
+
+Resumindo as contas: raio, ângulo entre furos, ângulo de cada furo, e o X e o Y com cosseno e seno.
+Na primeira peça, teste com W cinquenta e Z quarenta e nove: a broca faz tudo no ar.
+E simule antes no app Macro CNC. Até a próxima macro!
