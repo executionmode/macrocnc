@@ -60,7 +60,12 @@
     var rc = Math.ceil(r / cell), disc = [];
     for (var dj = -rc; dj <= rc; dj++) for (var di = -rc; di <= rc; di++) {
       var rho = Math.sqrt(di * di + dj * dj) * cell;
-      if (rho * rho <= r * r + 1e-9) disc.push(di, dj, cotHalf ? Math.max(0, rho - tipR) * cotHalf : 0);
+      var dz0 = cotHalf ? Math.max(0, rho - tipR) * cotHalf : 0;
+      if (shape3 && shape3.type === 'r') {   // pastilha redonda: canto com raio E
+        var Er = Math.min(r, Math.max(0, +shape3.cornerR || 0)), u = rho - (r - Er);
+        dz0 = u > 0 ? Er - Math.sqrt(Math.max(0, Er * Er - u * u)) : 0;
+      }
+      if (rho * rho <= r * r + 1e-9) disc.push(di, dj, dz0);
     }
     var h = new Float32Array(nx * ny), inside = new Uint8Array(nx * ny);
     for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
@@ -212,6 +217,16 @@
         poly([ea[0], eb[0], eb[1], ea[1]]); c.fill();
         poly(A); c.fill();
         return B;
+      }
+      if (st.toolShape && st.toolShape.type === 'r') {
+        // fresa de pastilha redonda: canto arredondado de raio E
+        var Er2 = Math.min(r, +st.toolShape.cornerR || 0);
+        body(z0, z0 + Er2 * 0.3, Math.max(r - Er2 * 0.95, 0.05), r - Er2 * 0.45, '#1d242c', '#8f9baa', '#c0cad6');
+        body(z0 + Er2 * 0.3, z0 + Er2, r - Er2 * 0.45, r, '#1d242c', '#8f9baa', '#c0cad6');
+        body(z0 + Er2, z0 + L, r * 0.9, r * 0.9, '#3a434e', '#c9d3dd', '#eef3f8');
+        var topR = body(z0 + L, z0 + L + L * 0.5, r * 1.2, r * 2, '#2a313a', '#8b96a3', '#c3ccd6');
+        c.fillStyle = '#5d6874'; poly(topR); c.fill();
+        return;
       }
       if (st.toolShape && st.toolShape.type === 'v') {
         // fresa cônica 90°: ponta (plana ou viva) abrindo até o diâmetro maior
