@@ -80,7 +80,8 @@ function codePanel(lines, hl, y0, nVis, opts) {
     const k = first + i, yy = y0 + 64 + i * lh, on = hs.indexOf(k) >= 0;
     if (on) { g.fillStyle = 'rgba(47,134,255,.32)'; g.fillRect(x0 + 4, yy, w - 8, lh); g.fillStyle = C.blue; g.fillRect(x0 + 4, yy, 7, lh); }
     text(String(k + 1).padStart(2, ' '), x0 + 26, yy + 31, 24, on ? C.cyan : '#4c5f78', { mono: true });
-    text(lines[k], x0 + 80, yy + 31, 31, on ? '#ffffff' : (hs.length ? '#8fa3bd' : '#cfe3ff'), { mono: true, w: on ? 700 : 400 });
+    g.font = (on ? 700 : 400) + ' 31px ' + M; const lw = g.measureText(lines[k]).width, fs = lw > w - 110 ? Math.floor(31 * (w - 110) / lw) : 31;
+    text(lines[k], x0 + 80, yy + 31, fs, on ? '#ffffff' : (hs.length ? '#8fa3bd' : '#cfe3ff'), { mono: true, w: on ? 700 : 400 });
   }
   g.restore();
 }
