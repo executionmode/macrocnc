@@ -1,0 +1,57 @@
+In this lesson, we look inside the bolt circle macro, O sixteen twelve.
+The focus is the math: how the macro finds the position of every hole by itself.
+
+In the main program, the line G sixty-five P sixteen twelve calls the macro and passes the sizes.
+X and Y: circle center. J: diameter, three hundred seventy-five. B: twelve holes. A: first hole at fifteen degrees.
+H zero: drill. W and Z: top and bottom. R: clearance plane. Q: peck. F: feed rate.
+Each letter becomes a variable: J becomes variable five, B becomes variable two, and A becomes variable one. Now, inside the macro.
+
+The first line of the macro is a check.
+If B is less than one, there is no hole to make, and alarm one eleven stops the machine.
+Here B is twelve. Twelve is not less than one, so the macro goes on.
+
+Now the first calculation: the circle radius.
+Variable twenty-seven gets variable five divided by two. And variable five is J, the circle diameter: three hundred seventy-five.
+Three hundred seventy-five divided by two is one hundred eighty-seven point five. That is the radius: the distance from the center to each hole.
+Careful: J is the diameter. If you put the radius in J, the holes end up at half the distance.
+
+Second calculation: the angle from one hole to the next.
+A full turn is three hundred sixty degrees. The macro divides it by the number of holes: three sixty divided by variable two.
+Three sixty divided by twelve is thirty. So there is a hole every thirty degrees.
+And variable twenty-nine starts at one. It is the counter: it tells which hole the macro is on.
+
+N ten is where each hole starts. The first calculation is its angle.
+Variable thirty is the angle of the first hole, plus how many holes have passed, times thirty.
+Hole one: fifteen, plus one minus one, which is zero, times thirty. That stays fifteen degrees.
+Hole two: fifteen, plus one times thirty. That gives forty-five degrees.
+Hole three: fifteen, plus two times thirty: seventy-five degrees. Always from X positive, counterclockwise.
+
+With the angle, the macro finds the hole X using the cosine.
+Think of the radius as a ruler tilted at fifteen degrees. The cosine tells how much of that ruler lies flat, along X.
+The cosine of fifteen degrees is zero point nine six six. So one eighty-seven point five times zero point nine six six is one eighty-one point one one.
+Adding center X, which is zero, variable thirty-one is one eighty-one point one one.
+
+Y works the same way, with the sine: how much of the ruler stands up, along Y.
+The sine of fifteen degrees is zero point two five nine. One eighty-seven point five times zero point two five nine is forty-eight point five three.
+Adding center Y, which is zero, variable thirty-two is forty-eight point five three. Done: the position of hole one.
+
+What if the hole is on the other side of the center? Look at hole four, at one hundred five degrees.
+The cosine of one hundred five degrees is negative: minus zero point two five nine. So X is minus forty-eight point five three, left of the center.
+The macro needs no IF for this. Sine and cosine already bring the right sign on each side.
+
+With X and Y ready, H picks the operation. H zero drills, H one calls the helix and H two calls the thread.
+With H zero and Q greater than zero, the macro jumps to N fifteen: G eighty-three, peck drilling.
+When it runs, every variable becomes a number. X thirty-one becomes X one eighty-one point one one one, Y thirty-two becomes Y forty-eight point five two nine, and R is zero plus five: R five.
+The drill goes down eight millimeters at a time, backs out to clear the chips, and goes back in, down to Z minus thirty.
+
+At N forty, the macro asks: has variable twenty-nine reached B? Is one greater than or equal to twelve? No.
+So variable twenty-nine gets itself plus one. The counter goes to two, and GO TO ten goes back to the start.
+Everything repeats: new angle, new X and Y, new drilling. Hole by hole, up to the last one.
+At hole twelve, the answer is yes, and the macro jumps to N fifty.
+
+At N fifty, G eighty cancels the drilling cycle, so the machine does not drill on the next move.
+G ninety-eight goes back to the default, and M ninety-nine returns to the main program.
+
+To sum up the math: radius, angle between holes, angle of each hole, and X and Y with cosine and sine.
+On the first part, test with W fifty and Z forty-nine: the drill does everything in the air.
+And simulate first in the Macro CNC app. See you in the next macro!

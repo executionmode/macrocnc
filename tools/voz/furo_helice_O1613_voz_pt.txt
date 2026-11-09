@@ -1,0 +1,43 @@
+Nesta aula, vamos ver por dentro a macro de furo fresado em hélice, a O dezesseis treze.
+Com uma fresa menor, ela abre um furo maior descendo em espiral, volta por volta.
+
+No programa principal, a linha G sessenta e cinco P dezesseis treze chama a macro e passa as medidas.
+X e Y: centro do furo. D: diâmetro do furo, trinta e cinco. T: diâmetro da fresa, vinte.
+W: topo. Z: fundo do furo, menos vinte e cinco vírgula quatro. K: quanto desce em cada volta, dois.
+R: plano de segurança. F: avanço.
+D vira a variável sete, T vira a vinte, e K vira a seis. Agora, a macro por dentro.
+
+A primeira conta é a mais importante: por onde anda o centro da fresa.
+A fresa tem vinte de diâmetro e precisa encostar na parede do furo, que tem trinta e cinco.
+Então a variável cem é o furo menos a fresa, dividido por dois: trinta e cinco menos vinte dá quinze, dividido por dois dá sete e meio.
+O centro da fresa anda num círculo pequeno, de raio sete e meio. E a borda da fresa corta o furo de trinta e cinco.
+
+Um cuidado: o furo tem que ser menor que duas vezes a fresa.
+Aqui, trinta e cinco é menor que quarenta. A fresa passa por cima do centro e não sobra nada no meio.
+Se o furo for maior que isso, fica um pino de material no centro.
+
+A variável cento e sete vale zero vírgula cinco: é quanto a fresa se afasta da parede antes de subir.
+Depois, três conferências: furo menor ou igual à fresa dá o alarme cento e vinte e um. K zero, alarme cento e vinte e dois. Z acima do topo, alarme cento e vinte e três.
+Com os dados certos, a macro segue.
+
+A fresa vai em rápido para o centro do furo e desce até o plano de segurança: Z cinco.
+Depois anda em X até o raio da trajetória: X mais a variável cem, ou seja, X sete e meio.
+E desce em avanço até o topo da peça, Z zero. Agora começa a hélice.
+
+A variável cento e quatro guarda onde a volta começa: no topo, zero.
+No N dez, a variável cento e três é onde a volta termina: cento e quatro menos K. Zero menos dois dá menos dois.
+O G três dá uma volta completa no sentido anti-horário. Termina no mesmo X e Y, mas o Z desceu dois. Isso é a hélice.
+O I é a distância do ponto de partida até o centro: menos a variável cem, I menos sete e meio.
+
+Depois da volta, a cento e quatro recebe a cento e três. Se ainda não chegou no fundo, o GOTO dez faz outra volta.
+Zero, menos dois, menos quatro, e assim por diante, dois milímetros por volta.
+São doze voltas cheias até Z menos vinte e quatro.
+A próxima seria menos vinte e seis, que passa do fundo. O IF trava em menos vinte e cinco vírgula quatro: a última volta desce só um vírgula quatro.
+
+No fundo, a macro dá mais uma volta sem descer. Ela limpa a rampa que a hélice deixou no fundo.
+Depois, a fresa se afasta meio milímetro da parede: X mais a cem menos a cento e sete, X sete.
+Assim ela sobe em rápido sem riscar a parede, e o M noventa e nove volta para o programa principal.
+
+Resumindo: raio da trajetória, aproximação, cada volta desce K, o IF trava no fundo, volta final e afasta.
+Na primeira peça, teste com W cinquenta e Z quarenta e nove: a fresa faz tudo no ar.
+E simule antes no app Macro CNC. Até a próxima macro!
