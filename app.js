@@ -729,6 +729,8 @@
   /* ---------- treinamento ---------- */
   var TR = window.TRAINING || { chapters: [], intro: '' };
   var capIdx = -1;
+  // vídeo do capítulo: um link só, ou um por idioma { pt: ..., en: ..., 'fr-CA': ... } (sem o idioma, usa o português)
+  function videoFor(v) { if (!v || typeof v === 'string') return v || ''; var l = (window.I18N && I18N.lang) || 'pt'; return v[l] || v.pt || ''; }
   function trRead() { return store.get('tr.read', []) || []; }
   function trMark(i) { var r = trRead(); if (r.indexOf(i) < 0) { r.push(i); store.set('tr.read', r); } }
   function trSplit(t) { var m = /^(\d+)\.\s*(.*)$/.exec(t); return m ? { n: m[1], t: m[2] } : { n: '★', t: t }; }
@@ -750,7 +752,7 @@
       for (var i = g[1]; i < Math.min(g[2], n); i++) {
         var c = TR.chapters[i], sp = trSplit(c.t), done = read.indexOf(i) >= 0;
         h += '<button type="button" class="tr-item' + (done ? ' done' : '') + '" data-cap="' + i + '"><span class="tr-num">' + (done ? '✓' : esc(sp.n)) + '</span><span class="tr-t">' + esc(sp.t) +
-          (((window.APP_CONFIG || {}).videos || {})[sp.n] ? '<small class="tr-hasvid">▶ com vídeo</small>' : '') + (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
+          (videoFor(((window.APP_CONFIG || {}).videos || {})[sp.n]) ? '<small class="tr-hasvid">▶ com vídeo</small>' : '') + (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
       }
       h += '</div>';
     });
@@ -766,7 +768,7 @@
     $('#capH').textContent = sp.t;
     var h = '';
     if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>Ponto-chave</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
-    var vids = (window.APP_CONFIG && window.APP_CONFIG.videos) || {}, vurl = vids[sp.n];
+    var vids = (window.APP_CONFIG && window.APP_CONFIG.videos) || {}, vurl = videoFor(vids[sp.n]);
     if (vurl && /\.mp4$/i.test(vurl)) h += '<div class="tr-vid"><div class="tr-vid-h"><span data-icon="play"></span><b>Vídeo: passo a passo com animação</b></div><video src="' + esc(vurl) + '" poster="' + esc(vurl.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video></div>';
     else if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>Assistir vídeo</b><small>Explicação passo a passo, com animação</small></span><span class="mi-chev" data-icon="chev"></span></a>';
     h += c.html || '';
@@ -1221,14 +1223,22 @@
         '<li><b>Meus Programas:</b> toque num programa para simular, abrir, marcar como testado ou apagar. Testados viram exemplo para o assistente.</li>' +
         '<li><b>Enviar para a máquina:</b> pendrive FAT32 na USB do painel. Em EDIT: PROG, (OPRT), READ, número e EXEC.</li></ul>';
     }],
+    idioma: ['Idioma', function () {
+      var L = window.I18N || { lang: 'pt', langs: { pt: 'Português' } };
+      return '<p class="hint">' + T('O app, o treinamento e os vídeos aparecem no idioma escolhido. Os programas G-code são iguais em qualquer idioma.') + '</p><div class="langs notr">' +
+        Object.keys(L.langs).map(function (k) { var ok = !L.ready || L.ready[k]; return '<button type="button" class="ui-btn' + (k === L.lang ? ' primary' : '') + '"' + (ok ? ' data-lang="' + k + '"' : ' disabled') + '>' + esc(L.langs[k]) + (k === L.lang ? ' ✓' : '') + (ok ? '' : ' · ' + T('em breve')) + '</button>'; }).join('') + '</div>';
+    }],
     avaliar: ['Avaliar o App', function () {
       return '<p>Obrigado por usar o Macro CNC! A avaliação na loja fica disponível quando o app for publicado na Play Store ou na App Store.</p><p class="hint">Enquanto isso, mande sugestões e problemas para quem te passou o app.</p>';
     }]
   };
   document.addEventListener('click', function (e) {
+    var lg = e.target.closest('[data-lang]');
+    if (lg && window.I18N) { if (lg.dataset.lang !== I18N.lang) I18N.setLang(lg.dataset.lang); else closeSheet(); return; }
     var s = e.target.closest('[data-sheet]'); if (!s) return;
     var d = SHEETS[s.dataset.sheet]; if (d) openSheet(d[0], d[1]());
   });
+  if ($('#langName') && window.I18N) $('#langName').textContent = I18N.langs[I18N.lang];
   $('#btnShareApp').addEventListener('click', async function () {
     var url = location.href.split('#')[0];
     try { if (navigator.share) { await navigator.share({ title: 'Macro CNC', text: 'Macros e programas parametrizados FANUC com simulação 3D', url: url }); return; } } catch (e) { if (e.name === 'AbortError') return; }

@@ -1,9 +1,9 @@
 /* Service worker — deixa o app funcionando offline.
  * Ao publicar uma versão nova, mude CACHE (ex.: macro-cnc-v22) para os aparelhos baixarem tudo de novo.
  */
-const CACHE = 'macro-cnc-v25';
+const CACHE = 'macro-cnc-v26';
 const ASSETS = [
-  './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './config.js', './programs.js', './training.js', './gcode.js', './macrosim.js', './stock3d.js', './assistant.js', './app.js', './manifest.json',
+  './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './i18n.js', './config.js', './programs.js', './training.js', './gcode.js', './macrosim.js', './stock3d.js', './assistant.js', './app.js', './manifest.json',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];
 

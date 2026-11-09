@@ -267,3 +267,7 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
 .tr-vid-h .ic { width: 14px; height: 14px; }
 .tr-vid video { display: block; width: 100%; max-width: 420px; margin: 0 auto; aspect-ratio: 9 / 16; border-radius: 12px; background: #000; }
 .tr-t small.tr-hasvid { color: #ff6b6b; font-weight: 700; }
+
+.plink[data-sheet="idioma"] { grid-template-columns: 26px 1fr auto 20px; }
+.plink-v { color: var(--ui-mut); font-size: 14px; }
+.langs { display: grid; gap: 10px; margin-top: 12px; } .langs .ui-btn { justify-content: center; }

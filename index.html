@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Macro CNC">
   <title>Macro CNC</title>
+  <script src="i18n.js"></script>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -228,6 +229,7 @@
         <div class="plinks">
           <button type="button" class="plink" data-sheet="sobre"><span data-icon="info"></span>Sobre o App<span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="plink" data-sheet="ajuda"><span data-icon="help"></span>Ajuda e Suporte<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink" data-sheet="idioma"><span data-icon="globe"></span>Idioma<span class="plink-v notr" id="langName"></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="plink" data-go="config"><span data-icon="gear"></span>Configurações<span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="plink" id="btnShareApp"><span data-icon="share"></span>Compartilhar App<span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="plink" data-sheet="avaliar"><span data-icon="star"></span>Avaliar o App<span class="mi-chev" data-icon="chev"></span></button>
@@ -292,12 +294,15 @@
 
   <script src="config.js"></script>
   <script src="programs.js"></script>
+  <script>I18N.pack('programs')</script>
   <script src="training.js"></script>
+  <script>I18N.pack('training')</script>
   <script src="gcode.js"></script>
   <script src="macrosim.js"></script>
   <script src="stock3d.js"></script>
   <script src="art.js"></script>
   <script src="assistant.js"></script>
+  <script>I18N.start()</script>
   <script src="app.js"></script>
 </body>
 </html>
