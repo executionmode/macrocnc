@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03070f">
+  <meta name="description" content="Biblioteca de macros e programas parametrizados FANUC, simulador e assistente CNC.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Macro CNC">
+  <title>Macro CNC</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <!-- ABERTURA -->
+  <div id="splash" class="splash">
+    <div class="splash-art"><img src="img/splash.jpg" alt=""></div>
+    <div class="splash-shade"></div>
+    <div class="splash-content">
+      <img class="logo-img" src="img/logo.jpg" alt="Macro CNC" style="width:250px">
+      <p class="splash-tag">Programação inteligente<br>para o seu CNC</p>
+      <div class="splash-bar"><div></div></div>
+      <p class="splash-load">Carregando...</p>
+    </div>
+  </div>
+
+  <main>
+    <!-- INÍCIO -->
+    <section id="view-home" class="view active">
+      <div class="home-hero">
+        <div class="hero-art"><img src="img/home.jpg" alt=""></div>
+        <div class="hero-shade"></div>
+        <button id="btnConfig" class="hero-gear" type="button" aria-label="Configurações"></button>
+        <div class="home-welcome"><h1>Bem-vindo!</h1><p>Seu assistente de programação FANUC</p></div>
+      </div>
+      <div class="ui-pad">
+        <div class="menu">
+          <button type="button" class="menu-item" data-go="programas" data-cat="macro"><span class="mi-ico" data-icon="list"></span><span class="mi-txt"><b>Programas</b><small>Macros G65 e exemplos</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="paramintro"><span class="mi-ico" data-icon="cog"></span><span class="mi-txt"><b>Parametrizados</b><small>Variáveis e cálculos</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="regras"><span class="mi-ico" data-icon="rules"></span><span class="mi-txt"><b>Regras</b><small>Padrão, lógica e condições</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="meus"><span class="mi-ico" data-icon="box"></span><span class="mi-txt"><b>Meus Programas</b><small>Biblioteca pessoal</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="editor"><span class="mi-ico" data-icon="edit"></span><span class="mi-txt"><b>Editor de Programa</b><small>Escrever, conferir e simular</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="pedir"><span class="mi-ico" data-icon="chat"></span><span class="mi-txt"><b>Pedir Programa</b><small>O assistente monta no seu padrão</small></span><span class="mi-chev" data-icon="chev"></span></button>
+        </div>
+        <button type="button" class="ui-btn primary wide" data-go="exemplos"><span data-icon="play"></span> Começar a explorar</button>
+      </div>
+    </section>
+
+    <!-- PROGRAMAS -->
+    <section id="view-programas" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Programas</h1><button type="button" class="ui-ico" id="btnProgSearch" aria-label="Buscar"><span data-icon="search"></span></button></header>
+      <div class="ui-pad">
+        <input id="progSearch" class="ui-input hidden" placeholder="Buscar programa…">
+        <div class="pills" id="catSeg">
+          <button type="button" data-cat="macro" class="on">Macros G65</button>
+          <button type="button" data-cat="param">Parametrizados</button>
+          <button type="button" data-cat="teste">Em teste</button>
+        </div>
+        <div id="progList" class="plist"></div>
+        <button type="button" class="info-card" data-go="regras"><span class="ic-circle" data-icon="info"></span><span>Aprenda e aplique<br>programas reais na sua máquina.</span></button>
+      </div>
+    </section>
+
+    <!-- EXEMPLOS PRÁTICOS -->
+    <section id="view-exemplos" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Exemplos Práticos</h1><span class="ui-ico ghost"></span></header>
+      <div class="banner"><img src="img/exemplos.jpg" alt=""></div>
+      <div class="ui-pad">
+        <div id="exList" class="plist simple"></div>
+        <button type="button" class="info-card" data-go="programas" data-cat="macro"><span class="ic-circle bulb" data-icon="bulb"></span><span>Veja exemplos reais<br>aplicados na usinagem.</span></button>
+      </div>
+    </section>
+
+    <!-- PARAMETRIZADOS (apresentação) -->
+    <section id="view-paramintro" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Parametrizados</h1><button type="button" class="ui-ico" data-go="regras" aria-label="Regras"><span data-icon="dots"></span></button></header>
+      <div class="banner tall"><img src="img/param.jpg" alt=""><div class="banner-title">Programação Parametrizada</div></div>
+      <div class="ui-pad">
+        <p class="lead">Use variáveis, cálculos e condições para criar programas flexíveis.</p>
+        <ul class="checks">
+          <li><span data-icon="check"></span>Variáveis e expressões</li>
+          <li><span data-icon="check"></span>Colchetes e cálculos</li>
+          <li><span data-icon="check"></span>IF e GOTO</li>
+          <li><span data-icon="check"></span>Funções matemáticas</li>
+        </ul>
+        <button type="button" class="ui-btn primary center" data-go="programas" data-cat="param">Ver detalhes <span data-icon="chev"></span></button>
+      </div>
+    </section>
+
+    <!-- REGRAS -->
+    <section id="view-regras" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Regras</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad"><p class="lead">O padrão de programação que todos os programas do app seguem.</p><div id="rulesList"></div></div>
+    </section>
+
+    <!-- DETALHE DO PROGRAMA -->
+    <section id="view-prog" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" id="btnBack" aria-label="Voltar"><span data-icon="back"></span></button><h1>Programa</h1><button type="button" class="ui-ico" id="btnFavProg" aria-label="Favorito"><span data-icon="star"></span></button></header>
+      <div class="ui-pad">
+        <div id="progHead"></div>
+        <div class="card" id="progFormCard">
+          <div id="progPresets"></div>
+          <form id="progForm" autocomplete="off"></form>
+          <div class="row wrap">
+            <button type="button" class="ui-btn primary" id="btnProgGen"><span data-icon="play"></span> Gerar e simular</button>
+            <button type="button" class="ui-btn" id="btnProgReset">Valores originais</button>
+          </div>
+          <div id="progErr"></div>
+        </div>
+        <div id="progSubs"></div>
+        <div id="progOut" class="hidden">
+          <div class="card"><h2>Simulação</h2><div id="progSimSum"></div>
+            <div class="row"><button type="button" class="ui-btn primary" id="btnOpenSim"><span data-icon="play"></span> Abrir simulação</button></div></div>
+          <div id="progFiles"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA DE SIMULAÇÃO (sem mudanças) -->
+    <section id="view-sim" class="view">
+      <div class="simtop"><button type="button" class="chip" id="btnSimBack">‹ Voltar</button><b>Simulação da usinagem</b><span id="simName" class="mono"></span></div>
+      <div id="simScreen"></div>
+    </section>
+
+    <!-- PEDIR PROGRAMA (ASSISTENTE) -->
+    <section id="view-pedir" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Pedir Programa</h1><button type="button" class="ui-chip" id="btnNewChat">Nova</button></header>
+      <div class="ui-pad">
+        <div id="chatSetup" class="card hidden">
+          <p>O assistente ainda não está ligado. Abra <b>Configurações</b> e informe o endereço do servidor (proxy) ou uma chave da API Anthropic.</p>
+          <button type="button" class="ui-btn primary" id="btnGoConfig">Abrir configurações</button>
+        </div>
+        <div id="chatLog" class="chat-log"></div>
+      </div>
+      <div class="chat-input">
+        <div class="chat-opts">
+          <select id="chatKind" class="input small-sel" aria-label="Tipo de programa">
+            <option value="auto">Tipo: o assistente escolhe</option>
+            <option value="param">Tipo: parametrizado simples</option>
+            <option value="macro">Tipo: macro G65 (O16xx)</option>
+          </select>
+          <label class="ctx"><input type="checkbox" id="chatCtx"> enviar o programa do editor</label>
+        </div>
+        <div class="chat-row">
+          <textarea id="chatText" rows="2" placeholder="Descreva: peça, medidas, ferramenta, profundidade…"></textarea>
+          <button type="button" class="ui-btn primary" id="btnSend">Enviar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDITOR -->
+    <section id="view-editor" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Editor de Programa</h1><button type="button" class="ui-ico accent" id="btnEdSave" aria-label="Salvar em Meus Programas"><span data-icon="save"></span></button></header>
+      <div class="ui-pad">
+        <input id="edName" class="ui-input" placeholder="Nome do programa" maxlength="60">
+        <div class="code-wrap"><pre class="gutter" id="edGutter">1</pre><textarea id="edText" class="code" spellcheck="false" autocapitalize="characters" wrap="off" placeholder="%&#10;O0001 (...)&#10;…"></textarea></div>
+        <h3 class="sec">Ferramentas</h3>
+        <div class="tools">
+          <button type="button" class="tool" id="btnCalc"><span data-icon="calc"></span>Calculadora</button>
+          <button type="button" class="tool" id="btnFuncs"><span data-icon="sigma"></span>Funções</button>
+          <button type="button" class="tool" id="btnBrackets"><span data-icon="brackets"></span>Colchetes</button>
+        </div>
+        <div class="minitools">
+          <button type="button" class="mtool" id="btnEdPaste"><span data-icon="paste"></span>Colar</button>
+          <button type="button" class="mtool" id="btnEdOpen"><span data-icon="open"></span>Abrir</button>
+          <button type="button" class="mtool" id="btnValidate"><span data-icon="check"></span>Conferir</button>
+          <button type="button" class="mtool" id="btnEdCopy"><span data-icon="copy"></span>Copiar</button>
+          <button type="button" class="mtool" id="btnEdDownload"><span data-icon="download"></span>Baixar</button>
+          <button type="button" class="mtool" id="btnEdShare"><span data-icon="share"></span>Enviar</button>
+          <button type="button" class="mtool" id="btnEdAsk"><span data-icon="chat"></span>Assistente</button>
+          <button type="button" class="mtool" id="btnEdClear"><span data-icon="trash"></span>Limpar</button>
+        </div>
+        <button type="button" class="ui-btn primary wide big" id="btnSimulate"><span data-icon="play"></span> Executar Programa</button>
+        <div class="card hidden" id="valCard"><h2>Conferência</h2><div id="valOut"></div></div>
+      </div>
+    </section>
+
+    <!-- MEUS PROGRAMAS -->
+    <section id="view-meus" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Meus Programas</h1><button type="button" class="ui-ico" id="btnLibSearch" aria-label="Buscar"><span data-icon="search"></span></button></header>
+      <div class="ui-pad">
+        <input id="libSearch" class="ui-input hidden" placeholder="Buscar…">
+        <div class="pills" id="libTabs">
+          <button type="button" data-t="todos" class="on">Todos</button>
+          <button type="button" data-t="fav">Favoritos</button>
+          <button type="button" data-t="rec">Recentes</button>
+        </div>
+        <div id="libList" class="flist"></div>
+        <button type="button" class="ui-btn primary wide" id="btnBackup"><span data-icon="cloud"></span> Backup dos programas</button>
+        <button type="button" class="hidden" id="btnLibExport"></button>
+        <input type="file" id="libImport" class="hidden" accept=".json,application/json">
+      </div>
+    </section>
+
+    <!-- FAVORITOS -->
+    <section id="view-favoritos" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Favoritos</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad"><div id="favList"></div></div>
+    </section>
+
+    <!-- PERFIL -->
+    <section id="view-perfil" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="home" aria-label="Voltar"><span data-icon="back"></span></button><h1>Perfil</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad">
+        <div class="avatar"><img src="img/avatar.jpg" alt="Macro CNC"></div>
+        <h2 class="center-t">Macro CNC</h2>
+        <p class="center-s">Programação ao seu alcance</p>
+        <div class="plinks">
+          <button type="button" class="plink" data-sheet="sobre"><span data-icon="info"></span>Sobre o App<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink" data-sheet="ajuda"><span data-icon="help"></span>Ajuda e Suporte<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink" data-go="config"><span data-icon="gear"></span>Configurações<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink" id="btnShareApp"><span data-icon="share"></span>Compartilhar App<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink" data-sheet="avaliar"><span data-icon="star"></span>Avaliar o App<span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="plink hidden" id="btnInstall"><span data-icon="install"></span>Instalar o App<span class="mi-chev" data-icon="chev"></span></button>
+        </div>
+        <div class="pfoot"><img src="img/pfoot.jpg" alt="Macro CNC - Conhecimento que faz a diferença!"></div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="view-config" class="view">
+      <header class="ui-head"><button type="button" class="ui-ico" data-back="perfil" aria-label="Voltar"><span data-icon="back"></span></button><h1>Configurações</h1><span class="ui-ico ghost"></span></header>
+      <div class="ui-pad">
+      <div class="card">
+        <h2>Assistente</h2>
+        <p class="hint hidden" id="cfgSampleNote">Aqui dentro do Claude o assistente já funciona sem configurar nada. O proxy ou a chave só são necessários no app publicado.</p>
+        <label class="field"><span>Forma de conexão</span>
+          <select id="cfgMode" class="input">
+            <option value="proxy">Servidor do app (proxy)</option>
+            <option value="key">Minha chave da API Anthropic</option>
+          </select>
+        </label>
+        <label class="field" id="cfgProxyWrap"><span>Endereço do proxy</span><input id="cfgProxy" class="input" placeholder="https://seu-proxy.workers.dev" inputmode="url"></label>
+        <label class="field hidden" id="cfgKeyWrap"><span>Chave da API (fica só neste aparelho)</span><input id="cfgKey" class="input" type="password" placeholder="sk-ant-…" autocomplete="off"></label>
+        <label class="field"><span>Modelo</span>
+          <select id="cfgModel" class="input">
+            <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (recomendado)</option>
+            <option value="claude-opus-5-5">Claude Opus 5.5 (mais forte, mais caro)</option>
+            <option value="claude-haiku-5-5">Claude Haiku 5.5 (rápido e barato)</option>
+          </select>
+        </label>
+        <div class="row"><button type="button" class="ui-btn primary" id="btnCfgSave">Salvar</button><button type="button" class="ui-btn" id="btnCfgTest">Testar conexão</button></div>
+        <p class="hint" id="cfgMsg"></p>
+      </div>
+      <div class="card">
+        <h2>Dados do app</h2>
+        <p class="hint">Macro CNC v<span id="appVer"></span>. Seus programas e configurações ficam só neste aparelho.</p>
+        <div class="row"><button type="button" class="ui-btn danger" id="btnWipe">Apagar meus dados do app</button></div>
+      </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button type="button" data-view="home" class="on"><span data-icon="home"></span>Início</button>
+    <button type="button" data-view="meus"><span data-icon="folder"></span>Projetos</button>
+    <button type="button" data-view="favoritos"><span data-icon="star"></span>Favoritos</button>
+    <button type="button" data-view="perfil"><span data-icon="user"></span>Perfil</button>
+  </nav>
+
+  <input type="file" id="edFile" class="hidden" accept=".nc,.txt,.tap,.cnc,.min,.prg,text/plain,*/*">
+  <div id="pasteModal" class="modal hidden"><div class="modal-box">
+    <h2>Colar programa</h2>
+    <p class="hint">Toque e segure dentro da caixa e escolha <b>Colar</b>. Depois toque em Usar.</p>
+    <textarea id="pasteText" class="editor" style="min-height:40vh" spellcheck="false"></textarea>
+    <div class="row"><button type="button" class="ui-btn" id="pasteNo">Cancelar</button><button type="button" class="ui-btn primary" id="pasteYes">Usar</button></div>
+  </div></div>
+  <div id="sheet" class="sheet hidden"><div class="sheet-box"><div class="sheet-grip"></div><h2 id="sheetTitle"></h2><div id="sheetBody"></div><button type="button" class="ui-btn wide" id="sheetClose">Fechar</button></div></div>
+  <div id="toast" class="toast"></div>
+  <div id="modal" class="modal hidden"><div class="modal-box"><p id="modalText"></p><div class="row"><button type="button" class="ui-btn" id="modalNo">Cancelar</button><button type="button" class="ui-btn danger" id="modalYes">Confirmar</button></div></div></div>
+  <div id="thumbStage" aria-hidden="true"></div>
+
+  <script src="config.js"></script>
+  <script src="programs.js"></script>
+  <script src="gcode.js"></script>
+  <script src="macrosim.js"></script>
+  <script src="stock3d.js"></script>
+  <script src="art.js"></script>
+  <script src="assistant.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
