@@ -1,0 +1,52 @@
+Hoje vamos entender, bloco a bloco, a macro de faceamento O dezesseis onze.
+É a macro mais simples da biblioteca e a base para entender todas as outras.
+
+O programa principal chama a macro com G sessenta e cinco P dezesseis onze.
+A macro faz as contas e os movimentos, e volta com M noventa e nove.
+Na máquina, você só muda as letras do G sessenta e cinco. A macro ninguém mexe.
+
+Cada letra do G sessenta e cinco vira uma variável dentro da macro.
+X e Y são o tamanho da área: duzentos e quinze por duzentos e quinze.
+W é o topo da peça. Z é o Z final.
+K é o passe em Z. T é o diâmetro da fresa.
+Q é o passo lateral. A é a folga fora da peça.
+R é o plano de segurança e F é o avanço.
+
+Primeiro bloco: o raio da fresa.
+T é 50, então a variável cem vale 50 dividido por 2: 25.
+
+Agora, até onde o centro da fresa vai em X.
+Metade da área, cento e sete e meio, mais o raio, 25, mais a folga, 5.
+Dá cento e trinta e sete e meio. Assim a fresa sai inteira para fora da peça.
+
+Em Y, a última linha fica em cento e sete e meio menos 25.
+Dá oitenta e dois e meio. A borda da fresa para exatamente no limite da área.
+Se a fresa for maior que a área, o IF faz uma linha só, no meio.
+
+Antes de mexer, a macro confere os dados.
+Z acima do topo, K zero, Q zero ou Q maior que a fresa: alarmes cento e um a cento e quatro.
+Melhor parar com alarme do que cortar errado.
+
+A superfície atual começa no topo: a variável cento e quatro recebe W, que é zero.
+N dez: cada camada desce K. Zero menos dois e meio dá Z menos dois e meio.
+O IF garante que a fresa nunca passa do Z final.
+
+A fresa vai em rápido para X menos cento e trinta e sete e meio, Y menos oitenta e dois e meio, fora da peça.
+Desce em rápido até o plano de segurança: Z vinte e cinco.
+E entra em avanço até Z menos dois e meio, ainda no ar, fora da peça.
+
+N vinte: corta em X até o lado oposto, X cento e trinta e sete e meio.
+Depois inverte o sinal da variável cento e seis: o próximo corte volta.
+Se ainda não chegou na última linha, soma Q trinta em Y.
+Y passa por menos oitenta e dois e meio, menos cinquenta e dois e meio, menos vinte e dois e meio, sete e meio, trinta e sete e meio e sessenta e sete e meio.
+A próxima seria noventa e sete e meio. Passa do limite, então o IF trava em oitenta e dois e meio.
+GOTO vinte repete o corte. No total são 7 linhas.
+
+N trinta: terminou a camada, a fresa sobe para o plano de segurança.
+Se ainda falta chegar no Z final, volta ao N dez para a próxima camada.
+Por exemplo, com Z menos cinco e K dois e meio, seriam duas camadas.
+Chegou no fundo? M noventa e nove volta para o programa principal.
+
+Resumindo: raio, limites, alarmes, camada, vai-e-volta e M noventa e nove.
+Na primeira vez, teste com W cinquenta e Z quarenta e nove: a máquina desenha no ar.
+E simule antes no app Macro CNC. Até a próxima macro!
