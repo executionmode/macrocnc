@@ -253,3 +253,10 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
 .qopt { display: block; width: 100%; text-align: left; margin: 6px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--ui-line2); background: #0a1528; color: var(--ui-text); font: inherit; cursor: pointer; }
 .qopt.ok { border-color: #3ccf8e; background: rgba(60,207,142,.15); } .qopt.bad { border-color: #ff6b6b; background: rgba(255,107,107,.13); }
 .qres { color: var(--ui-mut); font-size: 13px; min-height: 16px; } .qscore { font-weight: 700; color: var(--ui-cyan); margin: 14px 2px; font-size: 16px; }
+
+.tr-video { display: flex; align-items: center; gap: 12px; padding: 14px; margin: 0 0 16px; border-radius: 16px; text-decoration: none; color: var(--ui-text);
+  border: 1px solid rgba(255,80,80,.5); background: linear-gradient(135deg, rgba(255,60,60,.18), rgba(11,21,38,.9)); }
+.tr-video > span:first-child { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #ff3b3b; color: #fff; }
+.tr-video > span:first-child .ic { width: 20px; height: 20px; }
+.tr-video > span:nth-child(2) { flex: 1; } .tr-video b { display: block; font-size: 16px; } .tr-video small { color: var(--ui-mut); font-size: 13px; }
+.tr-video .mi-chev { width: 18px; color: var(--ui-mut); }

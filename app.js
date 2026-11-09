@@ -766,6 +766,8 @@
     $('#capH').textContent = sp.t;
     var h = '';
     if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>Ponto-chave</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
+    var vids = (window.APP_CONFIG && window.APP_CONFIG.videos) || {}, vurl = vids[sp.n];
+    if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>Assistir vídeo</b><small>Explicação passo a passo, com animação</small></span><span class="mi-chev" data-icon="chev"></span></a>';
     h += c.html || '';
     if (c.rules) h += rulesHtml();
     if (c.quiz) h += c.quiz.map(function (q, k) {
