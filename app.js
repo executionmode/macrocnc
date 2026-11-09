@@ -725,8 +725,9 @@
   }
 
   /* miniaturas: a peça pronta desenhada pelo próprio simulador */
-  var thumbs = {}, THUMB_V = 'thumb9.';
+  var thumbs = {}, THUMB_V = 'thumb10.';
   // cone externo trocado pela versão nova (O1630 em passadas): limpa valores antigos guardados
+  if (!store.get('mig.chf2', false)) { store.set('vals.m-chanfro-furo', null); store.set('stock2.m-chanfro-furo', null); store.set('mig.chf2', true); }
   if (!store.get('mig.cone3', false)) { store.set('vals.m-cone', null); store.set('stock2.m-cone', null); store.set('mig.cone3', true); }
   PROGRAMS.forEach(function (p) { var t = store.get(THUMB_V + p.id, null); if (t) thumbs[p.id] = t; });
   var thumbQueue = [], thumbBusy = false;
