@@ -37,7 +37,7 @@ window.STR = {
 "W est le dessus de la pièce. Z est le Z final.",
 "K est la profondeur de passe. T est le diamètre de la fraise.",
 "Q est le pas latéral. A est le dégagement hors de la pièce.",
-"R est le plan de sécurité et F est l’avance."
+"R est le plan de dégagement et F est l’avance."
 ],
 "c3.names": [
 "Longueur en X",
@@ -48,7 +48,7 @@ window.STR = {
 "Diamètre fraise",
 "Pas latéral",
 "Dégagement en X",
-"Plan de sécurité",
+"Plan de dégagement",
 "Avance"
 ],
 "c4.t": "Bloc 1 : rayon de la fraise",
@@ -91,7 +91,7 @@ window.STR = {
 "c9.t": "Approche hors de la pièce",
 "c9.s": [
 "La fraise va en rapide à X-{g:xo}, Y-{g:ylast}, hors de la pièce.",
-"Elle descend en rapide jusqu’au plan de sécurité : Z{g:safe}.",
+"Elle descend en rapide jusqu’au plan de dégagement : Z{g:safe}.",
 "Puis elle descend en avance jusqu’à Z{g:z1}, encore dans le vide, hors de la pièce."
 ],
 "c9.leg": "G0 = rapide (pointillé)",
@@ -109,7 +109,7 @@ window.STR = {
 "c10.line": "ligne {a} de {b}",
 "c11.t": "N30 : remonter et vérifier le fond",
 "c11.s": [
-"N30 : la passe est finie, la fraise remonte au plan de sécurité.",
+"N30 : la passe est finie, la fraise remonte au plan de dégagement.",
 "Si le Z final n’est pas atteint, elle retourne au N10 pour la passe suivante.",
 "Par exemple, avec Z{g:zEx} et K{g:K}, il y aurait deux passes.",
 "Arrivé au fond? M99 retourne au programme principal."
@@ -133,3 +133,5 @@ window.STR = {
 "c12.sim": "Simulez dans l’app",
 "c12.path": "Macro CNC → Programmes → Surfaçage"
 };
+
+Object.assign(window.STR, {"c1.v": ["Aujourd'hui, on décortique bloc par bloc la macro de surfaçage O seize onze.", "C'est la macro la plus simple de la bibliothèque, et la base pour comprendre toutes les autres."], "c2.v": ["Le programme principal appelle la macro avec G soixante-cinq P seize onze.", "La macro fait les calculs et les déplacements, puis revient avec M quatre-vingt-dix-neuf.", "À la machine, on change seulement les lettres du G soixante-cinq. On ne touche pas à la macro."], "c3.v": ["Chaque lettre du G soixante-cinq devient une variable dans la macro.", "X et Y sont les dimensions de la surface : deux cent quinze par deux cent quinze.", "W est le dessus de la pièce. Z est le Z final.", "K est la profondeur de passe. T est le diamètre de la fraise.", "Q est le pas latéral. A est le dégagement hors de la pièce.", "R est le plan de dégagement et F est l'avance."], "c4.v": ["Premier bloc : le rayon de la fraise.", "T vaut cinquante, donc la variable cent vaut cinquante divisé par deux : vingt-cinq."], "c5.v": ["Maintenant, jusqu'où va le centre de la fraise en X.", "La moitié de la surface, cent sept virgule cinq, plus le rayon, vingt-cinq, plus le dégagement, cinq.", "Ça donne cent trente-sept virgule cinq. La fraise sort complètement de la pièce."], "c6.v": ["En Y, la dernière ligne est à cent sept virgule cinq moins vingt-cinq.", "Ça donne quatre-vingt-deux virgule cinq. Le bord de la fraise arrête pile à la limite de la surface.", "Si la fraise est plus grande que la surface, le IF fait une seule ligne, au centre."], "c7.v": ["Avant de bouger, la macro vérifie les données.", "Z plus haut que le dessus, K à zéro, Q à zéro ou Q plus grand que la fraise : alarmes cent un à cent quatre.", "Mieux vaut arrêter avec une alarme que de mal couper."], "c8.v": ["La surface actuelle part du dessus : la variable cent quatre reçoit W, qui vaut zéro.", "N dix : chaque passe descend de K. Zéro moins deux virgule cinq donne Z moins deux virgule cinq.", "Le IF garantit que la fraise ne dépasse jamais le Z final."], "c9.v": ["La fraise va en rapide à X moins cent trente-sept virgule cinq, Y moins quatre-vingt-deux virgule cinq, hors de la pièce.", "Elle descend en rapide jusqu'au plan de dégagement : Z vingt-cinq.", "Puis elle descend en avance jusqu'à Z moins deux virgule cinq, encore dans le vide, hors de la pièce."], "c10.v": ["N vingt : on coupe en X jusqu'au côté opposé, X cent trente-sept virgule cinq.", "Ensuite, le signe de la variable cent six s'inverse : la prochaine coupe revient.", "Si on n'est pas encore à la dernière ligne, on ajoute Q trente en Y.", "Y passe par moins quatre-vingt-deux virgule cinq, moins cinquante-deux virgule cinq, moins vingt-deux virgule cinq, sept virgule cinq, trente-sept virgule cinq et soixante-sept virgule cinq.", "La suivante serait quatre-vingt-dix-sept virgule cinq. Ça dépasse la limite, donc le IF la bloque à quatre-vingt-deux virgule cinq.", "Le GO TO vingt répète la coupe. Sept lignes au total."], "c11.v": ["N trente : la passe est finie, la fraise remonte au plan de dégagement.", "Si le Z final n'est pas atteint, elle retourne au N dix pour la passe suivante.", "Par exemple, avec Z moins cinq et K deux virgule cinq, il y aurait deux passes.", "Arrivé au fond? M quatre-vingt-dix-neuf retourne au programme principal."], "c12.v": ["En résumé : rayon, limites, alarmes, passe, aller-retour et M quatre-vingt-dix-neuf.", "La première fois, testez avec W cinquante et Z quarante-neuf : la machine dessine dans le vide.", "Et simulez d'abord dans l'app Macro CNC. À la prochaine macro!"]});

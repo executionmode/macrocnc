@@ -37,7 +37,7 @@ window.STR = {
 "W is the top of the part. Z is the final Z.",
 "K is the depth per pass. T is the cutter diameter.",
 "Q is the stepover. A is the clearance outside the part.",
-"R is the safety plane and F is the feed rate."
+"R is the clearance plane and F is the feed rate."
 ],
 "c3.names": [
 "Size in X",
@@ -48,7 +48,7 @@ window.STR = {
 "Cutter diameter",
 "Stepover",
 "Clearance in X",
-"Safety plane",
+"Clearance plane",
 "Feed rate"
 ],
 "c4.t": "Block 1: cutter radius",
@@ -91,7 +91,7 @@ window.STR = {
 "c9.t": "Approach outside the part",
 "c9.s": [
 "The cutter rapids to X-{g:xo}, Y-{g:ylast}, outside the part.",
-"It rapids down to the safety plane: Z{g:safe}.",
+"It rapids down to the clearance plane: Z{g:safe}.",
 "Then it feeds down to Z{g:z1}, still in the air, outside the part."
 ],
 "c9.leg": "G0 = rapid (dashed)",
@@ -109,7 +109,7 @@ window.STR = {
 "c10.line": "row {a} of {b}",
 "c11.t": "N30: retract and check depth",
 "c11.s": [
-"N30: the pass is done, the cutter goes up to the safety plane.",
+"N30: the pass is done, the cutter goes up to the clearance plane.",
 "If the final Z is not reached yet, it goes back to N10 for the next pass.",
 "For example, with Z{g:zEx} and K{g:K}, there would be two passes.",
 "At the bottom? M99 returns to the main program."
@@ -133,3 +133,5 @@ window.STR = {
 "c12.sim": "Simulate in the app",
 "c12.path": "Macro CNC → Programs → Face milling"
 };
+
+Object.assign(window.STR, {"c1.v": ["Today we will go through the face milling macro O sixteen eleven, block by block.", "It is the simplest macro in the library, and the basis for understanding all the others."], "c2.v": ["The main program calls the macro with G sixty-five P sixteen eleven.", "The macro does the math and the moves, then returns with M ninety-nine.", "At the machine, you only change the G sixty-five letters. Nobody touches the macro."], "c3.v": ["Each G sixty-five letter becomes a variable inside the macro.", "X and Y are the size of the area: two hundred fifteen by two hundred fifteen.", "W is the top of the part. Z is the final Z.", "K is the depth per pass. T is the cutter diameter.", "Q is the stepover. A is the clearance outside the part.", "R is the clearance plane and F is the feed rate."], "c4.v": ["First block: the cutter radius.", "T is fifty, so variable one hundred is fifty divided by two: twenty-five."], "c5.v": ["Now, how far the cutter center goes in X.", "Half the area, one hundred seven point five, plus the radius, twenty-five, plus the clearance, five.", "That gives one hundred thirty-seven point five. So the cutter leaves the part completely."], "c6.v": ["In Y, the last row is at one hundred seven point five minus twenty-five.", "That gives eighty-two point five. The cutter edge stops exactly at the edge of the area.", "If the cutter is bigger than the area, the IF makes a single row in the middle."], "c7.v": ["Before moving, the macro checks the data.", "Z above the top, K zero, Q zero, or Q bigger than the cutter: alarms one oh one to one oh four.", "Better to stop with an alarm than to cut wrong."], "c8.v": ["The current surface starts at the top: variable one oh four gets W, which is zero.", "N ten: each pass goes down K. Zero minus two point five gives Z minus two point five.", "The IF makes sure the cutter never goes below the final Z."], "c9.v": ["The cutter rapids to X minus one thirty-seven point five, Y minus eighty-two point five, outside the part.", "It rapids down to the clearance plane: Z twenty-five.", "Then it feeds down to Z minus two point five, still in the air, outside the part."], "c10.v": ["N twenty: cut in X to the opposite side, X one thirty-seven point five.", "Then the sign of variable one oh six flips: the next cut comes back.", "If it is not on the last row yet, add Q thirty in Y.", "Y goes through minus eighty-two point five, minus fifty-two point five, minus twenty-two point five, seven point five, thirty-seven point five and sixty-seven point five.", "The next one would be ninety-seven point five. That is past the limit, so the IF clamps it to eighty-two point five.", "GO TO twenty repeats the cut. Seven rows in total."], "c11.v": ["N thirty: the pass is done, the cutter goes up to the clearance plane.", "If the final Z is not reached yet, it goes back to N ten for the next pass.", "For example, with Z minus five and K two point five, there would be two passes.", "At the bottom? M ninety-nine returns to the main program."], "c12.v": ["To sum up: radius, limits, alarms, pass, back and forth, and M ninety-nine.", "The first time, test with W fifty and Z forty-nine: the machine draws in the air.", "And simulate first in the Macro CNC app. See you in the next macro!"]});

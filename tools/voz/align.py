@@ -1,12 +1,12 @@
 import json, subprocess, re, itertools, functools
-sc = json.load(open('/home/claude/video/scenes.json'))
-spk = [b.split('\n') for b in open('/home/claude/video/faceamento_O1611_texto_para_voz.txt').read().strip().split('\n\n')]
+import os
+spk = [b.split('\n') for b in open(os.environ.get('VOZ', 'faceamento_O1611_texto_para_voz.txt')).read().strip().split('\n\n')]
 OFF = 0.4; T = []
 def sil_of(f, dur):
     out = subprocess.run(['ffmpeg', '-hide_banner', '-i', f, '-af', 'silencedetect=noise=-35dB:d=0.15', '-f', 'null', '-'], capture_output=True, text=True).stderr
     ss = [float(x) for x in re.findall(r'silence_start: ([\d.]+)', out)]; se = [float(x) for x in re.findall(r'silence_end: ([\d.]+)', out)]
     return [(a, b) for a, b in zip(ss, se) if b < dur - 0.05 and a > 0.3]
-for i in range(12):
+for i in range(len(spk)):
     f = 'cena%02d.wav' % (i + 1)
     try:
         dur = float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], stderr=subprocess.DEVNULL)); sil = sil_of(f, dur)
