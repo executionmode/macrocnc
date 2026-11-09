@@ -1,0 +1,345 @@
+421|Z à la fin du tour; <code>#106</code> = descente sur chaque côté (K/4)
+422|4 segments <code>G1 ... Z</code> + <code>G2</code>
+423|Chaque côté : droite en descendant + arc de coin sans descendre (les droites font la descente)
+425|Tant qu’elle descend, un tour de plus. Quand le Z final est atteint, #106 = 0 : le dernier tour est à plat et la boucle finit
+426|<b>Précautions</b> : vérifiez le Z final et la hauteur du montage, parce que la spirale descend jusque-là. La fraise doit enlever de la matière par l’extérieur, avec le brut toujours plus grand que la pièce d’au moins T/2 + A.
+427|12.2 Contour de polygone (O1617)
+428|Nombre de côtés (3 ou plus)
+429|Diamètre du cercle qui passe par les <b>coins</b>
+430|Angle du premier coin (0 = coin sur l’axe X)
+431|Dégagement d’entrée
+432|Descente à chaque tour
+433|<b>Attention au D</b> : c’est le diamètre <b>d’un coin à l’autre</b>, pas la dimension sur plats. Sur plats = D × COS(180°/B). Pour un hexagone de 36 sur plats : D = 36 / COS 30° = <b>41,57</b>.
+434|<b>L’idée</b>
+435|Les coins sont sur le cercle de rayon D/2, à tous les 360/B degrés (60° sur un hexagone).
+436|Le centre de la fraise suit chaque côté décalé de T/2 vers l’extérieur (dans la direction de la normale du côté).
+437|À chaque coin, un arc G2 de rayon T/2 autour du coin relie un côté au suivant.
+438|La descente K est divisée par les B côtés : <b>K / B</b> à chaque côté.
+439|Sens
+441|Rayon jusqu’aux coins (20,785 dans l’exemple)
+443|Rayon de la fraise (12,5)
+445|Angle entre les coins (60°)
+447|Angle du coin au début du côté
+449|Angle de la <b>normale</b> du côté : milieu de chaque côté = <code>#108 - #102/2</code>
+451|Angle du coin à la fin du côté (un pas en sens horaire)
+452|<code>#113 #114</code>
+453|X et Y de ce coin
+454|Compteur de côtés, de 1 à B
+456|Z actuel, diminue de K/B à chaque côté
+457|<b>Lecture du </b><b><code>N20</code></b> : pour chaque côté, elle calcule le coin de destination (<code>#113</code>, <code>#114</code>), avance en <code>G1</code> jusqu’au coin décalé de T/2 dans la direction de la normale (<code>#109</code>), en descendant en Z; ensuite un <code>G2</code> tourne autour du coin, de la normale de ce côté à celle du suivant (<code>#109 - #102</code>). <code>I</code> et <code>J</code> pointent du point actuel vers le coin : <b>-r·COS(normale)</b> et <b>-r·SIN(normale)</b>.
+458|<b>Exemple de tours</b> : Z-17 avec K2 = 9 tours (le dernier descend seulement de 1 mm) plus 1 tour à plat.
+459|<b>Précautions</b> : la même logique marche pour <code>B4</code> (carré tourné par A), <code>B8</code> (octogone) etc.
+460|13. Macro 7A : Rayon convexe et concave (O1618)
+461|<b>Ce qu’elle fait</b> : fait un rayon sur l’arête d’une barre (convexe, en arrondissant le coin) ou un rayon concave (congé dans le coin), avec une <b>fraise en bout</b> et la méthode des manuels de programmation : plusieurs passes, du haut vers le bas, chacune à une position calculée avec l’angle θ.
+462|Rayon convexe (gauche) et concave (droite) : la pointe de la fraise touche la courbe à chaque angle
+463|13.1 L’idée (sans formule à apprendre par cœur)
+464|La courbe du rayon est un quart de cercle. Au lieu de suivre la courbe lisse, la fraise fait des <b>marches</b> : à chaque angle θ (1°, 2°, 3° ... 89°), elle va à un point de la courbe et coupe une passe droite en X. Le <b>coin du bas</b> de la fraise touche le point de la courbe. Comme la fraise est toujours à l’extérieur de la matière, <b>elle ne coupe jamais trop</b> : il reste seulement de la matière (les marches).
+465|Plus le <b>H est petit</b> (pas en degrés), plus il y a de passes et plus la courbe est lisse. H1 = 89 passes.
+466|Les passes vont <b>du haut vers le bas</b>.
+467|<b>Convexe (U0)</b> : arrondir l’arête d’une barre. Pour chaque θ :
+468|Décalage par rapport à la face : <code>C - C·SIN θ</code>
+470|<b>Concave (U1)</b> : congé avec le centre de l’arc dans le coin (face Y, dessus W). Pour chaque θ :
+471|Décalage par rapport à la face : <code>C·COS θ</code>
+473|<b>Où est la fraise</b> : le centre de la fraise est à <code>Y de la face + sens × (décalage - T/2)</code>. Le sens est +1 quand la matière est vers +Y (V0) et -1 quand elle est vers -Y (V1).
+474|<b>Exemple numérique, convexe R10 (U0, H1)</b>
+475|Décalage par rapport à la face
+478|13.2 Appel et lettres
+479|<b>Convexe R10, barre 200 x 40, fraise Ø50</b> (fichier O0018)
+480|<b>Concave R15, fraise Ø20</b> (fichier O0023)
+481|Convexe
+482|Concave
+483|X du <b>côté gauche</b> (plus petit X) de la barre
+484|Longueur de la barre en X
+485|Y de la face où se fait le rayon
+486|Z du dessus
+487|Rayon
+488|0 = convexe, 1 = concave
+489|Côté de la matière : 0 = matière vers +Y, 1 = vers -Y
+490|Pas en degrés (1 = plus lisse)
+491|Dégagement en X au-delà des bouts
+492|Avance en X (coupe)
+493|Avance du pas en Y/Z. 0 = utilise F
+494|<b>Pour l’autre arête</b> de la barre : Y20. et V1 (la face est à Y20 et la matière vers -Y).
+495|13.3 Code
+496|7 lignes d’alarme
+497|171 C, 172 H, 173 H plus grand ou égal à 90, 174 T, 175 I, 176 U différent de 0 ou 1
+499|Sans Q, le pas en Y/Z utilise l’avance F
+500|Sens : +1 ou -1 selon V
+501|X de départ du <b>centre</b> de la fraise, avant la barre (X - T/2 - A)
+502|X final, après la barre (X + I + T/2 + A)
+504|L’angle actuel commence à H
+505|<code>#107</code>, <code>#108</code>
+506|X de départ et de destination de la passe (aller-retour)
+507|<code>G0 X Y</code> / <code>G0 Z</code>
+508|Se place à l’extérieur, à T/2 de la face, et monte au plan de dégagement
+509|Choisit la formule : convexe (continue) ou concave (<code>GOTO 20</code>)
+511|Décalage par rapport à la face à cet angle
+513|Z de cet angle
+515|Y du centre de la fraise
+517|Va au point de la courbe. Ça se fait avec la fraise <b>hors de la barre en X</b>, donc elle ne coupe pas pendant le déplacement
+519|Passe droite en X
+520|<code>#107</code>/<code>#108</code> échangés
+521|À la passe suivante, elle va dans l’autre sens
+523|Angle suivant
+525|Répète jusqu’à 89°
+526|13.4 Comment vérifier
+527|Dans l’exemple convexe, le premier point est Y = -20 + 9,8255 - 25 = <b>-35,1745</b> et Z = <b>-0,0015</b>.
+528|Faites rouler dans le vide avec W bien au-dessus du brut et vérifiez que les marches descendent dans le bon ordre.
+529|La fraise <b>doit avoir un coin vif</b> (pas de rayon de plaquette). Le rayon de coin de la plaquette crée une petite erreur sur la courbe.
+530|<b>Hypothèses à confirmer</b>
+531|Le rayon concave a été fait comme un congé dans le coin du haut de la face (centre de l’arc dans le coin). Si le dessin est différent, adaptez la macro.
+532|Dans l’exemple concave, la longueur I165 est seulement un exemple. Ajustez-la à la vraie longueur de la pièce.
+533|Z de référence : le point le plus bas de la fraise (coin du bas).
+534|14. Macro 7B : Chanfrein avec fraise à chanfreiner 90° et lettre d’angle (O1623)
+535|<b>Ce qu’elle fait</b> : chanfreine l’arête du haut d’une barre avec <b>toujours une fraise à chanfreiner de 90°</b>. Vous choisissez l’angle du chanfrein avec la lettre <b>B</b>.
+536|Chanfrein : C est la largeur en haut, la hauteur sur la face vient de C fois la tangente de B
+537|14.1 L’idée
+538|La <b>pointe</b> de la fraise de 90° suit la ligne du chanfrein, du haut vers le bas. La fraise tourne sur son axe, mais ce qui compte pour le dessin, c’est où se trouve la pointe.
+539|<b>C</b> = largeur du chanfrein en haut (mesurée en Y, sur la face du dessus).
+540|<b>B</b> = angle de la ligne du chanfrein par rapport au dessus. B45 = chanfrein à 45° (C x C). B30 = chanfrein plus bas.
+541|<b>Hauteur sur la face</b> du côté : <code>C × TAN B</code>. Pour C3 B30 : 3 × 0,577 = <b>1,732</b>.
+542|Hauteur sur la face (C3)
+543|Chanfrein
+544|3 en haut x 1,732 sur la face
+545|3 en haut x 1,092 sur la face
+546|14.2 Pourquoi B va seulement jusqu’à 45°
+547|La fraise de 90° a des flancs à 45° de chaque côté de l’axe. Si la ligne du chanfrein est <b>plus inclinée que 45°</b>, le flanc frappe la pièce avant que la pointe arrive et <b>entaille trop</b>. C’est pourquoi la macro donne l’<b>alarme 202</b> pour B plus grand que 45.
+548|Gauche : pointe qui suit le chanfrein. Droite : B60 impossible avec une fraise 90°
+549|Pour des angles de plus de 45°, utilisez une fraise à chanfreiner d’un autre angle ou une fraise en bout.
+550|14.3 Appel et lettres
+551|X du côté gauche de la barre
+552|Y de la face où se fait le chanfrein
+553|Largeur du chanfrein en haut (en Y)
+554|<b>Angle</b> du chanfrein (1 à 45)
+555|Pas en Y entre les passes. Pas utilisé avec B45
+556|0.2 (pour B30)
+557|0 = matière vers +Y, 1 = matière vers -Y
+558|Grand diamètre de la fraise à chanfreiner
+559|Diamètre de la pointe plate de la fraise (0 = pointe vive)
+560|<b>Autre arête</b> de la barre : Y20. et V1.
+561|<b>Alarmes</b>
+562|Quand
+563|B plus petit ou égal à zéro
+564|B plus grand que 45
+565|C invalide
+566|T invalide
+567|D négatif
+568|I invalide
+569|T trop petit pour le chanfrein (il faut T plus grand ou égal à 2·C·TAN B + D)
+570|Q invalide
+571|14.4 Code
+573|Hauteur du chanfrein sur la face
+575|La fraise doit être assez large pour atteindre la hauteur du chanfrein (alarme 207)
+577|B45 : fait <b>une seule passe</b>, avec le flanc
+579|Position de la pointe en haut, mesurée à partir de la face, commence à C
+581|À chaque passe, la pointe avance de Q en Y, vers la face
+582|<code>IF [#103 GT 0.001] GOTO 20</code> / <code>#103 = 0</code>
+583|La dernière passe tombe pile sur la face
+584|Y du centre de la fraise : pointe - D/2
+585|Z de la pointe : <code>W - hauteur + position × TAN B</code>
+586|<code>G1 Y Z</code> / <code>G1 X</code>
+587|Va au point et passe en X (aller-retour)
+589|Continue jusqu’à passer la face (position 0)
+590|<b>Exemple B30, C3, Q0.2</b> : 15 passes de 0,2 en Y. À chaque passe, la pointe monte sur la ligne : Z final de la pointe = W - 1,732 et Z du dessus = W. La matière qui reste entre les passes (marche verticale) est d’environ <code>Q·(1 - TAN² B)/2</code> = 0,2 × (1 - 0,333) / 2 = <b>0,067 mm</b>.
+591|<b>B45</b> : la ligne correspond au flanc de la fraise, donc <b>une seule passe</b> donne un chanfrein parfait (sans marche).
+592|<b>Précautions</b>
+593|Z de référence : <b>point le plus bas de la pointe de la fraise</b>. Faites la prise de longueur de la fraise à chanfreiner à la pointe.
+594|Si la fraise a une pointe plate, donnez son diamètre dans D. Avec D0, le calcul suppose une pointe vive.
+595|Vérifiez le résultat sur une pièce d’essai : mesurez C et la hauteur sur la face.
+596|15. Macro 8 : Filetage intérieur à la fraise (O1619)
+597|<b>Ce qu’elle fait</b> : filetage intérieur à droite avec une fraise à fileter, en plusieurs passes radiales. Elle commence à la face et <b>descend</b> en hélice (G2), un pas par tour.
+598|Filetage : la fraise tourne autour et descend de P par tour
+599|Diamètre nominal du filetage
+600|Pas
+601|Diamètre de la fraise à fileter
+602|Z du dessus / Z final du filetage
+603|Profondeur radiale du filet
+604|Incrément radial par passe
+605|Rayon final de la trajectoire du centre : (16 - 12,5) / 2 = <b>1,75</b>
+606|Rayon avant la première passe : 1,75 - 1,083 = <b>0,667</b>
+607|Passes : 1,067, 1,467 et 1,75 (la dernière est limitée au rayon final) = <b>3 passes</b>
+608|Tours par passe : 24 / 2 = <b>12</b>
+609|<code>#100</code>, <code>#101</code>
+610|Rayon final et rayon avant la première passe
+611|Alarmes 181 à 185
+612|D plus petit ou égal à T, E trop grand, Q, pas, Z final
+613|Nouvelle passe radiale : le rayon augmente de Q, limité au rayon final
+614|<code>G1 Z#23</code>, <code>G1 X..</code>
+615|Va au rayon de la passe en haut
+617|Z à la fin d’un tour = Z actuel moins un pas
+619|<b>Un tour complet en hélice</b> en descendant d’un pas
+621|Dernier tour partiel : calcule l’angle <code>#106 = 360 × (descente restante / pas)</code> et fait un arc plus court
+623|Met le Z à jour et répète si elle n’est pas au fond
+624|<code>G1 X#24 Y#25</code> / <code>G0 Z</code>
+625|Retour au centre et remontée
+627|Il reste une passe? On répète
+628|G2 (horaire) en descendant : filetage <b>à droite</b> avec la fraise en M3, en commençant par le haut.
+629|Les valeurs de E et du pas viennent du catalogue de la fraise. Faites un essai sur une pièce avant et vérifiez avec une jauge.
+630|La première fois, faites rouler avec une avance réduite et sans passe finale (grand Q) pour vérifier la trajectoire.
+631|16. Macros 9, 10 et 11 : Compteur, durée de vie de l’outil et correction d’usure
+632|Ce sont de petites macros, sans déplacement. Elles montrent la puissance des <b>variables permanentes</b> et des <b>variables système</b>.
+633|16.1 Compteur de pièces (O1620)
+634|<b>Ce qu’elle fait</b> : ajoute 1 à <code>#500</code> à chaque pièce. Quand le lot est atteint, elle arrête avec un message. La valeur reste enregistrée quand on éteint la machine.
+635|<code>Q50</code> : lot de 50 pièces. <code>Q0</code> remet le compteur à zéro.
+636|Appelez-la à la <b>fin du programme</b>, avant le M30.
+638|Q plus grand que zéro? On va compter
+639|<code>#500 = 0</code> / <code>M99</code>
+640|Q0 : remise à zéro et retour
+642|Ajoute une pièce
+644|Lot pas encore atteint? Retour sans arrêter
+646|Lot complet : <b>arrête</b> et affiche le message
+647|16.2 Durée de vie de l’outil (O1621)
+648|<b>Ce qu’elle fait</b> : un compteur <b>par outil</b>, dans la variable <code>#600 + numéro de l’outil</code>. L’outil 10 utilise <code>#610</code>.
+649|<code>T10</code> : outil 10. <code>Q200</code> : durée de vie en pièces. <code>Q0</code> remet à zéro.
+650|Ici, T est seulement un numéro d’outil (1 à 99), pas un diamètre.
+651|<b>La nouveauté, c’est </b><b><code>#[#100]</code></b> (variable indirecte) : <code>#100</code> contient le <b>numéro</b> du tiroir (610) et <code>#[#100]</code> est le tiroir 610. Un seul code sert pour 99 outils.
+652|16.3 Correction d’usure (O1622)
+653|<b>Ce qu’elle fait</b> : ajoute une valeur à l’usure du correcteur de longueur ou de rayon.
+654|Numéro du correcteur
+655|Valeur à <b>ajouter</b> (peut être négative)
+656|1 = usure de longueur (H), 2 = usure de rayon (D)
+657|<code>#100 = 0.5</code> est la <b>limite de sécurité</b> : elle n’accepte pas une correction de plus de 0,5 par appel (alarme 195). Modifiez-la au besoin.
+658|Les variables <code>#10001+</code> et <code>#12001+</code> sont celles de l’usure. <b>La numérotation change selon la série du FANUC.</b> Vérifiez dans le manuel de la machine avant de l’utiliser, et faites un essai avec une petite valeur en regardant l’écran des correcteurs.
+659|<b>Attention</b> : l’écriture dans un correcteur peut être protégée par un paramètre ou une clé. Dépend de la série/configuration du FANUC.
+660|17. Macros supplémentaires de la bibliothèque (O1624 à O1636)
+661|Ces macros suivent exactement la même structure que les précédentes : le programme principal (O00xx) appelle le sous-programme (O16xx) avec G65, chaque lettre devient une variable locale, les erreurs arrêtent avec une alarme #3000. Le tableau complet des lettres de chacune est dans les commentaires d’en-tête du sous-programme. Faites toujours un essai dans le vide avant la première pièce.
+662|Exemple d’appel
+663|O1624 rainure de clavette en rampe
+664|Rainure avec bouts en demi-cercle, descend en rampe en changeant de sens à chaque couche
+666|O1625 rainure de clavette sans rampe
+667|Rainure avec bouts arrondis, plonge droit au début de chaque couche
+669|O1626 rayon au fond du trou
+670|Rayon concave entre la paroi et le fond d’un trou, du haut vers le bas
+672|O1627 rayon sur l’arête du trou
+673|Rayon sur le bord d’un trou débouchant (coin du haut)
+675|O1628 chanfrein dans le trou
+676|Chanfrein sur le bord du trou avec une fraise en bout, angle avec la lettre B
+678|O1629 rainure avec bouts en arc
+679|Rainure droite avec les deux bouts en arc, sans rampe
+681|O1630 cône extérieur
+682|Cône extérieur par passes hélicoïdales, angle avec la lettre B (ou diamètre final avec la lettre A)
+684|O1631 rayon entre deux diamètres
+685|Rayon tangent entre deux diamètres, fin par l’angle B ou par la hauteur I
+687|O1632 rayon avec plaquette ronde
+688|Même rayon que O1631 avec une fraise à plaquette ronde (E = rayon de la plaquette)
+690|O1633 filetage sur cercle (D direct)
+691|Filetage intérieur à la fraise, rayon final donné directement dans D
+693|O1634 filetage sur cercle (D et T)
+694|Filetage intérieur à la fraise, rayon calculé avec D et le diamètre de fraise T
+696|O1635 rayon sur l’arête extérieure du cylindre
+697|Rayon convexe sur le bord du haut d’un cylindre extérieur
+699|O1636 rayon à la base du cylindre
+700|Rayon concave à la rencontre du cylindre et de la face du bas
+702|17.1 Idée commune des rayons et chanfreins sur les pièces rondes
+703|Elles font toutes des tours complets en G2 ou G3, un par position, en descendant ou en montant selon le profil. À chaque tour, la macro calcule le rayon de la trajectoire du centre de la fraise et le Z. Plus le pas est petit (lettre H en degrés pour les rayons, lettre Q pour les chanfreins et les cônes), plus le fini est lisse et plus le programme est long.
+704|<b>Rayon convexe extérieur (O1635)</b> : rayon du centre de la fraise = D/2 - C + C·SIN(θ) + T/2 et Z = W - C + C·COS(θ).
+705|<b>Rayon concave à la base (O1636)</b> : rayon du centre de la fraise = D/2 + C - C·COS(φ) + T/2 et Z = Z + C - C·SIN(φ). L’ébauche doit laisser de la matière dans le coin.
+706|<b>Chanfrein dans le trou (O1628)</b> : le coin de la fraise en bout suit une ligne du haut jusqu’à la paroi; chaque tour avance de Q / TAN B sur le rayon. Alarme 267 si C est plus grand que T.
+707|17.2 Cône extérieur avec lettre d’angle (O1630)
+708|Avec une fraise en bout, n’importe quel angle B de 1 à 89 degrés est possible : la fraise commence au petit diamètre et va au grand en tours hélicoïdaux (la lettre Q définit la hauteur de chaque passe). Avec une fraise à chanfreiner conique, l’angle est limité à 45 degrés par rapport à la face (alarme 286). La marche qui reste entre les tours peut aller jusqu’à Q de hauteur, alors utilisez un petit Q en finition.
+709|17.3 Précautions particulières
+710|Les lettres utilisées dans des macros appelées à l’intérieur d’autres macros ne doivent pas se chevaucher : vérifiez le tableau avant de les combiner. Quand D et I sont utilisées ensemble dans un même appel, faites un essai dans le vide et vérifiez les valeurs.
+711|Une lettre vide n’est pas zéro : la macro utilise <code>EQ #0</code> pour le tester. Si vous voulez zéro, écrivez la lettre avec 0.
+712|Dans toutes les macros de rayon et de chanfrein, la fraise doit avoir un coin vif; une fraise avec un rayon de coin change la trajectoire.
+713|Vérifiez le correcteur de longueur de la pointe (ou du coin) utilisé comme référence avant de faire rouler.
+714|18. Comment tester sans rien briser : liste de vérification de la première pièce
+715|<b>Avant de faire rouler</b>
+716|Les sous-programmes O16xx sont-ils en mémoire et s’ouvrent-ils sans erreur?
+717|L’appel G65 a-t-il <b>toutes</b> les lettres du tableau, avec un point décimal?
+718|Bonne origine : centre ou coin de la pièce selon la macro (voir le commentaire du sous-programme).
+719|G54 et correcteur H de l’outil vérifiés. Le Z du dessus (W) correspond-il à la pièce?
+720|Bonne fraise : diamètre T égal à celui tapé, coupe au centre (hélice, poches), coin vif (rayon), 90° (chanfrein).
+721|Sens de rotation M3 et arrosage en marche.
+722|<b>Premier essai : dans le vide</b>
+723|Montez le Z : ajoutez 50 mm à W et à Z (par exemple W50 et Z40) pour que la fraise passe au-dessus de la pièce.
+724|Mode <b>bloc à bloc</b> (SINGLE BLOCK) et avance à 20 à 50 %.
+725|Regardez l’écran de trajectoire/graphique, s’il existe, et comparez le dessin avec les chapitres de cette formation.
+726|Regardez la <b>distance restante</b> à l’écran (DIST TO GO) avant chaque premier déplacement.
+727|Main sur le bouton d’arrêt (FEED HOLD) pendant les premiers déplacements.
+728|<b>Deuxième essai : avec coupe, sur une pièce d’essai</b>
+729|Remettez W et Z aux vraies valeurs.
+730|Faites rouler avec un petit K (première couche) et vérifiez le résultat avec un pied à coulisse.
+731|Seulement ensuite, passez aux valeurs finales.
+732|<b>Trucs utiles</b>
+733|Vous voulez arrêter quand quelque chose apparaît? <code>#3006 = 1 (VERIFIER)</code> sur la ligne avant ce passage fait une pause.
+734|Pour simuler dans le vide, montez W et Z de la même valeur (Z reste plus bas que W, sans alarme).
+735|<b>Autres arêtes d’une pièce</b> : le plus simple est d’utiliser le côté V1 et le Y de l’autre côté (rayon et chanfrein). Pour des arêtes à d’autres angles, on peut tourner le système avec <b>G68</b> (si l’option existe), mais faites un essai avant. Dépend de la série/configuration du FANUC.
+736|Gardez le paquet <b>MACROS_CNC.zip</b> et le tableau des lettres avec les programmes de la machine.
+737|19. Erreurs courantes et tableau des alarmes
+738|<b>Erreurs les plus fréquentes</b>
+739|Symptôme
+740|Cause la plus probable
+741|Quoi faire
+742|Alarme programme introuvable (le O n’existe pas)
+743|Le O16xx n’est pas en mémoire
+744|Chargez le sous-programme. Vérifiez le numéro du <code>P</code>
+745|Alarme de macro avec numéro (<code>#3000</code>)
+746|Valeur invalide dans l’appel
+747|Lisez le texte et le tableau ci-dessous
+748|La machine fait tout à la mauvaise échelle (1000x)
+749|Il manque le point décimal (<code>X215</code> au lieu de <code>X215.</code>)
+750|Toujours mettre le point décimal
+751|Déplacement au mauvais endroit
+752|Mauvaise origine (centre vs coin) ou mauvais G54
+753|Lisez le commentaire de la macro et vérifiez l’origine
+754|Boucle infinie
+755|Compteur pas incrémenté ou mauvaise condition
+756|RESET. Vérifiez le <code>IF ... GOTO</code>
+757|Mauvais résultat après une macro dans une macro
+758|Deux macros qui utilisent la même <code>#100+</code>
+759|Utilisez des locales ou d’autres variables communes
+760|La valeur n’apparaît pas dans l’appel
+761|Mauvaise lettre écrite (L, N, O, P, G ne sont pas valides)
+762|Utilisez le tableau des lettres
+763|Coins incorrects dans la poche
+764|Rayon de coin plus petit que le rayon de la fraise
+765|L’alarme 141 le signale
+766|Filetage hors dimension
+767|Mauvaise valeur de E ou de pas
+768|Faites un essai sur une pièce
+769|Impossible de modifier O9xxx
+770|Protection des programmes
+771|Paramètre de protection. Dépend de la série/configuration du FANUC
+772|<b>Tableau des alarmes de la bibliothèque</b>
+773|Z final plus haut que le dessus, K, Q, Q plus grand que T
+774|O1612 cercle de perçage
+775|B plus petit que 1
+776|O1613 hélice
+777|D plus petit ou égal à T, K, Z final
+778|O1614 poche circulaire
+779|D petit, K, Q, Q plus grand que T, Z final
+780|O1615 poche rectangulaire
+781|Rayon de coin, I et J petits, K, Q, Z final
+782|O1616 contour rectangulaire
+783|C plus grand que la moitié de I ou J, K, Z final
+784|O1617 polygone
+785|B plus petit que 3, K, Z final
+786|C, H, H plus grand que 89, T, I, U
+787|O1619 filetage
+788|D et T, E, Q, pas, Z final
+789|O1621 durée de vie de l’outil
+790|T hors de 1 à 99
+791|O1622 correction
+792|H, C, valeur plus grande que la limite
+793|B, C, T, D, I, Q, T trop petit
+794|Le numéro à l’écran peut apparaître comme 3000 + n ou seulement le texte. Dépend de la série/configuration du FANUC.
+795|20. Exercices
+796|Faites-les sur papier, avec la calculatrice. Le corrigé est au chapitre suivant. Regardez seulement après avoir essayé.
+797|<b>Exercice 1 : surfaçage (origine au centre)</b>
+798|Calculez : (a) le X de départ du centre de la fraise, (b) les lignes en Y, (c) le nombre de passes.
+799|<b>Exercice 2 : cercle de perçage</b>
+800|Calculez X et Y du trou 2 et du trou 3.
+801|<b>Exercice 3 : trou en hélice</b>
+802|Quel est le rayon de la trajectoire du centre de la fraise? Combien de tours en descendant?
+803|<b>Exercice 4 : rayon convexe</b>
+804|Rayon R5, pas H1, angle θ = 30°. Quels sont le décalage par rapport à la face et le Z?
+805|<b>Exercice 5 : chanfrein</b>
+806|C2, B30, Q0.25. Quelle est la hauteur du chanfrein sur la face? Combien de passes? Quelle est la marche approximative?
+807|<b>Exercice 6 : alarmes</b>
+808|Quelle alarme apparaît dans chaque cas?
+809|<b>Exercice 7 : hexagone</b>
+810|Je veux un hexagone de 30 mm sur plats. Quelle est la valeur de D?
+811|<b>Exercice 8 : compteur</b>
+812|Lot de 3 pièces : <code>G65 P1620 Q3</code>. Quelle est la valeur de <code>#500</code> après chaque appel? À quel appel la machine arrête-t-elle avec le message?
+813|<b>Défi</b> : écrivez une macro (programme et G65) qui perce N trous en ligne avec un espacement P, en utilisant la boucle du chapitre 5.
+814|21. Corrigé des exercices

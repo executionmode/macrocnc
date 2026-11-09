@@ -3,6 +3,25 @@ sys.path.insert(0, '/home/claude/train')
 from svgs import MEDIA
 
 src = open('/home/claude/train/doc1.html').read()
+LANG = sys.argv[1] if len(sys.argv) > 1 else 'pt'
+TD = None
+if LANG != 'pt':
+    import importlib
+    TD = importlib.import_module('tdata_' + ('en' if LANG == 'en' else 'fr'))
+    BL = json.load(open('/home/claude/i18n/tblocks.json'))
+    TRM = {}
+    for l in open('/home/claude/i18n/tr/%s.txt' % ('en' if LANG == 'en' else 'fr')):
+        i, t = l.rstrip('\n').split('|', 1); TRM[BL[int(i)]] = t
+    src = re.sub(r'<(h1|h2|h3|p|li|th|td|figcaption)>(.*?)</\1>', lambda m: '<%s>%s</%s>' % (m.group(1), TRM.get(m.group(2), m.group(2)), m.group(1)), src, flags=re.S)
+    for a, b in TD.PRE.items(): src = src.replace(a, b)
+    sys.path.insert(0, '/home/claude/i18n'); from svgtr import S as SVT
+    _k = 0 if LANG == 'en' else 1
+    def _wrap(fn):
+        def g():
+            out = fn()
+            return re.sub(r'>([^<>]+)</text>', lambda m: '>' + (SVT[m.group(1)][_k] if m.group(1) in SVT else m.group(1)) + '</text>', out)
+        return g
+    MEDIA = {k: _wrap(v) for k, v in MEDIA.items()}
 
 def semis_block(m):
     code = H.unescape(m.group(1))
@@ -57,8 +76,10 @@ ANS = {
     '<pre class="code">O1690 (FUROS EM LINHA) ;\n(LETRAS DO G65 P1690) ;\n(X Y = PRIMEIRO FURO) ;\n(B = QUANTIDADE  I = ESPACAMENTO EM X) ;\n(W = TOPO  Z = Z FINAL  R = SEGURANCA  F = AVANCO) ;\nIF [#2 LT 1] THEN #3000 = 281 (B INVALIDO) ;\nIF [#26 GE #23] THEN #3000 = 282 (Z FINAL ACIMA DO TOPO) ;\n#100 = 1 ;\nN10 #101 = #24 + [#100 - 1] * #4 ;\nG99 G81 X#101 Y#25 Z#26 R[#23 + #18] F#9 ;\nIF [#100 GE #2] GOTO 20 ;\n#100 = #100 + 1 ;\nGOTO 10 ;\nN20 G80 ;\nG98 ;\nM99 ;</pre>'
     '<p>Chamada: <code>G65 P1690 X0 Y0 B5 I20. W0 Z-10. R3. F100. ;</code> → 5 furos em X0, 20, 40, 60, 80.</p>',
 }
-EX_NAMES = {1: 'Exercício 1', 2: 'Exercício 2', 3: 'Exercício 3', 4: 'Exercício 4', 5: 'Exercício 5', 6: 'Exercício 6', 7: 'Exercício 7', 8: 'Exercício 8', 9: 'Desafio'}
+EX_NAMES_PT = {1: 'Exercício 1', 2: 'Exercício 2', 3: 'Exercício 3', 4: 'Exercício 4', 5: 'Exercício 5', 6: 'Exercício 6', 7: 'Exercício 7', 8: 'Exercício 8', 9: 'Desafio'}
 
+EX_NAMES = TD.EX_NAMES if TD else EX_NAMES_PT
+if TD: ANS = TD.ANS
 # exercícios com "Ver resposta"
 ex = next(c for c in chs if c['t'].startswith('20.'))
 h = ex['html']
@@ -67,7 +88,7 @@ marks.sort()
 out = h[:marks[0][0]]
 for k, (pos, n) in enumerate(marks):
     end = marks[k + 1][0] if k + 1 < len(marks) else len(h)
-    out += '<div class="exq">' + h[pos:end] + '<details class="ans"><summary>Ver resposta</summary>' + ANS[n] + '</details></div>'
+    out += '<div class="exq">' + h[pos:end] + '<details class="ans"><summary>' + {'pt': 'Ver resposta', 'en': 'Show answer'}.get(LANG, 'Voir la réponse') + '</summary>' + ANS[n] + '</details></div>'
 ex['html'] = out
 
 gab = next(c for c in chs if c['t'].startswith('21.'))
@@ -107,7 +128,7 @@ END 1 ;
 <ul><li>Preset da ferramenta conferido (ponta, no caso da fresa de chanfrar).</li><li>Primeira rodada com Z acima da peça (W50 Z49) ou single block.</li><li>Potenciômetro de avanço baixo na primeira peça.</li><li>Simule no app antes: o bruto e a trajetória devem bater com o desenho.</li></ul>
 '''
 
-QUIZ = [
+QUIZ_PT = [
  ('No G65 P1611 X215. ..., a letra X vira qual variável dentro da macro?', ['#1', '#24', '#100', '#500'], 1),
  ('Qual faixa de variáveis guarda valores mesmo depois de desligar a máquina?', ['#1 a #33', '#100 a #199', '#500 a #999', '#3000'], 2),
  ('Qual comando volta da macro para o programa principal?', ['M30', 'M98', 'M99', 'G80'], 2),
@@ -120,12 +141,14 @@ QUIZ = [
  ('Em que sentido o contorno externo em G2 com M3 corta?', ['Concordante', 'Discordante', 'Depende do Z', 'Tanto faz'], 0),
 ]
 
+QUIZ = TD.QUIZ if TD else QUIZ_PT
+if TD: COLA = TD.COLA
 SIMS = {
  '7.': ['m-face'], '8.': ['m-pcd'], '9.': ['m-helice', 'p-helice'], '10.': ['p-3bolsas'], '12.': ['m-ret', 'm-poli', 'p-quadrado', 'p-sextavados'],
  '13.': ['m-raio-convexo', 'm-raio-concavo'], '14.': ['p-interp-chanfro'], '15.': ['p-rosca'],
  '17.': ['m-canal', 'm-raio-diam', 'm-cone', 'm-raio-furo', 'm-raio-cil', 'm-chanfro-furo'],
 }
-RESUMO = {
+RESUMO_PT = {
  '1.': ['O principal chama a macro com G65 P(número).', 'A macro faz as contas e os movimentos e volta com M99.', 'O operador só muda as letras do G65.'],
  '2.': ['#1–#33: locais, recebem as letras.', '#100–#199: contas, somem ao desligar.', '#500–#999: ficam gravadas (contadores).', 'Letra vazia não é zero.'],
  '3.': ['Cada letra tem uma variável fixa (X = #24, Y = #25...).', 'G, L, N, O e P não são argumentos.', 'Valores com ponto decimal: X215.'],
@@ -140,17 +163,20 @@ RESUMO = {
  '18.': ['Simule antes no app.', 'Primeira peça com Z no ar ou single block.', 'Avanço baixo e mão no feed hold.'],
 }
 
+RESUMO = TD.RESUMO if TD else RESUMO_PT
+EXTRA = TD.EXTRA if TD else ['22. Teste rápido', '23. Cola rápida', '24. Padrão da oficina (regras)']
+RULES_INTRO = TD.RULES_INTRO if TD else '<p>As regras que todo programa do app segue. O assistente também escreve os programas novos assim.</p>'
 out_chs = []
 for c in chs:
     num = c['t'].split(' ')[0]
     if not num[0].isdigit(): num = ''
     out_chs.append({'t': c['t'], 'html': c['html'], 'sims': SIMS.get(num, []), 'resumo': RESUMO.get(num, [])})
-out_chs.append({'t': '22. Teste rápido', 'html': '', 'quiz': [{'q': q, 'o': o, 'a': a} for q, o, a in QUIZ], 'sims': [], 'resumo': []})
-out_chs.append({'t': '23. Cola rápida', 'html': COLA, 'sims': [], 'resumo': []})
-out_chs.append({'t': '24. Padrão da oficina (regras)', 'html': '<p>As regras que todo programa do app segue. O assistente também escreve os programas novos assim.</p>', 'rules': True, 'sims': [], 'resumo': []})
+out_chs.append({'t': EXTRA[0], 'html': '', 'quiz': [{'q': q, 'o': o, 'a': a} for q, o, a in QUIZ], 'sims': [], 'resumo': []})
+out_chs.append({'t': EXTRA[1], 'html': COLA, 'sims': [], 'resumo': []})
+out_chs.append({'t': EXTRA[2], 'html': RULES_INTRO, 'rules': True, 'sims': [], 'resumo': []})
 
-data = {'title': 'Treinamento de Macros FANUC', 'intro': intro.strip(), 'chapters': out_chs}
+data = {'title': TD.TITLE if TD else 'Treinamento de Macros FANUC', 'intro': intro.strip(), 'chapters': out_chs}
 js = 'window.TRAINING = ' + json.dumps(data, ensure_ascii=False) + ';\n'
-open('/home/claude/macro-cnc/training.js', 'w').write(js)
+open('/home/claude/macro-cnc/training%s.js' % ('' if LANG == 'pt' else '.' + LANG), 'w').write(js)
 print(len(js), len(out_chs))
 for c in out_chs: print(c['t'], len(c['html']), c['sims'])

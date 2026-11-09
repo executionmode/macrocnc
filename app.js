@@ -147,7 +147,7 @@
     var c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = '#0b1015'; c.fillRect(0, 0, W, H);
     var segs = sim.segs, holes = sim.holes;
-    if (!segs.length && !holes.length) { c.fillStyle = '#94a3b3'; c.font = '14px system-ui'; c.fillText('Nada para desenhar.', 16, 28); return; }
+    if (!segs.length && !holes.length) { c.fillStyle = '#94a3b3'; c.font = '14px system-ui'; c.fillText(T('Nada para desenhar.'), 16, 28); return; }
     var minX = 0, maxX = 0, minY = 0, maxY = 0;
     segs.forEach(function (s) { minX = Math.min(minX, s.x1, s.x2); maxX = Math.max(maxX, s.x1, s.x2); minY = Math.min(minY, s.y1, s.y2); maxY = Math.max(maxY, s.y1, s.y2); });
     holes.forEach(function (h) { minX = Math.min(minX, h.x); maxX = Math.max(maxX, h.x); minY = Math.min(minY, h.y); maxY = Math.max(maxY, h.y); });
@@ -192,9 +192,9 @@
       var ls = segs[n - 1], rr = Math.max(4, (toolR || 5) * sc);
       c.fillStyle = 'rgba(245,165,36,0.35)'; c.strokeStyle = '#f5a524'; c.lineWidth = 2;
       c.beginPath(); c.arc(X(ls.x2), Y(ls.y2), rr, 0, 7); c.fill(); c.stroke();
-      c.fillStyle = '#e6edf3'; c.fillText('Z' + (Math.round(ls.z * 100) / 100) + '  linha ' + ls.ln, 10, 16);
+      c.fillStyle = '#e6edf3'; c.fillText('Z' + (Math.round(ls.z * 100) / 100) + '  ' + T('linha {n}', { n: ls.ln }), 10, 16);
     }
-    c.fillStyle = '#94a3b3'; c.fillText('azul = raso · laranja = fundo · tracejado = rápido', 10, H - 8);
+    c.fillStyle = '#94a3b3'; c.fillText(T('azul = raso · laranja = fundo · tracejado = rápido'), 10, H - 8);
   }
   function fmtTime(t) { return t < 1 ? Math.round(t * 60) + ' s' : (Math.floor(t) + ' min ' + Math.round((t % 1) * 60) + ' s'); }
   function statsHtml(sim) {
@@ -537,7 +537,7 @@
         var mv = lines[i].match(/^#(\d+)\s*=\s*(-?\d*\.?\d+)\s*(\(|;|$)/); if (mv && V[+mv[1]] === undefined) V[+mv[1]] = parseFloat(mv[2]);
       }
       var g52 = String(text).match(/G52\s*X(-?[\d.]+)(?:\s*Y(-?[\d.]+))?/); if (g52) { G.x = parseFloat(g52[1]) || 0; G.y = parseFloat(g52[2]) || 0; }
-      var CANTO = /ORIGEM X0 Y0 NO CANTO/.test(text);
+      var CANTO = /ORIGEM X0 Y0 NO CANTO|ORIGIN X0 Y0 AT (THE )?CORNER|ORIGINE X0 Y0 AU COIN/.test(text);
       var o = (new Function('L', 'V', 'G', 'CANTO', 'return ' + p.stockExpr))(L, V, G, CANTO);
       ['d', 'lx', 'ly', 'cx', 'cy', 'top', 'bottom', 'tool'].forEach(function (k) { if (o[k] !== undefined && !isFinite(o[k])) delete o[k]; });
       if (o.shape === 'round' && !(o.d > 0)) return null;
@@ -730,7 +730,7 @@
   var TR = window.TRAINING || { chapters: [], intro: '' };
   var capIdx = -1;
   // vídeo do capítulo: um link só, ou um por idioma { pt: ..., en: ..., 'fr-CA': ... } (sem o idioma, usa o português)
-  function videoFor(v) { if (!v || typeof v === 'string') return v || ''; var l = (window.I18N && I18N.lang) || 'pt'; return v[l] || v.pt || ''; }
+  function videoFor(v) { if (!v || typeof v === 'string') return v || ''; var l = (window.I18N && I18N.lang) || 'pt'; return v[l] || ''; }
   function trRead() { return store.get('tr.read', []) || []; }
   function trMark(i) { var r = trRead(); if (r.indexOf(i) < 0) { r.push(i); store.set('tr.read', r); } }
   function trSplit(t) { var m = /^(\d+)\.\s*(.*)$/.exec(t); return m ? { n: m[1], t: m[2] } : { n: '★', t: t }; }
@@ -767,17 +767,17 @@
     $('#capTitle').textContent = sp.n === '★' ? 'Treinamento' : 'Capítulo ' + sp.n;
     $('#capH').textContent = sp.t;
     var h = '';
-    if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>Ponto-chave</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
+    if (c.resumo && c.resumo.length) h += '<div class="tr-key"><b>' + T('Ponto-chave') + '</b><ul>' + c.resumo.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
     var vids = (window.APP_CONFIG && window.APP_CONFIG.videos) || {}, vurl = videoFor(vids[sp.n]);
-    if (vurl && /\.mp4$/i.test(vurl)) h += '<div class="tr-vid"><div class="tr-vid-h"><span data-icon="play"></span><b>Vídeo: passo a passo com animação</b></div><video src="' + esc(vurl) + '" poster="' + esc(vurl.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video></div>';
-    else if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>Assistir vídeo</b><small>Explicação passo a passo, com animação</small></span><span class="mi-chev" data-icon="chev"></span></a>';
+    if (vurl && /\.mp4$/i.test(vurl)) h += '<div class="tr-vid"><div class="tr-vid-h"><span data-icon="play"></span><b>' + T('Vídeo: passo a passo com animação') + '</b></div><video src="' + esc(vurl) + '" poster="' + esc(vurl.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video></div>';
+    else if (vurl) h += '<a class="tr-video" href="' + esc(vurl) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>' + T('Assistir vídeo') + '</b><small>' + T('Explicação passo a passo, com animação') + '</small></span><span class="mi-chev" data-icon="chev"></span></a>';
     h += c.html || '';
     if (c.rules) h += rulesHtml();
     if (c.quiz) h += c.quiz.map(function (q, k) {
       return '<div class="quiz" data-a="' + q.a + '"><p><b>' + (k + 1) + '.</b> ' + esc(q.q) + '</p>' + q.o.map(function (o, j) { return '<button type="button" class="qopt" data-j="' + j + '">' + esc(o) + '</button>'; }).join('') + '<div class="qres"></div></div>';
     }).join('') + '<div class="qscore" id="qScore"></div>';
     if (c.sims && c.sims.length) {
-      h += '<div class="tr-sims"><b>Pratique no app</b><small>Abra, mude as letras e simule em 3D.</small>';
+      h += '<div class="tr-sims"><b>' + T('Pratique no app') + '</b><small>' + T('Abra, mude as letras e simule em 3D.') + '</small>';
       c.sims.forEach(function (id) {
         var p = PROGRAMS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
         h += '<button type="button" class="tr-sim" data-prog="' + esc(id) + '"><span data-icon="play"></span><span><b>' + esc(p.title) + '</b><small class="mono">' + esc(nums(p)) + '</small></span><span class="mi-chev" data-icon="chev"></span></button>';
@@ -793,11 +793,11 @@
           var ok = +b.dataset.j === +qz.dataset.a;
           b.classList.add(ok ? 'ok' : 'bad');
           qz.querySelectorAll('.qopt')[+qz.dataset.a].classList.add('ok');
-          qz.querySelector('.qres').textContent = ok ? 'Certo!' : 'Não foi dessa vez.';
+          qz.querySelector('.qres').textContent = ok ? T('Certo!') : T('Não foi dessa vez.');
           var all = $$('#capBody .quiz'), done = all.filter(function (x) { return x.dataset.done; });
           if (done.length === all.length) {
             var pts = all.filter(function (x) { return x.querySelector('.qopt.bad') === null; }).length;
-            $('#qScore').textContent = 'Você acertou ' + pts + ' de ' + all.length + '.';
+            $('#qScore').textContent = T('Você acertou {a} de {b}.', { a: pts, b: all.length });
           }
         });
       });
@@ -852,9 +852,9 @@
   function letterLabels(sub) {
     var lines = sub.split('\n'), on = false, labels = [], seen = {};
     lines.forEach(function (l) {
-      if (/^\(LETRAS DO G65/.test(l)) { on = true; return; }
+      if (/^\((LETRAS DO G65|G65 P\d+ LETTERS|LETTRES DU G65)/.test(l)) { on = true; return; }
       if (!on) return;
-      if (/^\(EXEMPLO|^\(VARIAVEIS/.test(l)) { on = false; return; }
+      if (/^\((EXEMPLO|EXAMPLE|EXEMPLE|VARIAVEIS|VARIABLES)/.test(l)) { on = false; return; }
       var m = l.match(/^\(([A-Z](?: [A-Z])*) = (.*)\)\s*;?$/);
       if (m) m[1].split(' ').forEach(function (L) { if (!seen[L]) { seen[L] = 1; labels.push({ l: L, t: m[2] }); } });
     });
@@ -1210,7 +1210,7 @@
   /* ---------- PERFIL ---------- */
   var SHEETS = {
     sobre: ['Sobre o App', function () {
-      return '<p>O <b>Macro CNC</b> é uma biblioteca de macros G65 e programas parametrizados para fresadoras FANUC, com simulação 3D e um assistente que monta programas no padrão do operador.</p>' +
+      return '<p><b>Macro CNC</b> é uma biblioteca de macros G65 e programas parametrizados para fresadoras FANUC, com simulação 3D e um assistente que monta programas no padrão do operador.</p>' +
         '<p class="hint">Versão ' + esc(VER) + '. Os programas da biblioteca marcados como <b>Aprovado na máquina</b> rodaram numa Romi D1250 V6. Os gerados pelo app ou pelo assistente são ponto de partida: confira, simule no comando e faça a primeira peça em Single Block com avanço reduzido.</p>' +
         '<p class="hint">Seus programas, favoritos e configurações ficam só neste aparelho.</p>';
     }],
@@ -1441,7 +1441,7 @@
     var content = prefix + text, display = text;
     if ($('#chatCtx').checked && ed.value.trim()) {
       content += '\n\nPrograma do editor' + (edName.value ? ' ("' + edName.value + '")' : '') + ':\n```gcode\n' + ed.value.slice(0, 30000) + '\n```';
-      display = text + '\n📎 programa do editor anexado';
+      display = text + '\n' + T('📎 programa do editor anexado');
       $('#chatCtx').checked = false;
     }
     chat.push({ role: 'user', content: content, display: display });

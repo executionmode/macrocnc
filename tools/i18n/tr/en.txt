@@ -1,0 +1,694 @@
+0|FANUC CNC Macro Training
+1|This training teaches Custom Macro B from scratch, using the milling macro library (O1611 to O1636), each one explained block by block with a drawing.
+2|How to study this training
+3|The training follows the same order as the macros in the <b>MACROS_CNC.zip</b> package. Each macro has: what it does, the drawing, the G65 call with the letter table, the code explained block by block and the precautions at the machine.
+4|<b>Recommended order</b>
+5|Chapters 1 to 6 (basics): read them once, calmly. This is the part that gives you control.
+6|Chapter 7 (face milling): it is the simplest macro. Run it in the machine simulator or in the air before moving on.
+7|Chapters 8 to 16: one macro at a time, in the order you will use them day to day.
+8|Chapter 18: first-part checklist. Always follow it.
+9|Chapters 19 and 20: exercises and answers. It only counts as training if you try before looking.
+10|<b>Standard used in all macros</b>
+11|Main program <code>O00xx</code> (what the operator edits) and subprogram <code>O16xx</code> (the macro, do not touch).
+12|The subprogram comments say what each letter and each variable does.
+13|The origin is always stated in the comment (center or corner of the part).
+14|Invalid values raise a numbered <code>#3000</code> alarm, instead of the machine doing something wrong.
+15|<b>Important warning</b>: the programs were checked in toolpath simulation, not on your machine. Available variables, offset numbering (<code>#10001</code>, <code>#12001</code>) and permanent variables (<code>#500+</code>) depend on the FANUC series and setup. Always run the first time in the air, with reduced feed and one hand on the stop button.
+16|1. What a macro is
+17|A <b>macro</b> is a subprogram that accepts <b>values</b>. Instead of writing one program for a 100 x 100 face and another for 215 x 215, you write <b>a single program</b> and give the sizes in the call.
+18|Flow: the main program calls the macro with G65 and comes back with M99
+19|The path is always the same:
+20|The main program runs the line <code>G65 P1611 X215. Y215. ...</code>.
+21|FANUC jumps to program <code>O1611</code> and hands over the typed numbers (X, Y, Z...) in variables.
+22|The macro does the math and the moves using those variables.
+23|At <code>M99</code> it gives control back to the block right after the G65.
+24|<b>Everyday comparison</b>: the macro is a cake recipe with blanks ("how many cups of ___"). The G65 is you filling in the blanks and handing the recipe to the cook.
+25|<b>Why use a macro instead of fixed G-code</b>
+26|Change the size in seconds, without recalculating anything.
+27|The same code works for different parts.
+28|The control does the math you would do on a calculator (sine, cosine, passes) by itself.
+29|Fewer typing errors: the math is always done the same way.
+30|<b>Main program vs macro (subprogram)</b>
+31|Main program (O00xx)
+32|Macro (O16xx)
+33|Who edits it
+34|Operator
+35|Nobody (only the programmer)
+36|Contents
+37|Tool, RPM, G54, G65
+38|Math and moves
+39|Ends with
+40|To change a size
+41|Change the numbers in the G65
+42|Do not touch
+43|<b>Tip</b>: program numbers O9000 to O9999 can be protected by a parameter (8nnn, protection bit) on many FANUC controls. If you cannot edit or delete an O16xx, that is the protection. Depends on the FANUC series/setup.
+44|2. Variables
+45|A variable is a <b>numbered drawer</b> with a number inside. Written as <code>#</code> followed by the number. Example: <code>#100 = 25.</code> puts 25 in drawer 100. Then <code>G1 X#100</code> is the same as <code>G1 X25.</code>.
+46|The four variable drawers
+47|<b>The four types you use</b>
+48|Range
+49|Name
+50|When it is used
+51|What happens at the end
+53|Local
+54|Receive the G65 letters
+55|Cleared when leaving the macro
+57|Common
+58|Macro calculations
+59|Cleared at power off (usually)
+61|Permanent
+62|Counters, tool life
+63|Stay saved
+64|System
+65|Alarm, message, offsets
+66|Have a special function
+67|<b>Golden rule of the library</b>: in macros that call another macro (for example O1612 calls O1613), the common <code>#100+</code> variables are <b>shared</b>. That is why O1612 uses only <code>#27</code> to <code>#32</code> (free locals), so it does not mess up the math of the called macro.
+68|<b>Empty vs zero</b>: a variable that was never used is <i>empty</i> (<code>#0</code>). In many calculations it counts as zero, but in <code>EQ</code> comparisons empty and zero can give different results. That is why the program always assigns a value before using it.
+69|<b>Calculation example</b>
+70|Result: the axis goes to X50.
+71|<b>Indirect variables</b>: <code>#[#100]</code> means "the drawer whose number is inside drawer 100". If <code>#100 = 601</code>, then <code>#[#100]</code> is <code>#601</code>. That is how the tool life macro keeps one drawer per tool (<code>#[600+T]</code>).
+72|<b>Careful</b>: <code>#500</code> to <code>#999</code> may have a smaller range (e.g. only <code>#500</code> to <code>#531</code>) depending on the installed option. Check the machine manual. Depends on the FANUC series/setup.
+73|3. G65 and the letters
+74|In the G65 you write <b>letters with numbers</b>. FANUC turns each letter into a fixed <b>local variable</b>. This is a control table: it cannot be changed.
+75|Each G65 letter becomes a local variable
+76|Letter
+77|Variable
+78|<b>Letters that cannot be used as arguments</b>: <code>G</code>, <code>L</code>, <code>N</code>, <code>O</code>, <code>P</code>. <code>P</code> is already the macro number (<code>P1611</code>).
+79|<b>Example</b>
+80|Typed
+81|Becomes
+82|Meaning in this macro
+83|Size of the area in X
+84|Size of the area in Y
+85|Z of the part top
+86|Final Z
+87|Depth per pass
+88|Cutter diameter
+89|Stepover
+90|Clearance outside the part
+91|Safety plane
+92|Feed rate
+93|<b>A letter has no fixed meaning.</b> FANUC only knows that X becomes <code>#24</code>. The macro decides that <code>#24</code> is "size in X". That is why each library macro has its own letter table: keep the table with the program.
+94|<b>Decimal point</b>: in the G65, <code>X215</code> without a point can be read as 215 or as 0.215, depending on the control's decimal point parameter. <b>Always write the point</b>: <code>X215.</code>.
+95|<b>Letter not written</b>: the variable stays <i>empty</i>. That is why the macros test, for example, <code>IF [#17 EQ 0] THEN #17 = #9</code>: if Q was not given, the feed F is used.
+96|4. Math, functions and comparisons
+97|<b>Watch the brackets</b>: in FANUC macros, only <code>[ ]</code> is used for grouping. Parentheses <code>( )</code> are comments.
+98|<b>Math</b>
+99|Symbol
+100|Does
+101|Example
+102|Result
+104|addition, subtraction
+107|multiplication, division
+110|groups
+112|Without brackets, multiplication comes before addition: <code>10 + 5 * 2 = 20</code>, and <code>[10 + 5] * 2 = 30</code>.
+113|<b>Functions used in the library</b>
+114|Function
+116|Sine, cosine, tangent (<b>angle in degrees</b>)
+119|Square root
+122|Value without sign
+125|Drops decimals (down)
+128|Rounds up
+131|Normal rounding
+133|<code>FUP</code> is used a lot: "how many passes of 2.5 fit in 7?" → <code>FUP[7 / 2.5]</code> = 3 passes.
+134|<b>Comparisons</b> (they only appear inside <code>IF</code> or <code>WHILE</code>)
+135|Code
+136|Means
+138|equal
+141|not equal
+144|greater than
+147|less than
+150|greater or equal
+153|less or equal
+155|<b>Full example: bolt circle holes</b>
+156|For hole number 3 of 6, with radius 40:
+157|<code>#30</code> = 150°. <code>#31</code> = 40 × COS 150° = <b>-34.641</b>. <code>#32</code> = 40 × SIN 150° = <b>20.000</b>. The hole goes to X-34.641 Y20.
+158|5. Decisions and loops
+159|Without decisions, the macro would only be a calculator. With decisions it <b>repeats</b> blocks (loops) and <b>chooses</b> paths.
+160|<b>IF ... THEN</b> (a single action)
+161|If Q was not given, Q gets the feed value. If the condition is false, the line is skipped.
+162|<b>IF ... GOTO</b> (jumps to a block with N)
+163|If the condition is true, the control goes to block <code>N10</code>. If it is false, it goes on to the next line.
+164|<b>GOTO</b> without a condition: <code>GOTO 30</code> always jumps.
+165|<b>The loop (repetition) in 4 steps</b>
+166|Repetition loop with IF GOTO
+167|The counter starts at 1.
+168|At <code>N10</code> it does the work (one hole, one pass, one turn).
+169|Add 1 to the counter.
+170|Ask: "is there more to do?" If yes, <code>GOTO 10</code>; if not, go on.
+171|<b>Full example (4 holes in a line, spacing 20)</b>
+172|Loop: #100=0 → X0. #100=1 → X20. #100=2 → X40. #100=3 → X60. Then #100=4, the condition fails and it exits. That is <b>4 holes</b>.
+173|<b>Classic mistakes</b>
+174|Forgetting to add to the counter: the loop never ends. Press RESET.
+175|Using <code>LT</code> when <code>LE</code> was needed: one hole is missing.
+176|Jumping to an <code>N</code> that does not exist: N not found alarm (<code>P/S 128</code>, depends on the series).
+177|Using the same <code>N</code> number twice in the macro: it goes to the first one.
+178|<b>WHILE ... DO ... END</b>
+179|Does the same as IF/GOTO and is easier to read, but <b>the library uses IF/GOTO</b> because it works on every FANUC, old and new.
+180|6. Alarms and messages
+181|Every macro starts by validating the numbers. If something is wrong, the machine <b>stops before cutting</b>.
+182|<code>#3000 = 101</code> raises a macro alarm. The number and the text in parentheses show on the screen. On most FANUC controls the number shown is 3000 + 101 = 3101 or just the text. <b>Depends on the series/setup.</b>
+183|<code>#3006 = 1 (MESSAGE)</code> stops the program with a message, waiting for the operator to press cycle start.
+184|<b>Library alarm ranges</b>
+185|Macro
+186|Alarms
+187|O1611 face milling
+188|O1618 radius
+189|O1623 chamfer
+190|<b>How to read the alarm on the shop floor</b>: read the text, go back to the macro's letter table and check the typed number. It is almost always a forgotten letter, a wrong sign or a cutter that is too big.
+191|<b>Example</b>: alarm <code>202 (B GREATER THAN 45)</code> on the chamfer: <code>B60.</code> was typed. The conical chamfer mill only goes up to 45° to the top face (with a flat end mill see O1628 and O1630). See chapter 14.
+192|7. Macro 0: Face milling (O1611)
+193|<b>What it does</b>: faces a rectangular area in Z passes, going back and forth in X and stepping in Y. It is the simplest macro and the basis for understanding all the others.
+194|<b>Call (video example, origin at the center)</b>
+195|What it is
+196|In this example
+197|Stepover (not larger than T)
+198|Clearance outside the part in X
+199|Safety plane above the surface
+200|Feed mm/min
+201|Top view of the back and forth and side view of the passes
+202|<b>Code (origin at the center)</b>
+203|<b>Block-by-block explanation</b> (with the example numbers)
+204|Block
+205|What it does
+206|Value in the example
+208|Cutter radius
+210|How far the cutter <b>center</b> goes outside the part in X (half the area + radius + clearance)
+212|Y of the last row, so the cutter edge stays at the limit of the area
+214|If the cutter is bigger than the area in Y, it makes a single row in the middle
+215|does not happen
+216|4 lines of <code>IF ... #3000</code>
+217|Alarms: final Z above the top (101), K zero (102), Q zero (103), Q bigger than the cutter (104)
+218|do not happen
+220|Current surface = top
+222|Start of each pass: new Z = surface - K
+224|Does not go past the final Z
+225|<code>#106 = -#101</code> and <code>#105 = -#102</code>
+226|Starts at X-137.5 and Y-82.5
+228|Approaches outside the part, goes to the safety plane
+230|Goes down in Z outside the part (cutter in the air)
+232|Cuts to the opposite side
+234|Flips the side for the next row (back and forth)
+236|Reached the last row? Exit
+238|Steps Q in Y
+240|The last row does not go past the limit
+242|Moves in Y and repeats the row
+244|Retracts
+246|Next pass, if the final Z has not been reached
+247|<b>Rows made in the example</b>: Y = -82.5, -52.5, -22.5, 7.5, 37.5, 67.5 and 82.5 (the last one shortened), that is, <b>7 rows</b>, in <b>1 pass</b>.
+248|<b>Origin-at-corner version</b>: the file <code>00_FACEAMENTO_SUB_O1611_ORIGEM_CANTO.txt</code> does the same with X0 Y0 at the corner of the area, area toward +X and +Y. The only difference is in the starting math (<code>#101 = -[#100 + #1]</code>, <code>#107 = #24 + #100 + #1</code>) and in the extra <code>#109</code>/<code>#110</code> that swaps the target X on every row.
+249|<b>Precautions at the machine</b>
+250|Face mill: check that the cutting direction (climb/conventional) is what you want. The back and forth alternates both.
+251|R25 is the clearance above the <b>current surface</b> of each pass, not above the original top.
+252|Run first with Z above the part (for example, W50 and Z49) to see the drawing in the air.
+253|8. Macro 1: Bolt circle holes (O1612)
+254|<b>What it does</b>: spreads N holes evenly on a circle and on each one it <b>drills</b> (G81/G83), <b>mills the hole with a helix</b> (calls O1613) or <b>thread mills</b> (calls O1619).
+255|<b>Call</b>
+256|Center of the circle
+257|Bolt circle <b>diameter</b>
+258|Number of holes
+259|Angle of the first hole
+260|0 = drill, 1 = mill hole, 2 = thread
+261|Top Z / final Z
+262|Peck (G83). 0 = no peck
+263|Only for H1 or H2 (hole diameter, pitch, cutter, step down per turn, thread depth)
+264|Bolt circle: each hole has its angle; X = R·COS, Y = R·SIN
+265|<b>The math idea (that is all)</b>
+266|A point on a circle of radius R, at angle θ, is at:
+267|X = center X + R × COS θ
+268|Y = center Y + R × SIN θ
+269|The angle of each hole is the angle of the first plus (hole number - 1) times (360 / number of holes).
+270|<b>Code</b>
+271|<b>Explanation</b>
+273|Radius = diameter / 2
+275|Angle between holes
+277|Counter: hole no. 1
+279|Angle of this hole
+280|hole 1 = 15°, hole 2 = 45°
+281|<code>#31</code>, <code>#32</code>
+282|X and Y of the hole
+283|hole 1: X181.11 Y48.53
+285|H2 goes to the thread
+287|H1 goes to the milled hole
+289|Q greater than zero uses G83 (peck)
+291|Drills and returns to the R plane between holes
+292|R5 above the top
+294|Was it the last hole? Exit
+295|<code>#29 = #29 + 1</code> / <code>GOTO 10</code>
+296|Next hole
+297|<code>G80</code> / <code>G98</code>
+298|Cancels the cycle and returns to default
+299|<b>Macro inside a macro</b>: with options H1 and H2, O1612 calls another macro (O1613 or O1619) with <code>G65</code>. This works up to 4 nesting levels. The <code>#100+</code> variables are common and <b>shared</b>, which is why O1612 uses only <code>#27</code> to <code>#32</code>.
+300|<b>First hole at 15° and 12 holes</b>: the angles are 15, 45, 75, 105... up to 345. The last one (345°) is 30° before the first: no repeated hole.
+301|<b>Precautions</b>: A is the angle measured from the X+ axis counterclockwise. Check that plane G17 is active. Watch <code>J</code>: it is the <b>diameter</b>, not the radius.
+302|9. Macro 2: Helical milled hole (O1613)
+303|<b>What it does</b>: opens or enlarges a hole by going down in a spiral (helix) with a cutter smaller than the hole. At the end it makes a flat turn to clean the bottom.
+304|<b>When to use</b>: an existing hole or a hole with D less than 2 times the cutter. If D is more than 2T, a core is left in the middle: use the circular pocket (chapter 10).
+305|Center of the hole
+306|Final hole diameter
+307|Top Z / final Z
+308|Step down per turn
+309|The helix goes down K per turn; at the bottom, a flat turn
+310|<b>The key calculation</b>: the cutter center travels on a circle of radius <b>(D - T) / 2</b> = (35 - 20) / 2 = <b>7.5</b>. The cutter edge is then exactly at D/2 = 17.5.
+312|Radius of the cutter center path
+314|Clearance to move off the wall before going up (avoids a mark)
+315|3 alarms
+316|D less than or equal to T (121), K invalid (122), final Z above the top (123)
+317|<code>G0 X Y</code>, <code>G0 Z</code>, <code>G0 X[...+#100]</code>
+318|Goes to the center, down to the safety plane and positions on the helix radius
+320|Touches the top of the part
+321|Z at the end of this turn (previous Z - K)
+323|<b>Full circle going down</b>. It ends at the same X Y, so it is a full turn. <code>I[-#100]</code> points to the center
+325|Not at the bottom yet? One more turn
+326|<code>G3 ... (no Z)</code>
+327|Final flat turn: cleans the bottom
+329|Moves 0.5 mm off the wall
+331|<b>Turn example</b>: from Z0 to Z-25.4 with K2 there are 12 full turns (Z-2, -4 ... -24) and one turn to Z-25.4; then the flat turn. The last turn goes down only 1.4 mm because <code>IF ... LT #26</code> clamps it at the final Z.
+332|<b>Precautions</b>: G3 makes the cutter go counterclockwise around the hole center, that is, <b>climb milling</b> with an M3 cutter in an internal hole. The tool must be center cutting to go down in a helix without trouble.
+333|10. Macro 3: Circular pocket (O1614)
+334|<b>What it does</b>: roughs a round pocket in growing rings, level by level, leaving stock E on the wall. At the end it calls the helix macro (O1613) to finish the wall at the final diameter.
+335|Center
+336|Final diameter
+337|Depth per level
+338|Stepover between rings (not larger than T)
+339|Stock left on the wall for finishing
+340|Concentric rings: from the center to the wall
+341|<b>Example math</b>
+342|Radius of the final center path: (60 - 16) / 2 = <b>22</b>
+343|Maximum roughing radius: 22 - 0.3 = <b>21.7</b>
+344|Entry helix radius: T/4 = <b>4</b>
+345|Rings: 4, 12, 20 and the last cuts at 21.7 (28 would go past the limit)
+346|Levels: Z-3, -6, -9, -10 (4 levels)
+347|<code>#100</code>, <code>#101</code>, <code>#102</code>
+348|Final radius, maximum roughing radius (without stock), entry helix radius
+349|5 alarms
+350|D small for T and E (131), K (132), Q (133), Q larger than T (134), final Z (135)
+352|Start of each Z level
+354|Goes to the helix radius
+356|Goes down in a helix to the level (the helix makes 1 turn)
+357|Flat <code>G3</code>
+358|Flat turn to clean the bottom of the level
+360|Each ring: increases Q, limits to the maximum radius, moves in X and makes the circle with G3
+362|Back to the center; if levels remain, <code>GOTO 10</code>
+364|<b>At the end</b> it finishes the wall: helix at the final diameter D, down to the final Z
+365|<b>Why the called macro does not ruin the variables</b>: O1613 also uses <code>#100</code>, <code>#103</code>, <code>#104</code>, <code>#107</code>. But O1614 only calls O1613 at the <b>end</b>, when it no longer needs its own math. If it called it in the middle, the common variables would be overwritten.
+366|<b>Precautions</b>: the final G65 repeats the same X, Y, D, T, W, Z, K, R, F with O1614's locals, which are sent to O1613 as letters. Center-cutting end mill.
+367|11. Macro 4: Rectangular pocket (O1615)
+368|<b>What it does</b>: roughs a rectangular pocket with a corner radius, in back-and-forth rows, level by level, and then finishes the wall with a full profile with rounded corners (G3).
+369|Center of the pocket
+370|Length in X
+371|Width in Y
+372|Corner radius (not smaller than the cutter radius)
+373|Cutter
+374|Top Z / final Z
+375|Stepover between rows (not larger than T)
+376|Stock on the wall
+377|Safety plane / feed
+378|Rectangular pocket: loops from the inside out, round corners
+379|<b>The corner problem</b>: if the roughing were straight rows from wall to wall, the cutter would go past the rounded corner. The macro <b>shortens the row</b> near the corner, using the Pythagorean theorem.
+380|Calculation
+381|Value
+382|2 (corner radius of the center path)
+383|<b>Shortening the row</b>: from <code>|Y| &gt; #101 - #102</code> (= 17) the corner starts. For a row in Y, the half length is:
+384|At Y18.7 (last row): SQRT[1.7² - 1.7²] = 0, so #112 = 33.7 - 1.7 = <b>32.0</b>.
+385|<b>Block summary</b>
+386|Part
+387|Start
+388|Half-path math and alarms 141 to 149
+389|New Z level
+390|Entry
+391|G3 with Z at the center (small helix, radius T/4) and a flat turn
+392|Starts at negative Y (-#101), calculates the row length and goes from one side to the other
+394|Current side: -1 left, +1 right. <code>#107 = -#107</code> switches sides
+396|Runs the row
+397|<b>Finishing</b>: full profile on the wall, with 4 G3 arcs at the corners (with <code>I</code> and <code>J</code> from the center of each corner)
+398|<code>G1 X#24 / Y#25</code>
+399|Back to the center and up/next level
+400|<b>Precautions</b>: the finish uses the point (#108, #109), that is, the final wall. Stock E is removed in the finish loop at <b>every level</b>; for demanding parts, use a small E and a lower feed for finishing.
+401|12. Macros 5 and 6: Outside profiles in a spiral (O1616 and O1617)
+402|<b>What they do</b>: profile the outside of a rectangular part with a corner radius (O1616) or a regular polygon (O1617: square, hexagon, octagon...). The tool <b>goes down a little on each side</b>, without stopping, in a spiral. The last turn is flat to remove the spiral mark.
+403|Spirals: the step down happens while profiling
+404|<b>Why a spiral and not layers?</b> There is no exit and entry mark on each layer, and rapid time goes down.
+405|<b>Direction</b>: clockwise (G2) around the part with the cutter turning M3 = <b>climb</b> milling.
+406|12.1 Rectangular profile (O1616)
+407|Center of the part
+408|Corner radius (0 = sharp corner)
+409|Step down every <b>turn</b>
+410|Entry clearance, outside the stock
+411|Half X of the center path: 100/2 + 25/2 = <b>62.5</b>
+412|Half Y: 60/2 + 25/2 = <b>42.5</b>
+413|Corner radius of the path: 5 + 12.5 = <b>17.5</b>
+414|Step down per side: K/4 = <b>0.5</b>
+415|Turns: 20/2 = <b>10 turns</b> going down + 1 flat turn
+416|Path of the cutter <b>center</b>: the part + the cutter radius all around
+418|Goes to the entry point, outside the stock, A mm from the top side
+419|<code>G1 Z#23</code>, <code>G1 Y[...]</code>
+420|Goes down in the air and enters the part from the top side
+421|Z at the end of the turn; <code>#106</code> = how much it goes down on each side (K/4)
+422|4 segments <code>G1 ... Z</code> + <code>G2</code>
+423|Each side: straight line going down + corner arc without going down (the lines do the step down)
+425|While going down, one more turn. When the final Z is reached, #106 = 0: the last turn is flat and the loop ends
+426|<b>Precautions</b>: check the final Z and the fixture height, because the spiral goes down to it. The cutter must take material from the outside, with the stock always larger than the part by at least T/2 + A.
+427|12.2 Polygon profile (O1617)
+428|Number of sides (3 or more)
+429|Diameter of the circle through the <b>corners</b>
+430|Angle of the first corner (0 = corner on the X axis)
+431|Entry clearance
+432|Step down every turn
+433|<b>Watch the D</b>: it is the diameter <b>from corner to corner</b>, not the size across flats. Across flats (AF) = D × COS(180°/B). For a hexagon AF 36: D = 36 / COS 30° = <b>41.57</b>.
+434|<b>The idea</b>
+435|The corners are on the circle of radius D/2, every 360/B degrees (60° on a hexagon).
+436|The cutter center travels along each side offset T/2 outward (in the direction of the side normal).
+437|At each corner, a G2 arc of radius T/2 around the corner joins one side to the next.
+438|The step down K is split over the B sides: <b>K / B</b> on each side.
+439|Meaning
+441|Radius to the corners (20.785 in the example)
+443|Cutter radius (12.5)
+445|Angle between corners (60°)
+447|Corner angle at the start of the side
+449|Angle of the side <b>normal</b>: middle of each side = <code>#108 - #102/2</code>
+451|Corner angle at the end of the side (one clockwise step)
+452|<code>#113 #114</code>
+453|X and Y of that corner
+454|Side counter, from 1 to B
+456|Current Z, goes down K/B on each side
+457|<b>Reading </b><b><code>N20</code></b>: for each side it calculates the target corner (<code>#113</code>, <code>#114</code>), moves in <code>G1</code> to the corner offset T/2 along the normal (<code>#109</code>), going down in Z; then a <code>G2</code> turns around the corner, going from this side's normal to the next one's (<code>#109 - #102</code>). <code>I</code> and <code>J</code> point from the current point to the corner: <b>-r·COS(normal)</b> and <b>-r·SIN(normal)</b>.
+458|<b>Turn example</b>: Z-17 with K2 = 9 turns (the last goes down only 1 mm) plus 1 flat turn.
+459|<b>Precautions</b>: the same logic works for <code>B4</code> (square rotated by A), <code>B8</code> (octagon) etc.
+460|13. Macro 7A: Convex and concave radius (O1618)
+461|<b>What it does</b>: cuts a radius on the edge of a bar (convex, rounding the corner) or a concave radius (cove at the corner), using a <b>flat end mill</b> and the method from programming manuals: several passes, from top to bottom, each one at a position calculated from the angle θ.
+462|Convex radius (left) and concave (right): the cutter tip touches the curve at each angle
+463|13.1 The idea (no formula to memorize)
+464|The radius curve is a quarter circle. Instead of following the smooth curve, the cutter makes <b>steps</b>: at each angle θ (1°, 2°, 3° ... 89°) it goes to a point on the curve and cuts a straight pass in X. The <b>bottom corner</b> of the cutter touches the point on the curve. Since the cutter is always on the outside of the material, <b>it never overcuts</b>: only material is left (the steps).
+465|The <b>smaller the H</b> (step in degrees), the more passes and the smoother the curve. H1 = 89 passes.
+466|The passes go <b>from top to bottom</b>.
+467|<b>Convex (U0)</b>: rounding the edge of a bar. For each θ:
+468|Offset from the face: <code>C - C·SIN θ</code>
+470|<b>Concave (U1)</b>: cove with the arc center at the corner (Y face, top W). For each θ:
+471|Offset from the face: <code>C·COS θ</code>
+473|<b>Where the cutter is</b>: the cutter center is at <code>face Y + direction × (offset - T/2)</code>. The direction is +1 when the material is toward +Y (V0) and -1 when it is toward -Y (V1).
+474|<b>Numerical example, convex R10 (U0, H1)</b>
+475|Offset from the face
+478|13.2 Call and letters
+479|<b>Convex R10, 200 x 40 bar, Ø50 cutter</b> (file O0018)
+480|<b>Concave R15, Ø20 cutter</b> (file O0023)
+481|Convex
+482|Concave
+483|X of the <b>left side</b> (lower X) of the bar
+484|Bar length in X
+485|Y of the face where the radius is cut
+486|Top Z
+487|Radius
+488|0 = convex, 1 = concave
+489|Material side: 0 = material toward +Y, 1 = toward -Y
+490|Step in degrees (1 = smoother)
+491|Clearance in X past the ends
+492|Feed in X (cutting)
+493|Feed of the Y/Z step. 0 = uses F
+494|<b>For the other edge</b> of the bar: Y20. and V1 (the face is at Y20 and the material toward -Y).
+495|13.3 Code
+496|7 alarm lines
+497|171 C, 172 H, 173 H greater than or equal to 90, 174 T, 175 I, 176 U other than 0 or 1
+499|Without Q, the Y/Z step uses the feed F
+500|Direction: +1 or -1 depending on V
+501|Starting X of the cutter <b>center</b>, before the bar (X - T/2 - A)
+502|Final X, after the bar (X + I + T/2 + A)
+504|Current angle starts at H
+505|<code>#107</code>, <code>#108</code>
+506|Start and target X of the pass (back and forth)
+507|<code>G0 X Y</code> / <code>G0 Z</code>
+508|Positions outside, T/2 from the face, and goes up to the safety plane
+509|Picks the formula: convex (goes on) or concave (<code>GOTO 20</code>)
+511|Offset from the face at this angle
+513|Z of this angle
+515|Y of the cutter center
+517|Goes to the point on the curve. This happens with the cutter <b>outside the bar in X</b>, so it does not cut during the move
+519|Straight pass in X
+520|<code>#107</code>/<code>#108</code> swapped
+521|On the next pass it goes the opposite way
+523|Next angle
+525|Repeats until it reaches 89°
+526|13.4 How to check
+527|In the convex example the first point is Y = -20 + 9.8255 - 25 = <b>-35.1745</b> and Z = <b>-0.0015</b>.
+528|Run it in the air with W well above the stock and check that the steps go down in the right order.
+529|The cutter <b>must have a sharp corner</b> (no insert radius). The insert corner radius creates a small error on the curve.
+530|<b>Assumptions for you to confirm</b>
+531|The concave radius was made as a cove at the top corner of the face (arc center at the corner). If the drawing is different, adapt the macro.
+532|In the concave example, the length I165 is only an example. Adjust it to the real part length.
+533|Reference Z: the lowest point of the cutter (bottom corner).
+534|14. Macro 7B: Chamfer with a 90° chamfer mill and an angle letter (O1623)
+535|<b>What it does</b>: chamfers the top edge of a bar using <b>always a 90° chamfer mill</b>. You choose the chamfer angle with the letter <b>B</b>.
+536|Chamfer: C is the width at the top, the face height comes from C times the tangent of B
+537|14.1 The idea
+538|The <b>tip</b> of the 90° cutter travels along the chamfer line, from top to bottom. The cutter spins around its axis, but what matters for the drawing is where the tip is.
+539|<b>C</b> = chamfer width at the top (measured in Y, on the top face).
+540|<b>B</b> = angle of the chamfer line to the top. B45 = 45° chamfer (C x C). B30 = a lower chamfer.
+541|<b>Height on the side face</b>: <code>C × TAN B</code>. For C3 B30: 3 × 0.577 = <b>1.732</b>.
+542|Height on the face (C3)
+543|Chamfer
+544|3 at the top x 1.732 on the face
+545|3 at the top x 1.092 on the face
+546|14.2 Why B only goes up to 45°
+547|The 90° cutter has flanks at 45° on each side of the axis. If the chamfer line is <b>steeper than 45°</b>, the flank hits the part before the tip gets there and <b>gouges</b>. That is why the macro raises <b>alarm 202</b> for B greater than 45.
+548|Left: tip running along the chamfer. Right: B60 is not possible with a 90° cutter
+549|For angles over 45°, use a chamfer mill with another angle or an end mill.
+550|14.3 Call and letters
+551|X of the left side of the bar
+552|Y of the face where the chamfer is cut
+553|Chamfer width at the top (in Y)
+554|Chamfer <b>angle</b> (1 to 45)
+555|Step in Y between passes. Not used with B45
+556|0.2 (for B30)
+557|0 = material toward +Y, 1 = material toward -Y
+558|Large diameter of the chamfer mill
+559|Flat tip diameter of the cutter (0 = sharp tip)
+560|<b>Other edge</b> of the bar: Y20. and V1.
+561|<b>Alarms</b>
+562|When
+563|B less than or equal to zero
+564|B greater than 45
+565|C invalid
+566|T invalid
+567|D negative
+568|I invalid
+569|T too small for the chamfer (needs T greater than or equal to 2·C·TAN B + D)
+570|Q invalid
+571|14.4 Code
+573|Chamfer height on the face
+575|The cutter must be wide enough to reach the chamfer height (alarm 207)
+577|B45: makes <b>a single pass</b>, with the flank
+579|Tip position at the top, measured from the face, starts at C
+581|On each pass the tip moves Q in Y, toward the face
+582|<code>IF [#103 GT 0.001] GOTO 20</code> / <code>#103 = 0</code>
+583|The last pass lands exactly on the face
+584|Y of the cutter center: tip - D/2
+585|Tip Z: <code>W - height + position × TAN B</code>
+586|<code>G1 Y Z</code> / <code>G1 X</code>
+587|Goes to the point and passes in X (back and forth)
+589|Continues until it passes the face (position 0)
+590|<b>Example B30, C3, Q0.2</b>: 15 passes of 0.2 in Y. On each pass the tip climbs the line: final tip Z = W - 1.732 and top Z = W. The material left between passes (vertical step) is about <code>Q·(1 - TAN² B)/2</code> = 0.2 × (1 - 0.333) / 2 = <b>0.067 mm</b>.
+591|<b>B45</b>: the line matches the cutter flank, so <b>a single pass</b> leaves a perfect chamfer (no step).
+592|<b>Precautions</b>
+593|Reference Z: <b>lowest point of the cutter tip</b>. Set the chamfer mill length at the tip.
+594|If the cutter has a flat tip, enter its diameter in D. With D0 the math assumes a sharp tip.
+595|Check the result on a test part: measure C and the height on the face.
+596|15. Macro 8: Internal thread milling (O1619)
+597|<b>What it does</b>: right-hand internal thread with a thread mill, in several radial passes. It starts at the face and <b>goes down</b> in a helix (G2), one pitch per turn.
+598|Thread: the cutter goes around and down P per turn
+599|Nominal thread diameter
+600|Pitch
+601|Thread mill diameter
+602|Top Z / final Z of the thread
+603|Radial thread depth
+604|Radial increment per pass
+605|Final radius of the center path: (16 - 12.5) / 2 = <b>1.75</b>
+606|Radius before the first pass: 1.75 - 1.083 = <b>0.667</b>
+607|Passes: 1.067, 1.467 and 1.75 (the last is limited to the final radius) = <b>3 passes</b>
+608|Turns per pass: 24 / 2 = <b>12</b>
+609|<code>#100</code>, <code>#101</code>
+610|Final radius and radius before the first pass
+611|Alarms 181 to 185
+612|D less than or equal to T, E too big, Q, pitch, final Z
+613|New radial pass: radius grows by Q, limited to the final radius
+614|<code>G1 Z#23</code>, <code>G1 X..</code>
+615|Goes to the pass radius at the top
+617|Z at the end of a turn = current Z minus one pitch
+619|<b>One full helical turn</b> going down one pitch
+621|Last partial turn: calculates the angle <code>#106 = 360 × (remaining depth / pitch)</code> and makes a shorter arc
+623|Updates Z and repeats if it has not reached the bottom
+624|<code>G1 X#24 Y#25</code> / <code>G0 Z</code>
+625|Back to the center and up
+627|Another pass left? Repeat
+628|G2 (clockwise) going down: <b>right-hand</b> thread with the cutter in M3, starting at the top.
+629|E and pitch values come from the cutter catalog. Test on a part first and check with a gauge.
+630|The first time, run with reduced feed and without the final pass (large Q) to check the path.
+631|16. Macros 9, 10 and 11: Part counter, tool life and wear offset
+632|These are small macros, with no motion. They show the power of <b>permanent variables</b> and <b>system variables</b>.
+633|16.1 Part counter (O1620)
+634|<b>What it does</b>: adds 1 to <code>#500</code> for each part. When it reaches the batch size, it stops with a message. The value stays saved when the machine is turned off.
+635|<code>Q50</code>: batch of 50 parts. <code>Q0</code> resets the counter.
+636|Call it at the <b>end of the program</b>, before M30.
+638|Q greater than zero? Go count
+639|<code>#500 = 0</code> / <code>M99</code>
+640|Q0: reset and return
+642|Adds one part
+644|Batch not reached yet? Return without stopping
+646|Batch complete: <b>stops</b> and shows the message
+647|16.2 Tool life (O1621)
+648|<b>What it does</b>: a counter <b>per tool</b>, in variable <code>#600 + tool number</code>. Tool 10 uses <code>#610</code>.
+649|<code>T10</code>: tool 10. <code>Q200</code>: life in parts. <code>Q0</code> resets.
+650|Here T is only a tool number (1 to 99), not a diameter.
+651|<b>What is new is </b><b><code>#[#100]</code></b> (indirect variable): <code>#100</code> holds the <b>number</b> of the drawer (610) and <code>#[#100]</code> is drawer 610. One code works for 99 tools.
+652|16.3 Wear offset (O1622)
+653|<b>What it does</b>: adds a value to the wear of the length or radius offset.
+654|Offset number
+655|Value to <b>add</b> (can be negative)
+656|1 = length wear (H), 2 = radius wear (D)
+657|<code>#100 = 0.5</code> is the <b>safety limit</b>: it does not accept an offset change larger than 0.5 per call (alarm 195). Edit it if needed.
+658|Variables <code>#10001+</code> and <code>#12001+</code> are the wear values. <b>The numbering changes with the FANUC series.</b> Check the machine manual before using, and test with a small value while watching the offset screen.
+659|<b>Warning</b>: writing to an offset may be protected by a parameter or a key switch. Depends on the FANUC series/setup.
+660|17. Additional library macros (O1624 to O1636)
+661|These macros follow exactly the same structure as the previous ones: the main program (O00xx) calls the subprogram (O16xx) with G65, each letter becomes a local variable, errors stop with a #3000 alarm. The full letter table for each one is in the subprogram header comments. Always test in the air before the first part.
+662|Call example
+663|O1624 ramped keyway
+664|Slot with half-circle ends, ramps down alternating direction on each layer
+666|O1625 keyway without ramp
+667|Slot with rounded ends, plunges straight at the start of each layer
+669|O1626 radius at hole bottom
+670|Concave radius between the wall and the bottom of a hole, from top to bottom
+672|O1627 hole edge radius
+673|Radius on the edge of a through hole (top corner)
+675|O1628 hole chamfer
+676|Chamfer on the hole edge with a flat end mill, angle by letter B
+678|O1629 slot with arc ends
+679|Straight slot with both ends as arcs, no ramp
+681|O1630 outside cone
+682|Outside cone by helical passes, angle by letter B (or final diameter by letter A)
+684|O1631 radius between two diameters
+685|Tangent radius between two diameters, end by angle B or by height I
+687|O1632 radius with round insert
+688|Same radius as O1631 using a round insert cutter (E = insert radius)
+690|O1633 thread on bolt circle (D direct)
+691|Internal thread milling, final radius given directly in D
+693|O1634 thread on bolt circle (D and T)
+694|Internal thread milling, radius calculated from D and cutter diameter T
+696|O1635 cylinder outside edge radius
+697|Convex radius on the top edge of an outside cylinder
+699|O1636 radius at the cylinder base
+700|Concave radius where the cylinder meets the bottom face
+702|17.1 Common idea of radii and chamfers on round parts
+703|They all make full turns with G2 or G3, one per position, going down or up following the profile. On each turn the macro calculates the radius of the cutter center path and the Z. The smaller the step (letter H in degrees for radii, letter Q for chamfers and cones), the smoother the finish and the longer the program.
+704|<b>Outside convex radius (O1635)</b>: cutter center radius = D/2 - C + C·SIN(θ) + T/2 and Z = W - C + C·COS(θ).
+705|<b>Concave radius at the base (O1636)</b>: cutter center radius = D/2 + C - C·COS(φ) + T/2 and Z = Z + C - C·SIN(φ). Roughing must leave material in the corner.
+706|<b>Hole chamfer (O1628)</b>: the corner of the flat end mill follows a line from the top to the wall; each turn steps Q / TAN B on the radius. Alarm 267 if C is larger than T.
+707|17.2 Outside cone with an angle letter (O1630)
+708|With a flat end mill any angle B from 1 to 89 degrees is possible: the cutter starts at the small diameter and goes to the large one in helical turns (letter Q sets the height of each pass). With a conical chamfer mill the angle is limited to 45 degrees to the face (alarm 286). The step left between turns can be up to Q high, so use a small Q for finishing.
+709|17.3 Specific precautions
+710|Letters used in macros called inside other macros must not overlap: check the table before combining. When D and I are used together in the same call, test in the air and check the values.
+711|An empty letter is not zero: the macro uses <code>EQ #0</code> to test it. If you want zero, write the letter with 0.
+712|In all radius and chamfer macros, the cutter must have a sharp corner; a cutter with a corner radius changes the path.
+713|Check the length offset of the tip (or the corner) used as reference before running.
+714|18. How to test without breaking anything: first-part checklist
+715|<b>Before running</b>
+716|Are the O16xx subprograms loaded in memory and do they open without errors?
+717|Does the G65 call have <b>all</b> the letters in the table, with a decimal point?
+718|Right origin: center or corner of the part depending on the macro (see the subprogram comment).
+719|G54 and tool offset H checked. Does the top Z (W) match the part?
+720|Right cutter: diameter T equal to what was typed, center cutting (helix, pockets), sharp corner (radius), 90° (chamfer).
+721|M3 spindle direction and coolant on.
+722|<b>First run: in the air</b>
+723|Raise Z: add 50 mm to W and to Z (for example W50 and Z40) so the cutter passes above the part.
+724|<b>Single block</b> mode (SINGLE BLOCK) and feed at 20 to 50%.
+725|Look at the path/graphics screen, if there is one, and compare the drawing with the chapters of this training.
+726|Watch the <b>distance to go</b> on the screen (DIST TO GO) before each first move.
+727|Hand on the stop button (FEED HOLD) during the first moves.
+728|<b>Second run: cutting, on a test part</b>
+729|Set W and Z back to the real values.
+730|Run with a small K (first layer) and check the result with calipers.
+731|Only then go up to the final values.
+732|<b>Useful tricks</b>
+733|Want to stop when something shows up? <code>#3006 = 1 (CHECK)</code> on the line before that section makes a pause.
+734|To simulate in the air, raise W and Z by the same amount (Z stays below W, no alarm).
+735|<b>Other edges of a part</b>: the simplest way is to use side V1 and the Y of the other side (radius and chamfer). For edges at other angles, you can rotate the coordinate system with <b>G68</b> (if the option exists), but test first. Depends on the FANUC series/setup.
+736|Keep the <b>MACROS_CNC.zip</b> package and the letter table with the machine programs.
+737|19. Common errors and alarm table
+738|<b>Most frequent errors</b>
+739|Symptom
+740|Most likely cause
+741|What to do
+742|Program not found alarm (O does not exist)
+743|O16xx is not in memory
+744|Load the subprogram. Check the <code>P</code> number
+745|Macro alarm with a number (<code>#3000</code>)
+746|Invalid value in the call
+747|Read the text and the table below
+748|Machine does everything at the wrong scale (1000x)
+749|Missing decimal point (<code>X215</code> instead of <code>X215.</code>)
+750|Always use a decimal point
+751|Move in the wrong place
+752|Wrong origin (center vs corner) or wrong G54
+753|Read the macro comment and check the origin
+754|Endless loop
+755|Counter not incremented or wrong condition
+756|RESET. Check the <code>IF ... GOTO</code>
+757|Wrong result after a macro inside a macro
+758|Two macros using the same <code>#100+</code>
+759|Use locals or other common variables
+760|Value does not show up in the call
+761|Wrong letter written (L, N, O, P, G are not valid)
+762|Use the letter table
+763|Wrong corners in the pocket
+764|Corner radius smaller than the cutter radius
+765|Alarm 141 warns about it
+766|Thread out of size
+767|Wrong E or pitch value
+768|Test on a part
+769|Cannot edit O9xxx
+770|Program protection
+771|Protection parameter. Depends on the FANUC series/setup
+772|<b>Library alarm table</b>
+773|Final Z above the top, K, Q, Q larger than T
+774|O1612 bolt circle
+775|B less than 1
+776|O1613 helix
+777|D less than or equal to T, K, final Z
+778|O1614 circular pocket
+779|D small, K, Q, Q larger than T, final Z
+780|O1615 rectangular pocket
+781|Corner radius, I and J small, K, Q, final Z
+782|O1616 rectangular profile
+783|C larger than half of I or J, K, final Z
+784|O1617 polygon
+785|B less than 3, K, final Z
+786|C, H, H greater than 89, T, I, U
+787|O1619 thread
+788|D and T, E, Q, pitch, final Z
+789|O1621 tool life
+790|T outside 1 to 99
+791|O1622 offset
+792|H, C, value above the limit
+793|B, C, T, D, I, Q, T too small
+794|The number on the screen may show as 3000 + n or just the text. Depends on the FANUC series/setup.
+795|20. Exercises
+796|Do them on paper, with a calculator. The answers are in the next chapter. Only look after trying.
+797|<b>Exercise 1: face milling (origin at the center)</b>
+798|Calculate: (a) starting X of the cutter center, (b) the rows in Y, (c) the number of passes.
+799|<b>Exercise 2: bolt circle</b>
+800|Calculate X and Y of hole 2 and hole 3.
+801|<b>Exercise 3: helical hole</b>
+802|What is the radius of the cutter center path? How many turns going down?
+803|<b>Exercise 4: convex radius</b>
+804|Radius R5, step H1, angle θ = 30°. What are the offset from the face and the Z?
+805|<b>Exercise 5: chamfer</b>
+806|C2, B30, Q0.25. What is the chamfer height on the face? How many passes? What is the approximate step?
+807|<b>Exercise 6: alarms</b>
+808|Which alarm shows up in each case?
+809|<b>Exercise 7: hexagon</b>
+810|I want a hexagon 30 mm across flats. What is the value of D?
+811|<b>Exercise 8: counter</b>
+812|Batch of 3 parts: <code>G65 P1620 Q3</code>. What is the value of <code>#500</code> after each call? On which call does the machine stop with the message?
+813|<b>Challenge</b>: write a macro (program and G65) that drills N holes in a line with spacing P, using the loop from chapter 5.
+814|21. Exercise answers
+52|<code>#1</code> to <code>#33</code>
+56|<code>#100</code> to <code>#199</code>
+60|<code>#500</code> to <code>#999</code>

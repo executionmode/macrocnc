@@ -1,0 +1,346 @@
+0|Formation sur les macros CNC FANUC
+1|Cette formation enseigne le Custom Macro B à partir de zéro, avec la bibliothèque de macros de fraisage (O1611 à O1636), chacune expliquée bloc par bloc avec un dessin.
+2|Comment suivre cette formation
+3|La formation suit le même ordre que les macros du paquet <b>MACROS_CNC.zip</b>. Chaque macro a : ce qu’elle fait, le dessin, l’appel G65 avec le tableau des lettres, le code expliqué bloc par bloc et les précautions à la machine.
+4|<b>Ordre recommandé</b>
+5|Chapitres 1 à 6 (base) : lisez-les une fois, tranquillement. C’est la partie qui donne la maîtrise.
+6|Chapitre 7 (surfaçage) : c’est la macro la plus simple. Faites-la rouler dans le simulateur de la machine ou dans le vide avant de continuer.
+7|Chapitres 8 à 16 : une macro à la fois, dans l’ordre où vous allez les utiliser au quotidien.
+8|Chapitre 18 : liste de vérification de la première pièce. Suivez-la toujours.
+9|Chapitres 19 et 20 : exercices et corrigé. Ça compte comme formation seulement si vous essayez avant de regarder.
+10|<b>Standard utilisé dans toutes les macros</b>
+11|Programme principal <code>O00xx</code> (celui que l’opérateur modifie) et sous-programme <code>O16xx</code> (la macro, on n’y touche pas).
+12|Les commentaires du sous-programme disent ce que fait chaque lettre et chaque variable.
+13|L’origine est toujours indiquée dans le commentaire (centre ou coin de la pièce).
+14|Les valeurs invalides déclenchent une alarme <code>#3000</code> numérotée, au lieu que la machine fasse une erreur.
+15|<b>Avertissement important</b> : les programmes ont été vérifiés en simulation de trajectoire, pas sur votre machine. Les variables disponibles, la numérotation des correcteurs (<code>#10001</code>, <code>#12001</code>) et des variables permanentes (<code>#500+</code>) dépendent de la série et de la configuration du FANUC. Faites toujours rouler la première fois dans le vide, avec une avance réduite et une main sur le bouton d’arrêt.
+16|1. Qu’est-ce qu’une macro
+17|Une <b>macro</b> est un sous-programme qui accepte des <b>valeurs</b>. Au lieu d’écrire un programme pour un surfaçage de 100 x 100 et un autre pour 215 x 215, vous écrivez <b>un seul programme</b> et vous donnez les dimensions dans l’appel.
+18|Déroulement : le programme principal appelle la macro avec G65 et revient avec M99
+19|Le chemin est toujours le même :
+20|Le programme principal exécute la ligne <code>G65 P1611 X215. Y215. ...</code>.
+21|Le FANUC saute au programme <code>O1611</code> et lui passe les nombres tapés (X, Y, Z...) dans des variables.
+22|La macro fait les calculs et les déplacements avec ces variables.
+23|Au <code>M99</code>, elle redonne le contrôle au bloc juste après le G65.
+24|<b>Comparaison de tous les jours</b> : la macro est une recette de gâteau avec des blancs (« combien de tasses de ___ »). Le G65, c’est vous qui remplissez les blancs et qui donnez la recette au cuisinier.
+25|<b>Pourquoi une macro au lieu d’un code G fixe</b>
+26|On change la dimension en quelques secondes, sans rien recalculer.
+27|Le même code sert pour des pièces différentes.
+28|Les calculs que vous feriez à la calculatrice (sinus, cosinus, passes), la commande les fait toute seule.
+29|Moins d’erreurs de frappe : le calcul se fait toujours de la même façon.
+30|<b>Programme principal vs macro (sous-programme)</b>
+31|Programme principal (O00xx)
+32|Macro (O16xx)
+33|Qui le modifie
+34|Opérateur
+35|Personne (seulement le programmeur)
+36|Contenu
+37|Outil, RPM, G54, G65
+38|Calculs et déplacements
+39|Finit par
+40|Pour changer une dimension
+41|On change les nombres dans le G65
+42|On n’y touche pas
+43|<b>Astuce</b> : les numéros de programme O9000 à O9999 peuvent être protégés par un paramètre (8nnn, bit de protection) sur plusieurs FANUC. Si vous ne pouvez pas modifier ou supprimer un O16xx, c’est cette protection. Dépend de la série/configuration du FANUC.
+44|2. Les variables
+45|Une variable est un <b>tiroir numéroté</b> qui contient un nombre. On l’écrit <code>#</code> suivi du numéro. Exemple : <code>#100 = 25.</code> met 25 dans le tiroir 100. Ensuite, <code>G1 X#100</code> équivaut à <code>G1 X25.</code>.
+46|Les quatre tiroirs de variables
+47|<b>Les quatre types que vous utilisez</b>
+48|Plage
+49|Nom
+50|Quand on l’utilise
+51|Ce qui arrive à la fin
+53|Locales
+54|Reçoivent les lettres du G65
+55|Remises à vide en sortant de la macro
+57|Communes
+58|Calculs de la macro
+59|Remises à vide à la mise hors tension (en général)
+61|Permanentes
+62|Compteurs, durée de vie de l’outil
+63|Restent enregistrées
+64|Système
+65|Alarme, message, correcteurs
+66|Ont une fonction spéciale
+67|<b>Règle d’or de la bibliothèque</b> : dans les macros qui en appellent une autre (par exemple O1612 appelle O1613), les variables communes <code>#100+</code> sont <b>partagées</b>. C’est pourquoi O1612 utilise seulement <code>#27</code> à <code>#32</code> (locales libres), pour ne pas mélanger les calculs de la macro appelée.
+68|<b>Vide vs zéro</b> : une variable jamais utilisée est <i>vide</i> (<code>#0</code>). Dans plusieurs calculs elle vaut zéro, mais dans les comparaisons <code>EQ</code> vide et zéro peuvent donner un résultat différent. C’est pourquoi le programme donne toujours une valeur avant de l’utiliser.
+69|<b>Exemple de calcul</b>
+70|Résultat : l’axe va à X50.
+71|<b>Variables indirectes</b> : <code>#[#100]</code> veut dire « le tiroir dont le numéro est dans le tiroir 100 ». Si <code>#100 = 601</code>, alors <code>#[#100]</code> est <code>#601</code>. C’est comme ça que la macro de durée de vie garde un tiroir par outil (<code>#[600+T]</code>).
+72|<b>Attention</b> : <code>#500</code> à <code>#999</code> peuvent avoir une plage plus petite (ex. : seulement <code>#500</code> à <code>#531</code>) selon l’option installée. Vérifiez dans le manuel de la machine. Dépend de la série/configuration du FANUC.
+73|3. Le G65 et les lettres
+74|Dans le G65, vous écrivez des <b>lettres avec des nombres</b>. Le FANUC transforme chaque lettre en une <b>variable locale</b> fixe. C’est un tableau de la commande : on ne peut pas le changer.
+75|Chaque lettre du G65 devient une variable locale
+76|Lettre
+77|Variable
+78|<b>Lettres qu’on ne peut pas utiliser comme argument</b> : <code>G</code>, <code>L</code>, <code>N</code>, <code>O</code>, <code>P</code>. Le <code>P</code> est déjà le numéro de la macro (<code>P1611</code>).
+79|<b>Exemple</b>
+80|Tapé
+81|Devient
+82|Sens dans cette macro
+83|Dimension de la surface en X
+84|Dimension de la surface en Y
+85|Z du dessus de la pièce
+86|Z final
+87|Profondeur de passe
+88|Diamètre de la fraise
+89|Pas latéral
+90|Dégagement hors de la pièce
+91|Plan de dégagement
+92|Avance
+93|<b>Une lettre n’a pas de sens fixe.</b> Le FANUC sait seulement que X devient <code>#24</code>. C’est la macro qui décide que <code>#24</code> est « la dimension en X ». C’est pourquoi chaque macro de la bibliothèque a son tableau de lettres : gardez le tableau avec le programme.
+94|<b>Point décimal</b> : dans le G65, <code>X215</code> sans point peut être lu comme 215 ou comme 0,215, selon le paramètre de point décimal de la commande. <b>Écrivez toujours le point</b> : <code>X215.</code>.
+95|<b>Lettre pas écrite</b> : la variable reste <i>vide</i>. C’est pourquoi les macros testent, par exemple, <code>IF [#17 EQ 0] THEN #17 = #9</code> : si Q n’a pas été donné, on utilise l’avance F.
+96|4. Calculs, fonctions et comparaisons
+97|<b>Attention aux crochets</b> : dans les macros FANUC, on utilise seulement <code>[ ]</code> pour regrouper. Les parenthèses <code>( )</code> sont des commentaires.
+98|<b>Calculs</b>
+99|Symbole
+100|Fait
+101|Exemple
+102|Résultat
+104|addition, soustraction
+107|multiplication, division
+110|regroupe
+112|Sans crochets, la multiplication passe avant l’addition : <code>10 + 5 * 2 = 20</code>, et <code>[10 + 5] * 2 = 30</code>.
+113|<b>Fonctions utilisées dans la bibliothèque</b>
+114|Fonction
+116|Sinus, cosinus, tangente (<b>angle en degrés</b>)
+119|Racine carrée
+122|Valeur sans signe
+125|Coupe les décimales (vers le bas)
+128|Arrondit vers le haut
+131|Arrondi normal
+133|<code>FUP</code> sert beaucoup : « combien de passes de 2,5 entrent dans 7? » → <code>FUP[7 / 2.5]</code> = 3 passes.
+134|<b>Comparaisons</b> (elles apparaissent seulement dans un <code>IF</code> ou un <code>WHILE</code>)
+135|Code
+136|Veut dire
+138|égal
+141|différent
+144|plus grand que
+147|plus petit que
+150|plus grand ou égal
+153|plus petit ou égal
+155|<b>Exemple complet : trous sur cercle</b>
+156|Pour le trou numéro 3 de 6, avec un rayon de 40 :
+157|<code>#30</code> = 150°. <code>#31</code> = 40 × COS 150° = <b>-34,641</b>. <code>#32</code> = 40 × SIN 150° = <b>20,000</b>. Le trou va à X-34.641 Y20.
+158|5. Décisions et boucles
+159|Sans décisions, la macro serait seulement une calculatrice. Avec des décisions, elle <b>répète</b> des blocs (boucle) et <b>choisit</b> des chemins.
+160|<b>IF ... THEN</b> (une seule action)
+161|Si Q n’a pas été donné, Q prend la valeur de l’avance. Si la condition est fausse, la ligne est ignorée.
+162|<b>IF ... GOTO</b> (saute à un bloc avec N)
+163|Si la condition est vraie, la commande va au bloc <code>N10</code>. Si elle est fausse, elle continue à la ligne suivante.
+164|<b>GOTO</b> sans condition : <code>GOTO 30</code> saute toujours.
+165|<b>La boucle (répétition) en 4 étapes</b>
+166|Boucle de répétition avec IF GOTO
+167|Le compteur commence à 1.
+168|Au <code>N10</code>, elle fait le travail (un trou, une passe, un tour).
+169|On ajoute 1 au compteur.
+170|On demande : « il en reste? » Si oui, <code>GOTO 10</code>; sinon, on continue.
+171|<b>Exemple complet (4 trous en ligne, espacement 20)</b>
+172|Tour : #100=0 → X0. #100=1 → X20. #100=2 → X40. #100=3 → X60. Ensuite #100=4, la condition échoue et on sort. Ça fait <b>4 trous</b>.
+173|<b>Erreurs classiques</b>
+174|Oublier d’ajouter au compteur : la boucle ne finit jamais. Appuyez sur RESET.
+175|Utiliser <code>LT</code> quand il fallait <code>LE</code> : il manque un trou.
+176|Sauter à un <code>N</code> qui n’existe pas : alarme N introuvable (<code>P/S 128</code>, dépend de la série).
+177|Utiliser le même numéro <code>N</code> deux fois dans la macro : elle va au premier.
+178|<b>WHILE ... DO ... END</b>
+179|Fait la même chose que IF/GOTO et se lit mieux, mais <b>la bibliothèque utilise IF/GOTO</b> parce que ça marche sur tous les FANUC, vieux et récents.
+180|6. Alarmes et messages
+181|Toutes les macros commencent par valider les nombres. Si quelque chose ne va pas, la machine <b>arrête avant de couper</b>.
+182|<code>#3000 = 101</code> déclenche une alarme de macro. Le numéro et le texte entre parenthèses apparaissent à l’écran. Sur la plupart des FANUC, le numéro affiché est 3000 + 101 = 3101 ou seulement le texte. <b>Dépend de la série/configuration.</b>
+183|<code>#3006 = 1 (MESSAGE)</code> arrête le programme avec un message, en attendant que l’opérateur appuie sur départ cycle.
+184|<b>Plages d’alarmes de la bibliothèque</b>
+185|Macro
+186|Alarmes
+187|O1611 surfaçage
+188|O1618 rayon
+189|O1623 chanfrein
+190|<b>Comment lire l’alarme en atelier</b> : lisez le texte, retournez au tableau des lettres de la macro et vérifiez le nombre tapé. C’est presque toujours une lettre oubliée, un signe inversé ou une fraise trop grosse.
+191|<b>Exemple</b> : alarme <code>202 (B PLUS GRAND QUE 45)</code> sur le chanfrein : <code>B60.</code> a été tapé. La fraise à chanfreiner conique va seulement jusqu’à 45° par rapport à la face du dessus (avec une fraise en bout, voyez O1628 et O1630). Voyez le chapitre 14.
+192|7. Macro 0 : Surfaçage (O1611)
+193|<b>Ce qu’elle fait</b> : surface une zone rectangulaire en passes en Z, en aller-retour en X et en avançant en Y. C’est la macro la plus simple et la base pour comprendre toutes les autres.
+194|<b>Appel (exemple de la vidéo, origine au centre)</b>
+195|Ce que c’est
+196|Dans cet exemple
+197|Pas latéral (pas plus grand que T)
+198|Dégagement hors de la pièce en X
+199|Plan de dégagement au-dessus de la surface
+200|Avance mm/min
+201|Vue de dessus de l’aller-retour et vue de côté des passes
+202|<b>Code (origine au centre)</b>
+203|<b>Explication bloc par bloc</b> (avec les nombres de l’exemple)
+204|Bloc
+205|Ce qu’il fait
+206|Valeur dans l’exemple
+208|Rayon de la fraise
+210|Jusqu’où le <b>centre</b> de la fraise sort de la pièce en X (moitié de la surface + rayon + dégagement)
+212|Y de la dernière ligne, pour que le bord de la fraise arrive à la limite de la surface
+214|Si la fraise est plus grande que la surface en Y, elle fait une seule ligne au milieu
+215|n’arrive pas
+216|4 lignes de <code>IF ... #3000</code>
+217|Alarmes : Z final plus haut que le dessus (101), K à zéro (102), Q à zéro (103), Q plus grand que la fraise (104)
+218|n’arrivent pas
+220|Surface actuelle = dessus
+222|Début de chaque passe : nouveau Z = surface - K
+224|Ne dépasse pas le Z final
+225|<code>#106 = -#101</code> et <code>#105 = -#102</code>
+226|Commence à X-137.5 et Y-82.5
+228|Approche hors de la pièce, monte au plan de dégagement
+230|Descend en Z hors de la pièce (fraise dans le vide)
+232|Coupe jusqu’au côté opposé
+234|Inverse le côté pour la ligne suivante (aller-retour)
+236|Rendu à la dernière ligne? On sort
+238|Avance de Q en Y
+240|La dernière ligne ne dépasse pas la limite
+242|Se déplace en Y et répète la ligne
+244|Remonte
+246|Passe suivante, si le Z final n’est pas encore atteint
+247|<b>Lignes faites dans l’exemple</b> : Y = -82,5, -52,5, -22,5, 7,5, 37,5, 67,5 et 82,5 (la dernière raccourcie), donc <b>7 lignes</b>, en <b>1 passe</b>.
+248|<b>Version origine au coin</b> : le fichier <code>00_FACEAMENTO_SUB_O1611_ORIGEM_CANTO.txt</code> fait la même chose avec X0 Y0 au coin de la surface, surface vers +X et +Y. La seule différence est dans les calculs de départ (<code>#101 = -[#100 + #1]</code>, <code>#107 = #24 + #100 + #1</code>) et dans les <code>#109</code>/<code>#110</code> de plus qui changent le X de destination à chaque ligne.
+249|<b>Précautions à la machine</b>
+250|Fraise à surfacer : vérifiez que le sens de coupe (en avalant/en opposition) est celui que vous voulez. L’aller-retour alterne les deux.
+251|R25 est le dégagement au-dessus de la <b>surface actuelle</b> de chaque passe, pas au-dessus du dessus d’origine.
+252|Faites rouler d’abord avec Z au-dessus de la pièce (par exemple, W50 et Z49) pour voir le dessin dans le vide.
+253|8. Macro 1 : Trous sur cercle de perçage (O1612)
+254|<b>Ce qu’elle fait</b> : répartit N trous également sur un cercle et, sur chacun, elle <b>perce</b> (G81/G83), <b>fraise le trou en hélice</b> (appelle O1613) ou <b>file à la fraise</b> (appelle O1619).
+255|<b>Appel</b>
+256|Centre du cercle
+257|<b>Diamètre</b> du cercle de perçage
+258|Nombre de trous
+259|Angle du premier trou
+260|0 = percer, 1 = fraiser le trou, 2 = filetage
+261|Z du dessus / Z final
+262|Débourrage (G83). 0 = sans débourrage
+263|Seulement pour H1 ou H2 (diamètre du trou, pas, fraise, descente par tour, profondeur du filet)
+264|Cercle de perçage : chaque trou a son angle; X = R·COS, Y = R·SIN
+265|<b>L’idée mathématique (c’est tout)</b>
+266|Un point sur un cercle de rayon R, à l’angle θ, se trouve à :
+267|X = centre X + R × COS θ
+268|Y = centre Y + R × SIN θ
+269|L’angle de chaque trou est l’angle du premier plus (numéro du trou - 1) fois (360 / nombre de trous).
+270|<b>Code</b>
+271|<b>Explication</b>
+273|Rayon = diamètre / 2
+275|Angle entre les trous
+277|Compteur : trou n° 1
+279|Angle de ce trou
+280|trou 1 = 15°, trou 2 = 45°
+281|<code>#31</code>, <code>#32</code>
+282|X et Y du trou
+283|trou 1 : X181.11 Y48.53
+285|H2 va au filetage
+287|H1 va au trou fraisé
+289|Q plus grand que zéro utilise G83 (débourrage)
+291|Perce et revient au plan R entre les trous
+292|R5 au-dessus du dessus
+294|C’était le dernier trou? On sort
+295|<code>#29 = #29 + 1</code> / <code>GOTO 10</code>
+296|Trou suivant
+297|<code>G80</code> / <code>G98</code>
+298|Annule le cycle et revient au mode normal
+299|<b>Macro dans une macro</b> : avec les options H1 et H2, O1612 appelle une autre macro (O1613 ou O1619) avec <code>G65</code>. Ça fonctionne jusqu’à 4 niveaux d’imbrication. Les <code>#100+</code> sont communes et <b>partagées</b>, c’est pourquoi O1612 utilise seulement <code>#27</code> à <code>#32</code>.
+300|<b>Premier trou à 15° et 12 trous</b> : les angles sont 15, 45, 75, 105... jusqu’à 345. Le dernier (345°) est 30° avant le premier : pas de trou répété.
+301|<b>Précautions</b> : A est l’angle mesuré à partir de l’axe X+ dans le sens antihoraire. Vérifiez que le plan G17 est actif. Attention au <code>J</code> : c’est le <b>diamètre</b>, pas le rayon.
+302|9. Macro 2 : Trou fraisé en hélice (O1613)
+303|<b>Ce qu’elle fait</b> : ouvre ou agrandit un trou en descendant en spirale (hélice) avec une fraise plus petite que le trou. À la fin, elle fait un tour à plat pour nettoyer le fond.
+304|<b>Quand l’utiliser</b> : un trou existant ou un trou avec D plus petit que 2 fois la fraise. Si D est plus grand que 2T, il reste un noyau au milieu : utilisez la poche circulaire (chapitre 10).
+305|Centre du trou
+306|Diamètre final du trou
+307|Z du dessus / Z final
+308|Descente par tour
+309|L’hélice descend de K par tour; au fond, un tour à plat
+310|<b>Le calcul central</b> : le centre de la fraise se déplace sur un cercle de rayon <b>(D - T) / 2</b> = (35 - 20) / 2 = <b>7,5</b>. Le bord de la fraise est alors exactement à D/2 = 17,5.
+312|Rayon de la trajectoire du centre de la fraise
+314|Dégagement pour s’éloigner de la paroi avant de remonter (évite une marque)
+315|3 alarmes
+316|D plus petit ou égal à T (121), K invalide (122), Z final plus haut que le dessus (123)
+317|<code>G0 X Y</code>, <code>G0 Z</code>, <code>G0 X[...+#100]</code>
+318|Va au centre, descend au plan de dégagement et se place sur le rayon de l’hélice
+320|Touche le dessus de la pièce
+321|Z à la fin de ce tour (Z précédent - K)
+323|<b>Cercle complet en descendant</b>. Il finit au même X Y, donc c’est un tour complet. <code>I[-#100]</code> pointe vers le centre
+325|Pas encore au fond? Un tour de plus
+326|<code>G3 ... (sans Z)</code>
+327|Tour final à plat : nettoie le fond
+329|S’éloigne de 0,5 mm de la paroi
+331|<b>Exemple de tours</b> : de Z0 à Z-25.4 avec K2, il y a 12 tours complets (Z-2, -4 ... -24) et un tour jusqu’à Z-25.4; ensuite le tour à plat. Le dernier tour descend seulement de 1,4 mm parce que le <code>IF ... LT #26</code> le bloque au Z final.
+332|<b>Précautions</b> : G3 fait tourner la fraise dans le sens antihoraire autour du centre du trou, donc <b>en avalant</b> avec une fraise en M3 dans un trou intérieur. L’outil doit couper au centre pour descendre en hélice sans problème.
+333|10. Macro 3 : Poche circulaire (O1614)
+334|<b>Ce qu’elle fait</b> : ébauche une poche ronde en anneaux de plus en plus grands, niveau par niveau, en laissant une surépaisseur E sur la paroi. À la fin, elle appelle la macro d’hélice (O1613) pour finir la paroi au diamètre final.
+335|Centre
+336|Diamètre final
+337|Profondeur par niveau
+338|Pas latéral entre les anneaux (pas plus grand que T)
+339|Surépaisseur sur la paroi pour la finition
+340|Anneaux concentriques : du centre vers la paroi
+341|<b>Calculs de l’exemple</b>
+342|Rayon de la trajectoire finale du centre : (60 - 16) / 2 = <b>22</b>
+343|Rayon maximal d’ébauche : 22 - 0,3 = <b>21,7</b>
+344|Rayon de l’hélice d’entrée : T/4 = <b>4</b>
+345|Anneaux : 4, 12, 20 et le dernier coupe à 21,7 (le 28 dépasserait la limite)
+346|Niveaux : Z-3, -6, -9, -10 (4 niveaux)
+347|<code>#100</code>, <code>#101</code>, <code>#102</code>
+348|Rayon final, rayon maximal d’ébauche (sans surépaisseur), rayon de l’hélice d’entrée
+349|5 alarmes
+350|D petit pour T et E (131), K (132), Q (133), Q plus grand que T (134), Z final (135)
+352|Début de chaque niveau en Z
+354|Va jusqu’au rayon de l’hélice
+356|Descend en hélice jusqu’au niveau (l’hélice fait 1 tour)
+357|<code>G3</code> à plat
+358|Tour à plat pour nettoyer le fond du niveau
+360|Chaque anneau : augmente de Q, limite au rayon maximal, se déplace en X et fait le cercle en G3
+362|Retour au centre; s’il reste des niveaux, <code>GOTO 10</code>
+364|<b>À la fin</b>, finit la paroi : hélice au diamètre final D, jusqu’au Z final
+365|<b>Pourquoi la macro appelée ne gâche pas les variables</b> : O1613 utilise aussi <code>#100</code>, <code>#103</code>, <code>#104</code>, <code>#107</code>. Mais O1614 appelle O1613 seulement à la <b>fin</b>, quand elle n’a plus besoin de ses calculs. Si elle l’appelait au milieu, les variables communes seraient écrasées.
+366|<b>Précautions</b> : le G65 final répète les mêmes X, Y, D, T, W, Z, K, R, F avec les locales de O1614, qui sont envoyées à O1613 comme lettres. Fraise qui coupe au centre.
+367|11. Macro 4 : Poche rectangulaire (O1615)
+368|<b>Ce qu’elle fait</b> : ébauche une poche rectangulaire avec rayon de coin, en lignes d’aller-retour, niveau par niveau, puis finit la paroi avec un contour complet aux coins arrondis (G3).
+369|Centre de la poche
+370|Longueur en X
+371|Largeur en Y
+372|Rayon de coin (pas plus petit que le rayon de la fraise)
+373|Fraise
+374|Z du dessus / final
+375|Pas latéral entre les lignes (pas plus grand que T)
+376|Surépaisseur sur la paroi
+377|Plan de dégagement / avance
+378|Poche rectangulaire : tours de l’intérieur vers l’extérieur, coins ronds
+379|<b>Le problème des coins</b> : si l’ébauche faisait des lignes droites d’une paroi à l’autre, la fraise dépasserait le coin arrondi. La macro <b>raccourcit la ligne</b> près du coin, avec le théorème de Pythagore.
+380|Calcul
+381|Valeur
+382|2 (rayon de coin de la trajectoire du centre)
+383|<b>Raccourcir la ligne</b> : à partir de <code>|Y| &gt; #101 - #102</code> (= 17), le coin commence. Pour une ligne en Y, la demi-longueur est :
+384|À Y18.7 (dernière ligne) : SQRT[1.7² - 1.7²] = 0, donc #112 = 33,7 - 1,7 = <b>32,0</b>.
+385|<b>Résumé des blocs</b>
+386|Partie
+387|Début
+388|Calculs des demi-trajectoires et alarmes 141 à 149
+389|Nouveau niveau en Z
+390|Entrée
+391|G3 avec Z au centre (petite hélice, rayon T/4) et tour à plat
+392|Commence en Y négatif (-#101), calcule la longueur de la ligne et va d’un côté à l’autre
+394|Côté actuel : -1 gauche, +1 droite. <code>#107 = -#107</code> change de côté
+396|Exécute la ligne
+397|<b>Finition</b> : contour complet sur la paroi, avec 4 arcs G3 aux coins (avec <code>I</code> et <code>J</code> à partir du centre de chaque coin)
+398|<code>G1 X#24 / Y#25</code>
+399|Retour au centre et remontée/niveau suivant
+400|<b>Précautions</b> : la finition utilise le point (#108, #109), donc la paroi finale. La surépaisseur E est enlevée au tour de finition à <b>tous les niveaux</b>; pour des pièces exigeantes, utilisez un petit E et une avance réduite en finition.
+401|12. Macros 5 et 6 : Contours extérieurs en spirale (O1616 et O1617)
+402|<b>Ce qu’elles font</b> : contournent par l’extérieur une pièce rectangulaire avec rayon de coin (O1616) ou un polygone régulier (O1617 : carré, hexagone, octogone...). L’outil <b>descend un peu à chaque côté</b>, sans arrêter, en spirale. Le dernier tour est à plat pour enlever la marque de la spirale.
+403|Spirales : la descente se fait pendant le contournage
+404|<b>Pourquoi une spirale et pas des couches?</b> Il n’y a pas de marque de sortie et d’entrée à chaque couche, et le temps en rapide diminue.
+405|<b>Sens</b> : horaire (G2) autour de la pièce avec la fraise en M3 = coupe <b>en avalant</b>.
+406|12.1 Contour rectangulaire (O1616)
+407|Centre de la pièce
+408|Rayon de coin (0 = coin vif)
+409|Descente à chaque <b>tour</b>
+410|Dégagement d’entrée, hors du brut
+411|Demi-X de la trajectoire du centre : 100/2 + 25/2 = <b>62,5</b>
+412|Demi-Y : 60/2 + 25/2 = <b>42,5</b>
+413|Rayon des coins de la trajectoire : 5 + 12,5 = <b>17,5</b>
+414|Descente par côté : K/4 = <b>0,5</b>
+415|Tours : 20/2 = <b>10 tours</b> en descendant + 1 tour à plat
+416|Trajectoire du <b>centre</b> de la fraise : la pièce + le rayon de la fraise tout autour
+418|Va au point d’entrée, hors du brut, à A mm du côté du haut
+419|<code>G1 Z#23</code>, <code>G1 Y[...]</code>
+420|Descend dans le vide et entre dans la pièce par le côté du haut

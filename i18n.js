@@ -7,9 +7,9 @@
   'use strict';
   var LANGS = { pt: 'Português', en: 'English', 'fr-CA': 'Français (Québec)' };
   // pacotes de conteúdo que já existem para cada idioma (preenchido na Fase 2)
-  var PACKS = { en: [], 'fr-CA': [] };
+  var PACKS = { en: ['programs', 'training'], 'fr-CA': ['programs', 'training'] };
   // idiomas já traduzidos por completo: só eles são escolhidos sozinhos pelo idioma do celular e liberados no Perfil
-  var READY = { pt: true, en: false, 'fr-CA': false };
+  var READY = { pt: true, en: true, 'fr-CA': true };
 
   function pick() {
     try { var s = JSON.parse(localStorage.getItem('mcnc.lang')); if (LANGS[s] && (READY[s] || /[?&]lang=/.test(location.search))) return s; } catch (e) {}
@@ -76,6 +76,7 @@
     if (lang === 'pt') return;
     document.documentElement.lang = lang === 'fr-CA' ? 'fr-CA' : lang;
     document.title = t(document.title);
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-src-lang]'), function (im) { im.src = im.getAttribute('data-src-lang').replace('{lang}', lang); });
     tNode(document.body);
     new MutationObserver(function (list) {
       list.forEach(function (m) {
