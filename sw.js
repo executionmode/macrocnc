@@ -1,7 +1,7 @@
 /* Service worker — deixa o app funcionando offline.
- * Ao publicar uma versão nova, mude CACHE (ex.: macro-cnc-v20) para os aparelhos baixarem tudo de novo.
+ * Ao publicar uma versão nova, mude CACHE (ex.: macro-cnc-v21) para os aparelhos baixarem tudo de novo.
  */
-const CACHE = 'macro-cnc-v20';
+const CACHE = 'macro-cnc-v21';
 const ASSETS = [
   './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './config.js', './programs.js', './gcode.js', './macrosim.js', './stock3d.js', './assistant.js', './app.js', './manifest.json',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'

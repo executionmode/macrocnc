@@ -332,6 +332,39 @@ window.PROGRAMS = [
   "stockExpr": "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.W||0)-(L.C||5)-20, tool:L.T})"
  },
  {
+  "id": "m-chanfro-furo",
+  "cat": "macro",
+  "num": 29,
+  "title": "Chanfro no furo",
+  "status": "nao-testado",
+  "desc": "Chanfro na boca de um furo já usinado, com a ponta da fresa 90° andando sobre a linha do chanfro, uma volta G3 em cada posição. B45 com fresa cônica faz numa volta só.",
+  "main": "%\nO0029 (CHANFRO NO FURO - O1628) ;\nG21 G40 G90 G94 ;\nG54 ;\nT1 ;\nM6 ;\nG0 X0 Y0 ;\nS2000 M3 ;\nG43 H1 Z120. ;\nM8 ;\nG65 P1628 X0 Y0 D35. W0 C2. B45. E0 T28. R5. F800. ;\nG0 Z100. ;\nM9 ;\nG53 H0 Z0 ;\nM30 ;\n%",
+  "subs": [
+   {
+    "num": 1628,
+    "code": "%\nO1628 (MACRO CHANFRO NO FURO COM FRESA 90 GRAUS - CHAMADA POR G65 P1628) ;\n(O CORRETOR DE COMPRIMENTO FICA NA PONTA DA FRESA - O PONTO MAIS BAIXO) ;\n(A PONTA ANDA SOBRE A LINHA DO CHANFRO - DE CIMA PARA BAIXO - UMA VOLTA COMPLETA EM CADA POSICAO) ;\n(FRESA CONICA 90 - B 45 = UMA VOLTA SO COM A LATERAL DA FRESA - B MENOR QUE 45 = VARIAS VOLTAS COM A PONTA) ;\n(FRESA COM PONTA PLANA IGUAL AO DIAMETRO E IGUAL A T - QUINA DE BAIXO SEGUE A LINHA - B ATE 89 - Q OBRIGATORIO) ;\n(LETRAS DO G65 P1628) ;\n(X = X DO CENTRO DO FURO) ;\n(Y = Y DO CENTRO DO FURO) ;\n(D = DIAMETRO DO FURO) ;\n(W = Z DO TOPO DA PECA) ;\n(C = LARGURA DO CHANFRO NO TOPO - MEDIDA NO RAIO A PARTIR DA PAREDE DO FURO) ;\n(B = ANGULO DO CHANFRO EM RELACAO AO TOPO - NAO INFORMADO USA 45 - 45 = C X C) ;\n(Q = PASSE EM Z - QUANTO A PONTA DESCE EM CADA VOLTA - NAO USA NA FRESA CONICA COM B 45) ;\n(E = DIAMETRO DA PONTA PLANA DA FRESA - 0 = PONTA VIVA) ;\n(T = DIAMETRO MAIOR DA FRESA) ;\n(R = PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(F = AVANCO DO CORTE) ;\n(EXEMPLO - G65 P1628 X0 Y0 D35. W0 C2. B45. E0 T28. R5. F800.) ;\n(VARIAVEIS RECEBIDAS DO G65) ;\n(#24 = X  X DO CENTRO DO FURO) ;\n(#25 = Y  Y DO CENTRO DO FURO) ;\n(#7 = D  DIAMETRO DO FURO) ;\n(#23 = W  Z DO TOPO DA PECA) ;\n(#3 = C  LARGURA DO CHANFRO NO TOPO) ;\n(#2 = B  ANGULO DO CHANFRO) ;\n(#17 = Q  PASSE EM Z A CADA VOLTA) ;\n(#8 = E  DIAMETRO DA PONTA PLANA) ;\n(#20 = T  DIAMETRO MAIOR DA FRESA) ;\n(#18 = R  PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(#9 = F  AVANCO DO CORTE) ;\n(VARIAVEIS DE CALCULO DA MACRO) ;\n(#100 = RAIO DO FURO) ;\n(#102 = ANGULO DO CHANFRO) ;\n(#103 = DISTANCIA DA PAREDE ATE A PONTA - MEDIDA NO RAIO) ;\n(#104 = ALTURA DO CHANFRO NA FFACE = C X TAN B) ;\n(#106 = Z DA PONTA NA VOLTA ATUAL) ;\n(#107 = RAIO DO CENTRO DA FRESA NA VOLTA ATUAL) ;\n(#108 = 0 ANTES DA PRIMEIRA VOLTA - 1 DEPOIS) ;\n(#110 = 1 FRESA CONICA - 0 FRESA COM PONTA PLANA IGUAL AO DIAMETRO) ;\n(#111 = PASSO NO RAIO A CADA VOLTA = Q / TAN B) ;\n(#112 = RAIO DA FRESA NA ALTURA DO CHANFRO) ;\nIF [#3 LE 0] THEN #3000 = 261 (C INVALIDO) ;\nIF [#20 LE 0] THEN #3000 = 262 (T INVALIDO) ;\n#102 = 45 ;\nIF [#2 NE #0] THEN #102 = #2 ;\nIF [#102 LE 0] THEN #3000 = 263 (B INVALIDO) ;\nIF [#102 GE 90] THEN #3000 = 263 (B INVALIDO) ;\nIF [#8 LT 0] THEN #3000 = 264 (E INVALIDO) ;\nIF [#7 LE #8] THEN #3000 = 265 (D TEM QUE SER MAIOR QUE E) ;\n#104 = #3 * TAN[#102] ;\n#110 = 0 ;\nIF [#8 LT #20] THEN #110 = 1 ;\n#112 = #20 / 2 ;\nIF [#110 GT 0] THEN #112 = #8 / 2 + #104 ;\nIF [#112 GE #7 / 2] THEN #3000 = 266 (FRESA NAO ENTRA NO FURO NA ALTURA DO CHANFRO) ;\nIF [#110 EQ 0] GOTO 6 ;\nIF [#102 GT 45] THEN #3000 = 267 (B MAIOR QUE 45 - FRESA CONICA 90 NAO FAZ) ;\nIF [#104 * 2 + #8 GT #20] THEN #3000 = 268 (T PEQUENO PARA O CHANFRO) ;\nIF [#102 GE 45] THEN #17 = #104 ;\nN6 IF [#17 LE 0] THEN #3000 = 269 (Q INVALIDO) ;\n#111 = #17 / TAN[#102] ;\n#100 = #7 / 2 ;\n#103 = #3 ;\n#108 = 0 ;\nG0 X#24 Y#25 ;\nG0 Z[#23 + #18] ;\n(N10 = CADA POSICAO DA PONTA - DESCE PELA LINHA DO CHANFRO) ;\nN10 #103 = #103 - #111 ;\nIF [#103 GT 0.001] GOTO 20 ;\n#103 = 0 ;\nN20 #107 = #100 + #103 - #8 / 2 ;\n#106 = #23 - #104 + #103 * TAN[#102] ;\nIF [#108 NE 0] GOTO 30 ;\nG1 Z#106 F#9 ;\n#108 = 1 ;\n(N30 = VAI PARA A LINHA DO CHANFRO E FAZ A VOLTA COMPLETA) ;\nN30 G1 X[#24 + #107] Z#106 F#9 ;\nG3 X[#24 + #107] Y#25 I[-#107] F#9 ;\nIF [#103 GT 0] GOTO 10 ;\nG1 X#24 F#9 ;\nG0 Z[#23 + #18] ;\nM99 ;\n%",
+    "key": "1628"
+   }
+  ],
+  "presets": [
+   {
+    "label": "Furo D35 - chanfro 2 x 45° (uma volta)",
+    "call": "G65 P1628 X0 Y0 D35. W0 C2. B45. E0 T28. R5. F800."
+   },
+   {
+    "label": "Chanfro 3 a 30° - várias voltas com Q",
+    "call": "G65 P1628 X0 Y0 D35. W0 C3. B30. Q0.3 E0 T28. R5. F800."
+   }
+  ],
+  "notes": [
+   "O corretor de comprimento fica na ponta da fresa (o ponto mais baixo). O furo já precisa estar usinado.",
+   "C = largura do chanfro no topo, medida no raio a partir da parede. B = ângulo em relação ao topo (sem B usa 45).",
+   "Fresa 90° cônica: B até 45 (com 45 faz uma volta só). Fresa de ponta plana E = T: B até 89 e Q obrigatório."
+  ],
+  "toolShapeExpr": "((L.E||0) >= (L.T||0) ? null : {type:'v', angle:90, tipD: L.E||0})",
+  "stockExpr": "({shape:'round', d:L.D+60, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20, tool:L.T, holeD:L.D, holeZ:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20})"
+ },
+ {
   "id": "p-rosca",
   "cat": "param",
   "num": 33,
