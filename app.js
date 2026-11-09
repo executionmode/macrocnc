@@ -1239,6 +1239,7 @@
     var d = SHEETS[s.dataset.sheet]; if (d) openSheet(d[0], d[1]());
   });
   if ($('#langName') && window.I18N) $('#langName').textContent = I18N.langs[I18N.lang];
+  if (window.I18N) $$('.lang-code').forEach(function (b) { b.textContent = { pt: 'PT', en: 'EN', 'fr-CA': 'FR' }[I18N.lang] || 'PT'; });
   $('#btnShareApp').addEventListener('click', async function () {
     var url = location.href.split('#')[0];
     try { if (navigator.share) { await navigator.share({ title: 'Macro CNC', text: 'Macros e programas parametrizados FANUC com simulação 3D', url: url }); return; } } catch (e) { if (e.name === 'AbortError') return; }

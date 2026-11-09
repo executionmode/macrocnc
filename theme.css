@@ -271,3 +271,8 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
 .plink[data-sheet="idioma"] { grid-template-columns: 26px 1fr auto 20px; }
 .plink-v { color: var(--ui-mut); font-size: 14px; }
 .langs { display: grid; gap: 10px; margin-top: 12px; } .langs .ui-btn { justify-content: center; }
+
+.lang-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 34px; min-width: 44px; padding: 0 10px; border-radius: 17px;
+  border: 1px solid var(--ui-line); background: rgba(11,21,38,.75); color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; justify-self: end; }
+.lang-pill .ic { width: 16px; height: 16px; color: var(--ui-cyan); } .lang-pill b { font-weight: 700; letter-spacing: .5px; }
+.hero-lang { position: absolute; top: 20px; right: calc(17% + 6px); z-index: 3; backdrop-filter: blur(6px); }
