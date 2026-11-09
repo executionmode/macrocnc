@@ -1,0 +1,54 @@
+Nesta aula, vamos ver por dentro a macro do cone externo, a O dezesseis trinta.
+Ela faz o cone com frésa noventa graus ou com frésa de topo reto, volta por volta, de cima para baixo.
+
+No programa principal, a linha G sessenta e cinco P dezesseis trinta chama a macro e passa as medidas.
+X e Y: centro do cone. D: diâmetro da base, sessenta. B: ângulo do cone em relação à face de cima, sessenta graus.
+W e Z: topo e base do cone. Q: quanto a frésa desce em cada volta, zero vírgula três.
+E: ponta plana da frésa. T: diâmetro da frésa. Aqui E e T valem vinte e cinco: frésa de topo reto. R: segurança. F: avanço.
+Cada letra vira uma variável: D vira a variável sete, B vira a dois, W a vinte e três, Z a vinte e seis, Q a dezessete, e E a oito.
+
+Antes de mexer a máquina, a macro confere as letras. Cada erro tem um alarme.
+Por exemplo: se o Z da base estiver acima do topo, para com o alarme duzentos e oitenta e dois. Aqui menos vinte não é maior que zero.
+E se Q for zero, a frésa nunca desceria. Alarme duzentos e oitenta e sete. Aqui Q é zero vírgula três, então a macro segue.
+
+A primeira conta é a abertura do cone: quanto o raio aumenta para cada milímetro que desce.
+A variável cento e quatro recebe um dividido pela tangente de B. A tangente de sessenta graus é um vírgula sete três dois. Um dividido por um vírgula sete três dois dá zero vírgula cinco sete sete.
+Então, a cada um milímetro que a frésa desce, o raio do cone aumenta zero vírgula cinco sete sete milímetro.
+
+Com a abertura, a macro calcula o diâmetro do topo, a letra A.
+A altura do cone é W menos Z: vinte milímetros. Vezes zero vírgula cinco sete sete dá quanto o raio cresce até a base.
+Dos dois lados, dois vezes vinte vezes zero vírgula cinco sete sete dá vinte e três vírgula zero nove quatro. D menos isso:
+Sessenta menos vinte e três vírgula zero nove quatro dá trinta e seis vírgula nove zero seis. Esse é o diâmetro do cone no topo.
+
+A macro funciona com dois tipos de frésa, e a letra E diz qual é.
+Se E for menor que T, é frésa noventa graus, com ponta. A variável cento e dez vira um, e o ângulo B só vai até quarenta e cinco graus.
+Aqui E é igual a T, vinte e cinco: frésa de topo reto. A cento e dez fica zero. A quina de baixo segue a linha e faz qualquer ângulo de um a oitenta e nove.
+Ainda confere uma coisa: o avanço para fora em cada volta, Q vezes zero vírgula cinco sete sete, não pode passar do diâmetro da frésa.
+
+Agora o laço. A variável cento e três é o Z da frésa em cada volta.
+Antes do laço, ela começa em W mais Q: zero vírgula três. Um passe acima do topo.
+No N dez, ela tira Q. A primeira volta fica em zero, a segunda em menos zero vírgula três, e assim por diante.
+E o IF não deixa passar da base: se ficar abaixo de menos vinte, vira menos vinte na última volta.
+
+Para cada Z, a macro calcula a variável cento e sete: o raio onde o centro da frésa vai girar.
+É o raio do topo, dezoito vírgula quatro cinco três, mais o quanto o cone já abriu, mais metade da ponta plana, doze e meio.
+Na primeira volta, em Z zero, o cone não abriu nada: dezoito vírgula quatro cinco três mais doze e meio dá trinta vírgula nove cinco três.
+Em Z menos dez, o cone abriu dez vezes zero vírgula cinco sete sete, que dá cinco vírgula sete sete quatro.
+Então a cento e sete fica trinta e seis vírgula sete dois seis. A quina da frésa encosta sempre na linha do cone.
+
+Na primeira volta, a variável cento e oito ainda é zero, então a macro faz a entrada.
+A frésa vai para fora do bruto, em X quarenta e quatro e meio: raio da base, mais metade da frésa, mais dois. E desce até o Z da volta.
+Depois entra em X até o raio calculado, trinta vírgula nove cinco três.
+E faz o G dois: uma volta completa em torno do centro, com I igual a menos o raio.
+
+A partir da segunda volta, o GOTO vinte pula a entrada.
+Em cada volta: desce Q, calcula a nova cento e sete, anda em X e Z juntos e faz o G dois.
+O IF pergunta se a cento e três ainda está acima da base. Se sim, volta para o N dez.
+São sessenta e oito voltas. Na última, em Z menos vinte, o raio fica quarenta e dois e meio: metade de D mais metade da frésa.
+
+No fim, a frésa sai para fora do bruto, de novo em X quarenta e quatro e meio.
+Sobe para o plano de segurança, Z cinco, e o M noventa e nove volta para o programa principal.
+
+Resumindo: abertura do cone, diâmetro do topo, tipo de frésa, Z de cada volta e o raio do centro da frésa.
+Na primeira peça, teste com W cinquenta e Z trinta: a frésa faz tudo no ar, com a mesma altura de cone.
+E simule antes no app Macro CNC. Até a próxima macro!

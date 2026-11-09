@@ -1,0 +1,50 @@
+Dans cette leçon, on regarde l'intérieur de la macro de contour extérieur de polygone, la O seize dix-sept.
+Elle fait des carrés, des hexagones, des octogones : n'importe quel polygone, en descendant en spirale.
+
+Dans le programme principal, la ligne G soixante-cinq P seize dix-sept appelle la macro. Cet exemple est un hexagone.
+X et Y : centre de la pièce. B : nombre de côtés, six. D : diamètre entre les coins, quarante et un virgule cinquante-sept.
+A : angle du premier coin, zéro : coin sur l'axe X. E : distance d'entrée, vingt. T : fraise de vingt-cinq.
+W et Z : Z de départ et Z final. K : la descente à chaque tour, deux. R : dégagement. F : avance.
+Chaque lettre devient une variable : B devient la variable deux, D la sept, A la un, T la vingt, et K la six.
+
+La macro commence par trois calculs simples.
+La variable cent, c'est le rayon entre les coins : D divisé par deux, vingt virgule sept huit cinq. C'est la distance du centre à chaque coin.
+La cent un, c'est le rayon de la fraise : T divisé par deux, douze virgule cinq.
+Et la cent deux, c'est l'angle entre un coin et le suivant : trois cent soixante divisé par B, soixante degrés.
+Attention : D se mesure aux coins. Pour un hexagone de trente-six sur plats, D vaut trente-six divisé par cosinus de trente : quarante et un virgule cinquante-sept.
+
+Ensuite, les vérifications : moins de trois côtés, K à zéro ou un Z final plus haut que W arrêtent la machine, avec les alarmes cent soixante et un, cent soixante-deux et cent soixante-trois.
+Ici, tout est correct, donc la macro passe à l'entrée.
+
+La fraise entre perpendiculaire au premier côté, en venant de l'extérieur du brut.
+La direction vers l'extérieur du premier côté, c'est A moins la moitié de l'angle entre les coins : zéro moins trente, moins trente degrés.
+Les variables cent dix et cent onze sont le point d'entrée : le premier coin, plus le rayon de la fraise dans cette direction. Ça donne X trente et un virgule soixante et un, et Y moins six virgule vingt-cinq.
+La fraise arrive plus loin, décalée de E, descend et entre en G un jusqu'à ce point, en touchant le premier côté.
+
+Le N dix commence chaque tour. La variable cent trois, c'est le Z à la fin du tour : le Z actuel moins K. Au premier tour, moins deux.
+Si ça dépasse le Z final, le IF le retient au Z final.
+La cent six divise cette descente par le nombre de côtés : deux divisé par six, zéro virgule trois trois trois à chaque côté.
+Comme ça, la fraise ne plonge pas : elle descend un peu à chaque côté, en spirale.
+
+Le N vingt fait un côté. La variable cent neuf, c'est la direction vers l'extérieur de ce côté : moins trente degrés.
+La fraise suit le côté en parallèle, décalée de son rayon.
+La cent douze, c'est l'angle du coin suivant : zéro moins soixante, moins soixante. Avec le sinus et le cosinus, la cent treize et la cent quatorze donnent la position de ce coin.
+Le G un va jusqu'au coin plus le rayon de la fraise vers l'extérieur, en descendant de zéro virgule trois trois trois.
+
+Au coin, la fraise ne fait pas de pointe : elle fait un arc G deux autour du coin.
+Le centre de l'arc, c'est le coin de la pièce lui-même. Le G deux tourne de soixante degrés et arrête face au côté suivant.
+I et J valent moins le rayon de la fraise fois le cosinus et le sinus de la direction : le vecteur jusqu'au coin.
+Comme ça, la fraise roule autour du coin et le coin de la pièce reste vif, sans rayon.
+
+Après l'arc, la variable cent huit reçoit le nouveau coin, et la cent sept ajoute un.
+Le IF demande : la cent sept est-elle encore plus petite ou égale à B? Si oui, retour au N vingt pour le côté suivant.
+Après le côté six, le tour est complet.
+
+À la fin du tour, la variable cent quatre reçoit le Z atteint, et le IF demande si on est encore descendu.
+Les tours descendent de deux à la fois : zéro, moins deux, moins quatre, jusqu'à moins seize. La dernière descente va seulement jusqu'à moins dix-sept.
+Ensuite vient un tour à plat à Z moins dix-sept, avec la cent six égale à zéro. Il nettoie la rampe de la spirale.
+Avec la cent six à zéro, le IF ne reboucle plus. La fraise monte à Z moins douze, cinq au-dessus du Z final, et le M quatre-vingt-dix-neuf retourne au programme principal.
+
+En résumé : rayon entre les coins, rayon de la fraise et angle entre les coins; l'entrée; la descente par côté; le coin avec sinus et cosinus; la ligne et l'arc.
+Pour la première pièce, testez avec W cinquante et Z trente-trois : la fraise fait tout dans le vide, avec la même hauteur.
+Et simulez d'abord dans l'app Macro CNC. À la prochaine macro!

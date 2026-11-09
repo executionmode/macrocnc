@@ -744,16 +744,19 @@
     bt.textContent = read.length ? (read.length >= n ? 'Rever do início' : 'Continuar: ' + trSplit(TR.chapters[next].t).t) : 'Começar o treinamento';
     bt.onclick = function () { openCap(next); };
     $('#trIntro').innerHTML = read.length ? '' : TR.intro;
-    var groups = [['Comece aqui', 0, 1], ['Base: a linguagem', 1, 7], ['As macros, uma por uma', 7, 18], ['Na máquina', 18, 20], ['Pratique', 20, 23], ['Consulta', 23, n]];
+    var vids = (window.APP_CONFIG || {}).videos || {};
+    function hasVid(i) { return !!videoFor(vids[trSplit(TR.chapters[i].t).n]); }
+    function rng(a, b, f) { var r = []; for (var i = a; i < Math.min(b, n); i++) if (!f || f(i)) r.push(i); return r; }
+    var groups = [['Comece aqui', rng(0, 1)], ['Base: a linguagem', rng(1, 7)], ['Macros com vídeo', rng(7, 18, hasVid)], ['Macros sem vídeo', rng(7, 18, function (i) { return !hasVid(i); })], ['Na máquina', rng(18, 20)], ['Pratique', rng(20, 23)], ['Consulta', rng(23, n)]];
     var h = '';
     groups.forEach(function (g) {
-      if (g[1] >= n) return;
-      h += '<div class="tr-group">' + esc(g[0]) + '</div><div class="tr-list">';
-      for (var i = g[1]; i < Math.min(g[2], n); i++) {
+      if (!g[1].length) return;
+      h += '<div class="tr-group">' + esc(T(g[0])) + '</div><div class="tr-list">';
+      g[1].forEach(function (i) {
         var c = TR.chapters[i], sp = trSplit(c.t), done = read.indexOf(i) >= 0;
         h += '<button type="button" class="tr-item' + (done ? ' done' : '') + '" data-cap="' + i + '"><span class="tr-num">' + (done ? '✓' : esc(sp.n)) + '</span><span class="tr-t">' + esc(sp.t) +
           (videoFor(((window.APP_CONFIG || {}).videos || {})[sp.n]) ? '<small class="tr-hasvid">▶ com vídeo</small>' : '') + (c.sims && c.sims.length ? '<small>' + c.sims.length + ' programa' + (c.sims.length > 1 ? 's' : '') + ' para simular</small>' : '') + '</span><span class="mi-chev" data-icon="chev"></span></button>';
-      }
+      });
       h += '</div>';
     });
     $('#trList').innerHTML = h;

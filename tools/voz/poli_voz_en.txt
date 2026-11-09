@@ -1,0 +1,50 @@
+In this lesson, we look inside the outside polygon contour macro, O sixteen seventeen.
+It makes squares, hexagons, octagons: any polygon, stepping down in a spiral.
+
+In the main program, the G sixty-five P sixteen seventeen line calls the macro. This example is a hexagon.
+X and Y: part center. B: number of sides, six. D: diameter across corners, forty-one point five seven.
+A: angle of the first corner, zero: corner on the X axis. E: entry distance, twenty. T: a twenty-five millimeter cutter.
+W and Z: start and final Z. K: how much it goes down each lap, two. R: clearance. F: feed.
+Each letter becomes a variable: B becomes variable two, D seven, A one, T twenty, and K six.
+
+The macro starts with three simple calculations.
+Variable one hundred is the corner radius: D divided by two, twenty point seven eight five. It is the distance from the center to each corner.
+One oh one is the cutter radius: T divided by two, twelve point five.
+And one oh two is the angle between one corner and the next: three sixty divided by B, sixty degrees.
+Careful: D is measured at the corners. For a hexagon thirty-six across flats, D is thirty-six divided by cosine of thirty: forty-one point five seven.
+
+Then the checks: fewer than three sides, K zero, or a final Z above W stop the machine, with alarms one sixty-one, one sixty-two and one sixty-three.
+Here everything is fine, so the macro goes on to the entry.
+
+The cutter comes in perpendicular to the first side, from outside the stock.
+The outward direction of the first side is A minus half the corner angle: zero minus thirty, minus thirty degrees.
+Variables one ten and one eleven are the entry point: the first corner, plus the cutter radius in that direction. That is X thirty-one point six one, and Y minus six point two five.
+The cutter starts farther out, by E, goes down, and feeds in with G one to that point, touching the first side.
+
+N ten starts each lap. Variable one oh three is the Z at the end of the lap: current Z minus K. On the first lap, minus two.
+If it goes past the final Z, the IF holds it at the final Z.
+One oh six splits that drop by the number of sides: two divided by six, zero point three three three on each side.
+So the cutter does not plunge: it goes down a little on each side, in a spiral.
+
+N twenty makes one side. Variable one oh nine is the outward direction of that side: minus thirty degrees.
+The cutter runs parallel to the side, offset by its radius.
+One twelve is the angle of the next corner: zero minus sixty, minus sixty. With sine and cosine, one thirteen and one fourteen give that corner's position.
+The G one goes to the corner plus the cutter radius in the outward direction, going down zero point three three three.
+
+At the corner, the cutter does not make a point: it makes a G two arc around the corner.
+The arc center is the part corner itself. The G two turns sixty degrees and stops facing the next side.
+I and J are minus the cutter radius times cosine and sine of the direction: the vector to the corner.
+So the cutter rolls around the corner and the part corner stays sharp, with no radius.
+
+After the arc, variable one oh eight gets the new corner, and one oh seven adds one.
+The IF asks: is one oh seven still less than or equal to B? If yes, back to N twenty for the next side.
+After side six, the lap is complete.
+
+At the end of the lap, variable one oh four gets the Z reached, and the IF asks if it still went down at all.
+The laps go down two at a time: zero, minus two, minus four, down to minus sixteen. The last drop only goes to minus seventeen.
+Then comes a flat lap at Z minus seventeen, with one oh six equal to zero. It cleans up the spiral ramp.
+With one oh six at zero, the IF does not loop again. The cutter goes up to Z minus twelve, five above the final Z, and M ninety-nine returns to the main program.
+
+In short: corner radius, cutter radius and corner angle; the entry; the drop per side; the corner with sine and cosine; the line and the arc.
+On the first part, test with W fifty and Z thirty-three: the cutter does everything in the air, with the same height.
+And simulate first in the Macro CNC app. See you in the next macro!

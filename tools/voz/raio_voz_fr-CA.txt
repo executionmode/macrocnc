@@ -1,0 +1,48 @@
+Dans cette leçon, on regarde l'intérieur de la macro de rayon sur l'arête, la O seize dix-huit.
+La même macro fait le rayon convexe, qui arrondit le coin, et le concave, qui creuse une gorge.
+
+Dans le programme principal, la ligne G soixante-cinq P seize dix-huit appelle la macro. Cet exemple est un rayon convexe R dix.
+X : où commence l'arête, moins deux cents. I : longueur, deux cents. Y : la face de l'arête, moins vingt. W : le dessus.
+C : le rayon, dix. U : le type, zéro convexe et un concave. V : de quel côté est la fraise.
+H : de combien de degrés avance chaque passe, un. T : fraise de cinquante. A : dégagement aux bouts. R et F : dégagement et avance.
+Chaque lettre devient une variable : C devient la variable trois, U la vingt et un, V la vingt-deux, H la onze, et T la vingt.
+
+D'abord, les vérifications : alarmes cent soixante et onze à cent soixante-seize.
+Par exemple, H doit être plus petit que quatre-vingt-dix degrés, sinon alarme cent soixante-treize. Ici H vaut un : ça continue.
+Ensuite, la variable cent garde le côté. Avec V zéro, elle vaut un : la fraise est du côté des Y plus petits, et la pièce vers Y positif.
+
+La fraise coupe toute l'arête, d'un bout à l'autre, et sort aux deux bouts.
+La variable cent un, c'est le bout gauche : X, moins la moitié de la fraise, vingt-cinq, moins le dégagement, cinq. Ça donne moins deux cent trente.
+La cent deux, c'est le bout droit : X plus I, plus vingt-cinq, plus cinq. Ça donne trente.
+
+Maintenant, l'idée principale. C'est le coin du bas de la fraise, du côté de la pièce, qui touche la courbe.
+La position sur la courbe est donnée par un angle, thêta, mesuré à partir du centre du rayon.
+La variable cent trois, c'est cet angle. Il commence à H, un degré.
+À chaque passe, on ajoute H : un, deux, trois degrés, et ainsi de suite, tant que c'est plus petit que quatre-vingt-dix.
+
+Pour le convexe, la macro fait deux calculs avec le sinus et le cosinus.
+La variable cent quatre, c'est la distance de la face au coin de la fraise : C moins C fois sinus de thêta. À trente degrés : dix moins cinq, ça donne cinq.
+La cent six, c'est le Z : W moins C, plus C fois cosinus de thêta. À trente degrés : moins dix plus huit virgule six six, ça donne moins un virgule trois quatre.
+À soixante degrés, le coin est plus près de la face, un virgule trois quatre, et plus profond : Z moins cinq.
+
+Avec le coin en place, il manque le centre de la fraise. La variable cent cinq, c'est le Y du centre.
+C'est la face, moins vingt, plus la cent quatre, cinq, moins la moitié de la fraise, vingt-cinq. Ça donne moins quarante.
+Donc la machine fait G un, Y moins quarante, Z moins un virgule trois quatre : elle descend à la nouvelle passe.
+
+Ensuite, le G un X cent huit coupe l'arête jusqu'à l'autre bout.
+Et la macro échange les bouts : la cent neuf garde la cent sept, la cent sept reçoit la cent huit, et la cent huit reçoit ce qui était gardé.
+Comme ça, une passe va vers la droite et la suivante revient vers la gauche. Sans couper dans le vide.
+
+Et le concave? C'est la même macro, avec U un.
+Avec U plus grand que zéro, le IF du N dix saute au N vingt.
+Pour le concave, le centre du rayon est sur l'arête elle-même. La cent quatre vaut C fois cosinus de thêta, et le Z vaut W moins C fois sinus de thêta.
+Exemple avec C quinze, à trente degrés : le coin est à douze virgule neuf neuf de la face, à Z moins sept virgule cinq. Le reste est pareil.
+
+À la fin de chaque passe, la variable cent trois ajoute H.
+Le IF demande : est-ce encore plus petit que quatre-vingt-dix? Si oui, retour au N dix pour la passe suivante.
+Avec H un, ça fait quatre-vingt-neuf passes. Après la dernière, la fraise monte au plan de dégagement et le M quatre-vingt-dix-neuf retourne au programme principal.
+Un H plus petit donne une courbe plus lisse, mais c'est plus long. Un H plus grand va plus vite, avec de plus grandes marches.
+
+En résumé : les bouts en X, l'angle qui avance de H, la distance et le Z avec sinus et cosinus, le Y du centre et l'aller-retour.
+Pour la première pièce, testez avec W cinquante : la fraise fait tout dans le vide.
+Et simulez d'abord dans l'app Macro CNC. À la prochaine macro!

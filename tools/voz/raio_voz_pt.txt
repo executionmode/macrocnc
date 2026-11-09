@@ -1,0 +1,48 @@
+Nesta aula, vamos ver por dentro a macro de raio na aresta, a O dezesseis dezoito.
+A mesma macro faz o raio convexo, que arredonda a quina, e o côncavo, que abre uma cava.
+
+No programa principal, a linha G sessenta e cinco P dezesseis dezoito chama a macro. Este exemplo é um raio convexo R dez.
+X: onde começa a aresta, menos duzentos. I: comprimento, duzentos. Y: a face da aresta, menos vinte. W: o topo.
+C: o raio, dez. U: o tipo, zero convexo e um côncavo. V: de que lado fica a frésa.
+H: quantos graus avança em cada passada, um. T: frésa de cinquenta. A: folga nas pontas. R e F: segurança e avanço.
+Cada letra vira uma variável: C vira a variável três, U a vinte e um, V a vinte e dois, H a onze, e T a vinte.
+
+Primeiro, as conferências: alarmes cento e setenta e um a cento e setenta e seis.
+Por exemplo, H tem que ser menor que noventa graus, senão alarme cento e setenta e três. Aqui H é um: segue.
+Depois, a variável cem guarda o lado. Com V zero, ela vale um: a frésa fica no lado de Y menor, e a peça para Y positivo.
+
+A frésa corta a aresta inteira, de ponta a ponta, e sai para fora nas duas pontas.
+A variável cento e um é a ponta esquerda: X, menos metade da frésa, vinte e cinco, menos a folga, cinco. Dá menos duzentos e trinta.
+A cento e dois é a direita: X mais I, mais vinte e cinco, mais cinco. Dá trinta.
+
+Agora a ideia principal. A quina de baixo da frésa, do lado da peça, é que encosta na curva.
+A posição na curva é dada por um ângulo, teta, medido a partir do centro do raio.
+A variável cento e três é esse ângulo. Começa em H, um grau.
+A cada passada, soma mais H: um, dois, três graus, e assim por diante, enquanto for menor que noventa.
+
+Para o convexo, a macro faz duas contas com seno e cosseno.
+A variável cento e quatro é a distância da face até a quina da frésa: C menos C vezes seno de teta. Em trinta graus: dez menos cinco, dá cinco.
+A cento e seis é o Z: W menos C, mais C vezes cosseno de teta. Em trinta graus: menos dez mais oito vírgula seis seis, dá menos um vírgula três quatro.
+Em sessenta graus, a quina já está mais perto da face, um vírgula três quatro, e mais funda: Z menos cinco.
+
+Com a quina no lugar, falta o centro da frésa. A variável cento e cinco é o Y do centro.
+É a face, menos vinte, mais a cento e quatro, cinco, menos metade da frésa, vinte e cinco. Dá menos quarenta.
+Então a máquina faz G um, Y menos quarenta, Z menos um vírgula três quatro: desce para a nova passada.
+
+Depois, o G um X cento e oito corta a aresta até a outra ponta.
+E a macro troca as pontas: a cento e nove guarda a cento e sete, a cento e sete recebe a cento e oito, e a cento e oito recebe o que estava guardado.
+Assim, uma passada vai para a direita e a próxima volta para a esquerda. Sem andar no vazio.
+
+E o côncavo? É a mesma macro, com U um.
+Com U maior que zero, o IF do N dez pula para o N vinte.
+No côncavo, o centro do raio fica na própria aresta. A cento e quatro é C vezes cosseno de teta, e o Z é W menos C vezes seno de teta.
+Exemplo com C quinze, em trinta graus: a quina fica a doze vírgula nove nove da face, em Z menos sete e meio. O resto é igual.
+
+No fim de cada passada, a variável cento e três soma H.
+O IF pergunta: ainda é menor que noventa? Se sim, volta para o N dez e faz a próxima.
+Com H um são oitenta e nove passadas. Na última, a frésa sobe para o plano de segurança e o M noventa e nove volta ao principal.
+H menor deixa a curva mais lisa, mas leva mais tempo. H maior, mais rápido, com degraus maiores.
+
+Resumindo: as pontas em X, o ângulo que avança H, a distância e o Z com seno e cosseno, o Y do centro e o vai e volta.
+Na primeira peça, teste com W cinquenta: a frésa faz tudo no ar.
+E simule antes no app Macro CNC. Até a próxima macro!

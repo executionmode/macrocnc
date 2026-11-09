@@ -169,7 +169,7 @@ I18N.add({
   // ---------- treinamento ----------
   'Macros FANUC do zero': 'FANUC macros from scratch', 'Custom Macro B, com as macros reais da biblioteca explicadas bloco a bloco.': 'Custom Macro B, with the real library macros explained block by block.',
   'Começar': 'Start', 'Começar o treinamento': 'Start the training', 'Rever do início': 'Review from the start', 'Comece aqui': 'Start here', 'Base: a linguagem': 'Basics: the language',
-  'As macros, uma por uma': 'The macros, one by one', 'Na máquina': 'At the machine', 'Pratique': 'Practice', 'Consulta': 'Reference', 'Ponto-chave': 'Key point',
+  'As macros, uma por uma': 'The macros, one by one', 'Macros com vídeo': 'Macros with video', 'Macros sem vídeo': 'Macros without video', 'Na máquina': 'At the machine', 'Pratique': 'Practice', 'Consulta': 'Reference', 'Ponto-chave': 'Key point',
   'Pratique no app': 'Practice in the app', 'Abra, mude as letras e simule em 3D.': 'Open it, change the letters and simulate in 3D.', 'Próximo ›': 'Next ›', '‹ Anterior': '‹ Previous',
   'Concluir ✓': 'Finish ✓', 'Ver resposta': 'Show answer', 'Certo!': 'Correct!', 'Não foi dessa vez.': 'Not this time.', '▶ com vídeo': '▶ with video',
   'Vídeo: passo a passo com animação': 'Video: step by step with animation', 'Assistir vídeo': 'Watch video', 'Explicação passo a passo, com animação': 'Step-by-step explanation with animation',

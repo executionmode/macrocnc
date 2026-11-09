@@ -1,0 +1,50 @@
+Nesta aula, vamos ver por dentro a macro de contorno externo de polígono, a O dezesseis dezessete.
+Ela faz quadrado, sextavado, oitavado: qualquer polígono, descendo em espiral.
+
+No programa principal, a linha G sessenta e cinco P dezesseis dezessete chama a macro. Este exemplo é um sextavado.
+X e Y: centro da peça. B: número de lados, seis. D: diâmetro entre cantos, quarenta e um vírgula cinquenta e sete.
+A: ângulo do primeiro canto, zero: canto no eixo X. E: afastamento da entrada, vinte. T: frésa de vinte e cinco.
+W e Z: Z inicial e final. K: quanto desce em cada volta, dois. R: segurança. F: avanço.
+Cada letra vira uma variável: B vira a variável dois, D a sete, A a um, T a vinte, e K a seis.
+
+A macro começa com três contas simples.
+A variável cem é o raio entre cantos: D dividido por dois, vinte vírgula sete oito cinco. É a distância do centro até cada canto.
+A cento e um é o raio da frésa: T dividido por dois, doze e meio.
+E a cento e dois é o ângulo entre um canto e o próximo: trezentos e sessenta dividido por B, sessenta graus.
+Atenção: D é medido nos cantos. Para um sextavado de trinta e seis entre faces, D é trinta e seis dividido por cosseno de trinta: quarenta e um vírgula cinquenta e sete.
+
+Depois, as conferências: menos de três lados, K zero ou Z final acima de W param a máquina, com os alarmes cento e sessenta e um, cento e sessenta e dois e cento e sessenta e três.
+Aqui está tudo certo, então a macro segue para a entrada.
+
+A frésa entra perpendicular ao primeiro lado, vindo de fora do bruto.
+A direção para fora do primeiro lado é A menos metade do ângulo entre cantos: zero menos trinta, menos trinta graus.
+As variáveis cento e dez e cento e onze são o ponto de entrada: o primeiro canto, mais o raio da frésa nessa direção. Dá X trinta e um vírgula sessenta e um, e Y menos seis vírgula vinte e cinco.
+A frésa chega mais longe, afastada de E, desce e entra em G um até esse ponto, encostando no primeiro lado.
+
+O N dez começa cada volta. A variável cento e três é o Z do fim da volta: o Z atual menos K. Na primeira volta, menos dois.
+Se passar do Z final, o IF segura no Z final.
+A cento e seis divide essa descida pelo número de lados: dois dividido por seis, zero vírgula três três três em cada lado.
+Assim a frésa não mergulha: ela vai descendo um pouco em cada lado, em espiral.
+
+O N vinte faz um lado. A variável cento e nove é a direção para fora desse lado: menos trinta graus.
+A frésa anda paralela ao lado, afastada do raio dela.
+A cento e doze é o ângulo do próximo canto: zero menos sessenta, menos sessenta. Com seno e cosseno, a cento e treze e a cento e quatorze dão a posição desse canto.
+O G um vai até o canto mais o raio da frésa na direção para fora, descendo zero vírgula três três três.
+
+No canto, a frésa não faz um bico: ela faz um arco G dois em volta do canto.
+O centro do arco é o próprio canto da peça. O G dois gira sessenta graus e para na direção do próximo lado.
+I e J são menos o raio da frésa vezes cosseno e seno da direção: o vetor até o canto.
+Assim a frésa rola em volta do canto e o canto da peça fica vivo, sem raio.
+
+Depois do arco, a variável cento e oito recebe o novo canto, e a cento e sete soma um.
+O IF pergunta: a cento e sete ainda é menor ou igual a B? Se sim, volta para o N vinte e faz o próximo lado.
+Depois do lado seis, a volta está completa.
+
+No fim da volta, a variável cento e quatro recebe o Z alcançado, e o IF pergunta se ainda desceu alguma coisa.
+As voltas descem dois de cada vez: zero, menos dois, menos quatro, até menos dezesseis. A última descida vai só até menos dezessete.
+Depois vem uma volta plana em Z menos dezessete, com a cento e seis igual a zero. Ela limpa a rampa da espiral.
+Com a cento e seis zero, o IF não volta mais. A frésa sobe para Z menos doze, cinco acima do Z final, e o M noventa e nove volta ao principal.
+
+Resumindo: raio entre cantos, raio da frésa e ângulo entre cantos; a entrada; a descida por lado; o canto com seno e cosseno; a linha e o arco.
+Na primeira peça, teste com W cinquenta e Z trinta e três: a frésa faz tudo no ar, com a mesma altura.
+E simule antes no app Macro CNC. Até a próxima macro!

@@ -1,0 +1,48 @@
+In this lesson, we look inside the edge radius macro, O sixteen eighteen.
+The same macro makes a convex radius, which rounds the corner, and a concave one, which cuts a cove.
+
+In the main program, the G sixty-five P sixteen eighteen line calls the macro. This example is a convex radius, R ten.
+X: where the edge starts, minus two hundred. I: length, two hundred. Y: the edge face, minus twenty. W: the top.
+C: the radius, ten. U: the type, zero convex and one concave. V: which side the cutter is on.
+H: how many degrees each pass moves, one. T: a fifty millimeter cutter. A: clearance at the ends. R and F: clearance plane and feed.
+Each letter becomes a variable: C becomes variable three, U twenty-one, V twenty-two, H eleven, and T twenty.
+
+First, the checks: alarms one seventy-one to one seventy-six.
+For example, H must be less than ninety degrees, otherwise alarm one seventy-three. Here H is one: it goes on.
+Then variable one hundred stores the side. With V zero, it is one: the cutter is on the lower Y side, and the part is toward plus Y.
+
+The cutter cuts the whole edge, end to end, and goes out past both ends.
+Variable one oh one is the left end: X, minus half the cutter, twenty-five, minus the clearance, five. That is minus two hundred thirty.
+One oh two is the right end: X plus I, plus twenty-five, plus five. That is thirty.
+
+Now the main idea. The bottom corner of the cutter, on the part side, is what touches the curve.
+The position on the curve is given by an angle, theta, measured from the radius center.
+Variable one oh three is that angle. It starts at H, one degree.
+Each pass adds H: one, two, three degrees, and so on, while it is less than ninety.
+
+For the convex radius, the macro does two calculations with sine and cosine.
+Variable one oh four is the distance from the face to the cutter corner: C minus C times sine of theta. At thirty degrees: ten minus five is five.
+One oh six is the Z: W minus C, plus C times cosine of theta. At thirty degrees: minus ten plus eight point six six is minus one point three four.
+At sixty degrees, the corner is closer to the face, one point three four, and deeper: Z minus five.
+
+With the corner in place, we still need the cutter center. Variable one oh five is the center Y.
+It is the face, minus twenty, plus one oh four, five, minus half the cutter, twenty-five. That is minus forty.
+So the machine runs G one, Y minus forty, Z minus one point three four: it steps down to the new pass.
+
+Then G one X one oh eight cuts the edge to the other end.
+And the macro swaps the ends: one oh nine keeps one oh seven, one oh seven gets one oh eight, and one oh eight gets what was kept.
+So one pass goes right and the next one comes back left. No moving in the air.
+
+And the concave one? It is the same macro, with U one.
+With U greater than zero, the IF at N ten jumps to N twenty.
+For concave, the radius center is right on the edge. One oh four is C times cosine of theta, and Z is W minus C times sine of theta.
+Example with C fifteen, at thirty degrees: the corner is twelve point nine nine from the face, at Z minus seven point five. The rest is the same.
+
+At the end of each pass, variable one oh three adds H.
+The IF asks: is it still less than ninety? If yes, back to N ten for the next pass.
+With H one that is eighty-nine passes. After the last one, the cutter goes up to the clearance plane and M ninety-nine returns to the main program.
+A smaller H makes a smoother curve, but takes longer. A larger H is faster, with bigger steps.
+
+In short: the X ends, the angle that moves by H, the distance and Z with sine and cosine, the center Y and the back and forth.
+On the first part, test with W fifty: the cutter does everything in the air.
+And simulate first in the Macro CNC app. See you in the next macro!

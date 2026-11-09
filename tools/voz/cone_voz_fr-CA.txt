@@ -1,0 +1,54 @@
+Dans cette leçon, on regarde l'intérieur de la macro du cône extérieur, la O seize trente.
+Elle fait le cône avec une fraise quatre-vingt-dix degrés ou une fraise en bout, tour par tour, du haut vers le bas.
+
+Dans le programme principal, la ligne G soixante-cinq P seize trente appelle la macro et lui passe les dimensions.
+X et Y : centre du cône. D : diamètre de la base, soixante. B : angle du cône par rapport à la face du dessus, soixante degrés.
+W et Z : dessus et base du cône. Q : la descente de la fraise à chaque tour, zéro virgule trois.
+E : pointe plate de la fraise. T : diamètre de la fraise. Ici, E et T valent vingt-cinq : une fraise en bout. R : dégagement. F : avance.
+Chaque lettre devient une variable : D devient la variable sept, B la deux, W la vingt-trois, Z la vingt-six, Q la dix-sept, et E la huit.
+
+Avant de bouger la machine, la macro vérifie les lettres. Chaque erreur a son alarme.
+Par exemple : si le Z de la base est plus haut que le dessus, elle arrête avec l'alarme deux cent quatre-vingt-deux. Ici, moins vingt n'est pas plus grand que zéro.
+Et si Q vaut zéro, la fraise ne descendrait jamais. Alarme deux cent quatre-vingt-sept. Ici Q vaut zéro virgule trois, donc la macro continue.
+
+Le premier calcul, c'est l'ouverture du cône : de combien le rayon grandit pour chaque millimètre de descente.
+La variable cent quatre reçoit un divisé par la tangente de B. La tangente de soixante degrés vaut un virgule sept trois deux. Un divisé par un virgule sept trois deux donne zéro virgule cinq sept sept.
+Donc, à chaque millimètre de descente, le rayon du cône grandit de zéro virgule cinq sept sept millimètre.
+
+Avec l'ouverture, la macro calcule le diamètre du dessus, la lettre A.
+La hauteur du cône, c'est W moins Z : vingt millimètres. Fois zéro virgule cinq sept sept, ça donne de combien le rayon grandit jusqu'à la base.
+Des deux côtés, deux fois vingt fois zéro virgule cinq sept sept donne vingt-trois virgule zéro neuf quatre. D moins ça :
+soixante moins vingt-trois virgule zéro neuf quatre donne trente-six virgule neuf zéro six. C'est le diamètre du cône en haut.
+
+La macro fonctionne avec deux sortes de fraise, et la lettre E dit laquelle.
+Si E est plus petit que T, c'est une fraise quatre-vingt-dix degrés, avec une pointe. La variable cent dix devient un, et l'angle B va seulement jusqu'à quarante-cinq degrés.
+Ici, E est égal à T, vingt-cinq : une fraise en bout. La cent dix reste à zéro. Le coin du bas suit la ligne et fait tout angle de un à quatre-vingt-neuf.
+Elle vérifie aussi une chose : le pas vers l'extérieur à chaque tour, Q fois zéro virgule cinq sept sept, ne peut pas dépasser le diamètre de la fraise.
+
+Maintenant, la boucle. La variable cent trois, c'est le Z de la fraise à chaque tour.
+Avant la boucle, elle commence à W plus Q : zéro virgule trois. Une passe au-dessus du dessus.
+Au N dix, elle enlève Q. Le premier tour est à zéro, le deuxième à moins zéro virgule trois, et ainsi de suite.
+Et le IF l'empêche de dépasser la base : si elle passe sous moins vingt, elle devient moins vingt au dernier tour.
+
+Pour chaque Z, la macro calcule la variable cent sept : le rayon où le centre de la fraise va tourner.
+C'est le rayon du dessus, dix-huit virgule quatre cinq trois, plus l'ouverture du cône à ce Z, plus la moitié de la pointe plate, douze virgule cinq.
+Au premier tour, à Z zéro, le cône n'est pas encore ouvert : dix-huit virgule quatre cinq trois plus douze virgule cinq donne trente virgule neuf cinq trois.
+À Z moins dix, le cône s'est ouvert de dix fois zéro virgule cinq sept sept, ce qui donne cinq virgule sept sept quatre.
+Donc la cent sept vaut trente-six virgule sept deux six. Le coin de la fraise touche toujours la ligne du cône.
+
+Au premier tour, la variable cent huit vaut encore zéro, donc la macro fait l'entrée.
+La fraise va à l'extérieur du brut, à X quarante-quatre virgule cinq : rayon de la base, plus la moitié de la fraise, plus deux. Puis elle descend au Z du tour.
+Ensuite, elle entre en X jusqu'au rayon calculé, trente virgule neuf cinq trois.
+Et elle fait le G deux : un tour complet autour du centre, avec I égal à moins le rayon.
+
+À partir du deuxième tour, le GOTO vingt saute l'entrée.
+À chaque tour : descendre de Q, calculer la nouvelle cent sept, bouger X et Z ensemble et faire le G deux.
+Le IF demande si la cent trois est encore au-dessus de la base. Si oui, retour au N dix.
+Ça fait soixante-huit tours. Au dernier, à Z moins vingt, le rayon vaut quarante-deux virgule cinq : la moitié de D plus la moitié de la fraise.
+
+À la fin, la fraise sort à l'extérieur du brut, encore à X quarante-quatre virgule cinq.
+Elle monte au plan de dégagement, Z cinq, et le M quatre-vingt-dix-neuf retourne au programme principal.
+
+En résumé : ouverture du cône, diamètre du dessus, type de fraise, Z de chaque tour et rayon du centre de la fraise.
+Pour la première pièce, testez avec W cinquante et Z trente : la fraise fait tout dans le vide, avec la même hauteur de cône.
+Et simulez d'abord dans l'app Macro CNC. À la prochaine macro!

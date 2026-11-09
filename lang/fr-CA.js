@@ -169,7 +169,7 @@ I18N.add({
   // ---------- formation ----------
   'Macros FANUC do zero': 'Les macros FANUC de zéro', 'Custom Macro B, com as macros reais da biblioteca explicadas bloco a bloco.': 'Custom Macro B, avec les vraies macros de la bibliothèque expliquées bloc par bloc.',
   'Começar': 'Commencer', 'Começar o treinamento': 'Commencer la formation', 'Rever do início': 'Revoir depuis le début', 'Comece aqui': 'Commencez ici', 'Base: a linguagem': 'Base : le langage',
-  'As macros, uma por uma': 'Les macros, une par une', 'Na máquina': 'À la machine', 'Pratique': 'Pratique', 'Consulta': 'Référence', 'Ponto-chave': 'Point clé',
+  'As macros, uma por uma': 'Les macros, une par une', 'Macros com vídeo': 'Macros avec vidéo', 'Macros sem vídeo': 'Macros sans vidéo', 'Na máquina': 'À la machine', 'Pratique': 'Pratique', 'Consulta': 'Référence', 'Ponto-chave': 'Point clé',
   'Pratique no app': 'Pratiquez dans l’app', 'Abra, mude as letras e simule em 3D.': 'Ouvrez-le, changez les lettres et simulez en 3D.', 'Próximo ›': 'Suivant ›', '‹ Anterior': '‹ Précédent',
   'Concluir ✓': 'Terminer ✓', 'Ver resposta': 'Voir la réponse', 'Certo!': 'Bonne réponse!', 'Não foi dessa vez.': 'Pas cette fois-ci.', '▶ com vídeo': '▶ avec vidéo',
   'Vídeo: passo a passo com animação': 'Vidéo : étape par étape avec animation', 'Assistir vídeo': 'Regarder la vidéo', 'Explicação passo a passo, com animação': 'Explication étape par étape, avec animation',
