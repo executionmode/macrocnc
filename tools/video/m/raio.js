@@ -37,7 +37,7 @@ function formula(t, steps, y0, h) {
 }
 
 /* ---------- corte (Y na horizontal, Z na vertical) ---------- */
-const SV0 = { y0: -55, x0: 120, z0: 470, s: 14 };
+const SV0 = { y0: -66, x0: 90, z0: 470, s: 10.5 };
 let SV = Object.assign({}, SV0);
 const qx = y => SV.x0 + (y - SV.y0) * SV.s, qz = z => SV.z0 - z * SV.s;
 function section(kind, upTo) { // peça com o perfil (convexo/côncavo) cortado até o ângulo upTo
@@ -71,14 +71,7 @@ function sectionCave(upTo) { // côncavo desenhado de forma simples: bloco menos
   g.lineTo(qx(yf), qz(ccv(full).z)); g.closePath(); g.fillStyle = '#071021'; g.fill();
   g.beginPath(); for (let th = 0; th <= full; th += 1) { const q = ccv(th); th ? g.lineTo(qx(yf + q.d), qz(q.z)) : g.moveTo(qx(yf + q.d), qz(q.z)); } g.strokeStyle = C.ok; g.lineWidth = 4; g.stroke();
 }
-function sideTool(yc, z, T, a) { // fresa em corte: canto do lado da peça em yc
-  g.globalAlpha = a == null ? 1 : a;
-  const x0 = qx(yc - T), x1 = qx(yc), yb = qz(z);
-  g.fillStyle = 'rgba(245,165,36,.30)'; g.fillRect(x0, yb - 200, x1 - x0, 200); g.strokeStyle = C.tool; g.lineWidth = 4; g.strokeRect(x0, yb - 200, x1 - x0, 200);
-  line((x0 + x1) / 2, yb - 220, (x0 + x1) / 2, yb + 10, C.tool, 2, [8, 8]);
-  g.beginPath(); g.arc(x1, yb, 9, 0, 7); g.fillStyle = C.err; g.fill();
-  g.globalAlpha = 1;
-}
+function sideTool(yc, z, T, a) { millSide(qx(yc - T), qx(yc), qz(z), { alpha: a, corner: 'R', axis: true }); }
 function arcGuide(kind, a) {
   g.globalAlpha = a; const p = kind === 'c' ? CC : A;
   g.beginPath(); for (let th = 0; th <= 90; th += 2) { const q = kind === 'c' ? ccv(th) : cvx(th); th ? g.lineTo(qx(p.Y + q.d), qz(q.z)) : g.moveTo(qx(p.Y + q.d), qz(q.z)); }
@@ -141,7 +134,7 @@ sc('c3', { code: () => ({ lines: MAC, hl: this_hl }),
     if (t < at(2)) rows.forEach((r, i) => { const a = ease((t - at(0) - .4 - i * .3) / .4); if (a <= 0) return; const y = 270 + i * 88, hot = t > at(1) && i === 2;
       g.globalAlpha = a; card(200, y, 680, 76, hot ? C.err : 'rgba(102,184,255,.35)'); g.globalAlpha = 1;
       text(r[0], 240, y + 50, 38, hot ? C.err : C.txt, { mono: true, w: 800, alpha: a }); text(tr('alarm') + ' ' + r[1], 840, y + 50, 34, C.err, { a: 'right', w: 800, alpha: a }); });
-    else { const a = ease((t - at(2)) / .6); SV = { y0: -55, x0: 120, z0: 520, s: 12 }; convexPart(0); sideTool(A.Y + A.C, A.W + 6, A.T, a);
+    else { const a = ease((t - at(2)) / .6); SV = { y0: -66, x0: 90, z0: 520, s: 10 }; convexPart(0); sideTool(A.Y + A.C, A.W + 6, A.T, a);
       arrow(qx(A.Y) - 10, qz(-14), qx(A.Y) + 200, qz(-14), C.ok, 5); text(tr('c3.mat'), qx(A.Y) + 220, qz(-14) + 10, 30, C.ok, { w: 800, alpha: a });
       text('V0 → #100 = 1', 540, 820, 40, C.cyan, { a: 'center', w: 800, mono: true, alpha: a }); SV = Object.assign({}, SV0); }
     if (t > at(1) && t < at(2)) formula(t, [[at(1) + .5, 'IF [' + gc(A.H) + ' GE 90] ? ' + tr('no'), C.ok]], 860, 120);
@@ -156,7 +149,7 @@ function topView(a) {
   line(tpx(A.X), tpy(A.Y), tpx(A.X + A.I), tpy(A.Y), C.ok, 6);
   g.globalAlpha = 1;
 }
-function topTool(x, y, col) { g.beginPath(); g.arc(tpx(x), tpy(y), A.T / 2 * TP.s, 0, 7); g.fillStyle = 'rgba(245,165,36,.22)'; g.fill(); g.strokeStyle = col || C.tool; g.lineWidth = 4; g.stroke(); g.beginPath(); g.arc(tpx(x), tpy(y), 5, 0, 7); g.fillStyle = col || C.tool; g.fill(); }
+function topTool(x, y, col) { millTop(tpx(x), tpy(y), A.T / 2 * TP.s); }
 sc('c4', { code: () => ({ lines: MAC, hl: this_hl }),
   draw(t, T, at) {
     this_hl = t > at(2) ? [12] : [11];

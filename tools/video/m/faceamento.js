@@ -130,7 +130,7 @@ function sidePart(cut1, cut2) {
   if (cut1 > 0) { g.fillStyle = '#03070f'; g.fillRect(SV.x0 - 2, sz(0) - 2, (SV.x1 - SV.x0 + 4) * cut1, A.K * SV.zs + 2); }
   if (cut2 > 0) { g.fillStyle = '#03070f'; g.fillRect(SV.x0 - 2, sz(-A.K) - 2, (SV.x1 - SV.x0 + 4) * cut2, A.K * SV.zs + 2); }
 }
-function sideTool(x, z) { const w = A.T * 2.6; g.fillStyle = 'rgba(245,165,36,.85)'; g.fillRect(x - w / 2, sz(z) - 160, w, 160); g.fillStyle = '#7d8ea8'; g.fillRect(x - 30, sz(z) - 300, 60, 140); }
+function sideTool(x, z) { const w = A.T * 2.6; millSide(x - w / 2, x + w / 2, sz(z), { axis: true }); }
 sc('c8', { code: () => ({ lines: MAC, hl: [9, 10, 11] }),
   draw(t, T, at) {
     sidePart(0, 0);

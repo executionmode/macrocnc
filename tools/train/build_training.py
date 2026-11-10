@@ -88,7 +88,15 @@ for c in chs:
     if c['t'].startswith('16.'): c['t'] = NC['t16']; c['html'] = NC['h16']
     elif c['t'].startswith('17.'): c['t'] = NC['t17']; c['html'] = new_chs.ch17_html(NC)
     c['html'] = re.sub(r'<tr><td>O162[0-2][^<]*</td>.*?</tr>', '', c['html'], flags=re.S)
+FX_ = new_chs.FIX[LANG]
+ANS[5] = FX_['ans5']; a6o, a6n = FX_['ans6a']; ANS[6] = ANS[6].replace(a6o, a6n)
+chs = [c for c in chs if not c['t'].startswith('14.')]   # sai o capítulo 14 (O1623, fresa de chanfrar)
+for c in chs:
+    c['html'] = re.sub(r'<tr><td>O1623[^<]*</td>.*?</tr>', '', c['html'], flags=re.S)
+    for a, b in FX_['repl']: c['html'] = c['html'].replace(a, b)
 _ex = next(c for c in chs if c['t'].startswith('20.'))
+_ex['html'] = re.sub(r'<p><b>' + re.escape(EX_NAMES[5]) + r'.*?(?=<p><b>)', FX_['ex5'] + '\n', _ex['html'], count=1, flags=re.S)
+_ex['html'] = _ex['html'].replace(FX_['ex6a'][0], FX_['ex6a'][1])
 _ex['html'] = re.sub(r'<p><b>' + re.escape(EX_NAMES[8]) + r'.*?(?=<p><b>)', NC['ex8'] + '\n', _ex['html'], count=1, flags=re.S)
 # exercícios com "Ver resposta"
 ex = next(c for c in chs if c['t'].startswith('20.'))
@@ -151,9 +159,12 @@ QUIZ_PT = [
  ('Em que sentido o contorno externo em G2 com M3 corta?', ['Concordante', 'Discordante', 'Depende do Z', 'Tanto faz'], 0),
 ]
 
-QUIZ = TD.QUIZ if TD else QUIZ_PT
+QUIZ = list(TD.QUIZ if TD else QUIZ_PT)
+QUIZ[8] = new_chs.FIX[LANG]['quiz9']
 if TD: COLA = TD.COLA
-COLA = re.sub(r'<tr><td>O162[0-2][^<]*</td>.*?</tr>', '', COLA, flags=re.S)
+COLA = re.sub(r'<tr><td>O162[0-3][^<]*</td>.*?</tr>', '', COLA, flags=re.S)
+for _a, _b in new_chs.FIX[LANG]['repl']: COLA = COLA.replace(_a, _b)
+COLA = re.sub(r'<tr><td>O162[0-3][^<]*</td>.*?</tr>', '', COLA, flags=re.S)
 SIMS = {
  '7.': ['m-face'], '8.': ['m-pcd'], '9.': ['m-helice', 'p-helice'], '10.': ['p-3bolsas'], '12.': ['m-ret', 'm-poli', 'p-quadrado', 'p-sextavados'],
  '13.': ['m-raio-convexo', 'm-raio-concavo'], '14.': ['p-interp-chanfro'], '15.': ['p-rosca'],
@@ -187,7 +198,16 @@ out_chs.append({'t': EXTRA[0], 'html': '', 'quiz': [{'q': q, 'o': o, 'a': a} for
 out_chs.append({'t': EXTRA[1], 'html': COLA, 'sims': [], 'resumo': []})
 out_chs.append({'t': EXTRA[2], 'html': RULES_INTRO, 'rules': True, 'sims': [], 'resumo': []})
 
-data = {'title': TD.TITLE if TD else 'Treinamento de Macros FANUC', 'intro': intro.strip(), 'chapters': out_chs}
+# renumera: tudo depois do antigo 14 desce 1
+def _ren(n): return n - 1 if n > 14 else n
+for c in out_chs:
+    m = re.match(r'(\d+)\.(\s.*)', c['t'], re.S)
+    if m:
+        n = int(m.group(1)); nn = _ren(n); c['t'] = '%d.%s' % (nn, m.group(2))
+        c['html'] = re.sub(r'<h3>%d\.(\d+)' % n, lambda mm: '<h3>%d.%s' % (nn, mm.group(1)), c['html'])
+    c['html'] = re.sub(r'(capítulo|chapter|chapitre|Capítulo|Chapter|Chapitre)(\s+)(\d+)', lambda mm: mm.group(1) + mm.group(2) + str(_ren(int(mm.group(3)))), c['html'])
+_intro = re.sub(r'(capítulo|chapter|chapitre)(\s+)(\d+)', lambda mm: mm.group(1) + mm.group(2) + str(_ren(int(mm.group(3)))), intro.strip())
+data = {'title': TD.TITLE if TD else 'Treinamento de Macros FANUC', 'intro': _intro, 'chapters': out_chs}
 js = 'window.TRAINING = ' + json.dumps(data, ensure_ascii=False) + ';\n'
 open('/home/claude/macro-cnc/training%s.js' % ('' if LANG == 'pt' else '.' + LANG), 'w').write(js)
 print(len(js), len(out_chs))

@@ -6,7 +6,7 @@ const subEnd = (sc, k) => window.TIMING ? (k + 1 < sc.st.length ? sc.st[k + 1] -
 window.SCENES = S.map(s => ({ title: s.title, voice: s.voice || [], dur: s.dur, subs: s.subs.map((x, i) => ({ text: x, start: s.st[i], end: subEnd(s, i) })) }));
 
 function renderFrame(i, t, withSub) {
-  const sc = S[i], T = sc.dur, at = k => sc.st[Math.min(k, sc.st.length - 1)];
+  const sc = S[i], T = sc.dur, at = k => sc.st[Math.min(k, sc.st.length - 1)]; window.TNOW = t;
   g.setTransform(1, 0, 0, 1, 0, 0); background(); header(sc, i, S.length);
   sc.draw(t, T, at);
   if (sc.code) { const cd = sc.code(); codePanel(cd.lines, cd.hl, 1100, cd.n || 9, cd); }

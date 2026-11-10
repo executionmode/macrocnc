@@ -746,9 +746,20 @@
     $('#trIntro').innerHTML = read.length ? '' : TR.intro;
     var vids = (window.APP_CONFIG || {}).videos || {};
     function hasVid(i) { return !!videoFor(vids[trSplit(TR.chapters[i].t).n]); }
-    function rng(a, b, f) { var r = []; for (var i = a; i < Math.min(b, n); i++) if (!f || f(i)) r.push(i); return r; }
-    var groups = [['Comece aqui', rng(0, 1)], ['Base: a linguagem', rng(1, 7)], ['Macros com vídeo', rng(7, 18, hasVid)], ['Macros sem vídeo', rng(7, 18, function (i) { return !hasVid(i); })], ['Na máquina', rng(18, 20)], ['Pratique', rng(20, 23)], ['Consulta', rng(23, n)]];
-    var h = '';
+    function rng(a, b) { var r = []; for (var i = a; i < Math.min(b, n); i++) r.push(i); return r; }
+    var tab = store.get('trTab') === 'vid' ? 'vid' : 'cap', withVid = rng(0, n).filter(hasVid);
+    var h = '<div class="seg tr-tabs"><button type="button" data-trtab="cap" class="' + (tab === 'cap' ? 'on' : '') + '">' + esc(T('Capítulos')) + '</button><button type="button" data-trtab="vid" class="' + (tab === 'vid' ? 'on' : '') + '">▶ ' + esc(T('Vídeos')) + ' (' + withVid.length + ')</button></div>';
+    if (tab === 'vid') {
+      h += '<div class="tr-vids">' + (withVid.length ? withVid.map(function (i) {
+        var sp = trSplit(TR.chapters[i].t), url = videoFor(vids[sp.n]);
+        return '<div class="tr-vcard"><div class="tr-vcard-h"><span class="tr-num">' + esc(sp.n) + '</span><b>' + esc(sp.t) + '</b></div>' +
+          (/\.mp4$/i.test(url) ? '<video src="' + esc(url) + '" poster="' + esc(url.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video>' : '<a class="tr-video" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(T('Assistir vídeo')) + '</a>') +
+          '<button type="button" class="ui-btn ghost" data-cap="' + i + '">' + esc(T('Abrir o capítulo')) + '</button></div>';
+      }).join('') : '<p class="hint">' + esc(T('Ainda não há vídeos neste idioma.')) + '</p>') + '</div>';
+      $('#trList').innerHTML = h;
+      bindTrList(); return;
+    }
+    var groups = [['Comece aqui', rng(0, 1)], ['Base: a linguagem', rng(1, 7)], ['As macros, uma por uma', rng(7, 17)], ['Na máquina', rng(17, 19)], ['Pratique', rng(19, 22)], ['Consulta', rng(22, n)]];
     groups.forEach(function (g) {
       if (!g[1].length) return;
       h += '<div class="tr-group">' + esc(T(g[0])) + '</div><div class="tr-list">';
@@ -760,7 +771,11 @@
       h += '</div>';
     });
     $('#trList').innerHTML = h;
+    bindTrList();
+  }
+  function bindTrList() {
     $$('#trList [data-cap]').forEach(function (b) { b.addEventListener('click', function () { openCap(+b.dataset.cap); }); });
+    $$('#trList [data-trtab]').forEach(function (b) { b.addEventListener('click', function () { store.set('trTab', b.dataset.trtab); renderTraining(); }); });
     paintArt($('#view-treinamento'));
   }
   function openCap(i) {
@@ -906,13 +921,19 @@
   }
   function savedVals(id) { return store.get('vals.' + id, null); }
 
+  function progVideoHtml(p) {
+    var cfg = window.APP_CONFIG || {}, cap = (cfg.progVideos || {})[p.id], url = cap ? videoFor((cfg.videos || {})[cap]) : '';
+    if (!url) return '';
+    if (/\.mp4$/i.test(url)) return '<div class="tr-vid" style="margin-top:12px"><div class="tr-vid-h"><span data-icon="play"></span><b>' + T('Vídeo: passo a passo com animação') + '</b></div><video src="' + esc(url) + '" poster="' + esc(url.replace(/\.mp4$/i, '.jpg')) + '" controls playsinline preload="none"></video></div>';
+    return '<a class="tr-video" href="' + esc(url) + '" target="_blank" rel="noopener"><span data-icon="play"></span><span><b>' + T('Assistir vídeo') + '</b></span></a>';
+  }
   function openProg(id) {
     var p = PROGRAMS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
     cur = { p: p, sub: p.subs ? p.subs[0].key : null, out: null };
     var sv = savedVals(id); if (sv && sv.sub) cur.sub = sv.sub;
     var head = '<div class="card"><div class="filehead"><h1 style="margin:0">' + esc(p.title) + '</h1><span class="badge ' + p.status + '">' + STATUS_TXT[p.status] + '</span></div>' +
       '<div class="nums mono" style="color:var(--accent2);font-size:13px;margin-top:4px">' + esc(nums(p)) + '</div><p class="hint">' + esc(p.desc) + '</p>' +
-      (p.notes || []).map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('') + '</div>';
+      (p.notes || []).map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('') + progVideoHtml(p) + '</div>';
     $('#progHead').innerHTML = head;
     $('#progOut').classList.add('hidden'); $('#progErr').innerHTML = '';
     renderProgForm(sv);

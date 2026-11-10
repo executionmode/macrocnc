@@ -1,11 +1,11 @@
 In this lesson, we look inside the outside cone macro, O sixteen thirty.
-It makes the cone with a ninety degree cutter or a flat end mill, turn by turn, from top to bottom.
+It makes the cone with a ninety degree cutter, the flat end mill, turn by turn, from top to bottom.
 
 In the main program, the G sixty-five P sixteen thirty line calls the macro and passes the sizes.
 X and Y: cone center. D: base diameter, sixty. B: cone angle to the top face, sixty degrees.
 W and Z: top and base of the cone. Q: how much the cutter goes down each turn, zero point three.
-E: flat tip of the cutter. T: cutter diameter. Here E and T are both twenty-five: a flat end mill. R: clearance. F: feed.
-Each letter becomes a variable: D becomes variable seven, B variable two, W twenty-three, Z twenty-six, Q seventeen, and E eight.
+T: cutter diameter, twenty-five: a ninety degree cutter, flat end mill. R: clearance. F: feed.
+Each letter becomes a variable: D becomes variable seven, B variable two, W twenty-three, Z twenty-six, Q seventeen, and T twenty.
 
 Before moving the machine, the macro checks the letters. Each error has an alarm.
 For example: if the base Z is above the top, it stops with alarm two eighty-two. Here minus twenty is not greater than zero.
@@ -20,10 +20,9 @@ The cone height is W minus Z: twenty millimeters. Times zero point five seven se
 On both sides, two times twenty times zero point five seven seven is twenty-three point zero nine four. D minus that:
 sixty minus twenty-three point zero nine four is thirty-six point nine zero six. That is the cone diameter at the top.
 
-The macro works with two kinds of cutter, and letter E says which one.
-If E is smaller than T, it is a ninety degree cutter with a point. Variable one ten becomes one, and angle B only goes up to forty-five degrees.
-Here E equals T, twenty-five: a flat end mill. Variable one ten stays zero. The bottom corner follows the line and makes any angle from one to eighty-nine.
-It also checks one more thing: the outward step each turn, Q times zero point five seven seven, cannot be larger than the cutter diameter.
+Before the loop, one more check, at N five.
+Each turn the cutter goes down Q and moves out Q times the opening: zero point three times zero point five seven seven is zero point one seven three.
+That cannot be larger than the cutter diameter, or material would be left between turns: alarm two ninety. Here zero point one seven three is far below twenty-five, so it goes on.
 
 Now the loop. Variable one hundred three is the cutter Z on each turn.
 Before the loop, it starts at W plus Q: zero point three. One pass above the top.
@@ -31,7 +30,7 @@ At N ten, it subtracts Q. The first turn is at zero, the second at minus zero po
 And the IF does not let it pass the base: if it goes below minus twenty, it becomes minus twenty on the last turn.
 
 For each Z, the macro computes variable one hundred seven: the radius where the cutter center will turn.
-It is the top radius, eighteen point four five three, plus how much the cone has opened, plus half the flat tip, twelve point five.
+It is the top radius, eighteen point four five three, plus how much the cone has opened, plus half the cutter, twelve point five.
 On the first turn, at Z zero, the cone has not opened at all: eighteen point four five three plus twelve point five is thirty point nine five three.
 At Z minus ten, the cone opened ten times zero point five seven seven, which is five point seven seven four.
 So variable one hundred seven is thirty-six point seven two six. The cutter corner always touches the cone line.
@@ -49,6 +48,6 @@ That is sixty-eight turns. On the last one, at Z minus twenty, the radius is for
 At the end, the cutter moves outside the stock, again to X forty-four point five.
 It goes up to the clearance plane, Z five, and M ninety-nine returns to the main program.
 
-In short: cone opening, top diameter, cutter type, Z of each turn and the cutter center radius.
+In short: cone opening, top diameter, the step check, Z of each turn and the cutter center radius.
 On the first part, test with W fifty and Z thirty: the cutter does everything in the air, with the same cone height.
 And simulate first in the Macro CNC app. See you in the next macro!

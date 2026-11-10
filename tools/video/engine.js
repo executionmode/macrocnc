@@ -44,12 +44,7 @@ function part(alpha) {
   g.globalAlpha = 1;
   line(tx(-12), ty(0), tx(12), ty(0), C.mut, 2); line(tx(0), ty(-12), tx(0), ty(12), C.mut, 2);
 }
-function tool(x, y, a) {
-  g.globalAlpha = a == null ? 1 : a;
-  g.beginPath(); g.arc(tx(x), ty(y), 25 * TV.s, 0, 7); g.fillStyle = 'rgba(245,165,36,.22)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-  g.beginPath(); g.arc(tx(x), ty(y), 6, 0, 7); g.fillStyle = C.tool; g.fill();
-  g.globalAlpha = 1;
-}
+function tool(x, y, a) { millTop(tx(x), ty(y), 25 * TV.s, undefined, a); }
 function swath(x1, x2, y) { // área cortada pela fresa numa linha em X (dentro da peça)
   const a = clamp(Math.min(x1, x2) - 25, -107.5, 107.5), b = clamp(Math.max(x1, x2) + 25, -107.5, 107.5);
   const c1 = clamp(y - 25, -107.5, 107.5), c2 = clamp(y + 25, -107.5, 107.5);
@@ -128,4 +123,44 @@ function tr(key, vars) { // texto do dicionário com {nome} trocado por valores 
 }
 function fill(s, vars) {
   return s.replace(/\{(g:)?([\w.]+)\}/g, (m, raw, k) => { const v = (vars && vars[k] !== undefined) ? vars[k] : FX[k]; return v === undefined ? m : (raw ? String(v) : num(v)); });
+}
+
+/* ---------- desenho da fresa (topo reto) ---------- */
+// vista de lado: x0..x1 em pixels (diâmetro), yb = ponta; corner: 'L' / 'R' marca a quina que encosta na peça
+function millSide(x0, x1, yb, o) {
+  o = o || {}; const w = x1 - x0, hc = Math.min(Math.max(w * .55, 70), 120), ws = Math.max(w * .55, 26), hs = 70, a = o.alpha == null ? 1 : o.alpha;
+  g.save(); g.globalAlpha = a;
+  // haste
+  const xs = (x0 + x1) / 2 - ws / 2, gs = g.createLinearGradient(xs, 0, xs + ws, 0);
+  gs.addColorStop(0, '#5d6878'); gs.addColorStop(.45, '#c3ccd8'); gs.addColorStop(1, '#5a6574');
+  g.fillStyle = gs; g.fillRect(xs, yb - hc - hs, ws, hs + 2);
+  // parte cortante
+  const gc2 = g.createLinearGradient(x0, 0, x1, 0);
+  gc2.addColorStop(0, '#6b7686'); gc2.addColorStop(.4, '#dfe6ee'); gc2.addColorStop(.6, '#b9c3cf'); gc2.addColorStop(1, '#646f7e');
+  g.fillStyle = gc2; rr(x0, yb - hc, w, hc, Math.min(6, w / 8)); g.fill();
+  // canais (hélice)
+  g.save(); rr(x0, yb - hc, w, hc, Math.min(6, w / 8)); g.clip();
+  g.strokeStyle = 'rgba(40,52,68,.55)'; g.lineWidth = Math.max(2, w / 40);
+  const p = Math.max(w * .55, 34), ph = ((o.spin == null ? (window.TNOW || 0) * 1.2 : o.spin) % 1) * p;
+  for (let k = -3; k < w / p + 3; k++) { const xx = x0 + k * p + ph; g.beginPath(); g.moveTo(xx, yb); g.lineTo(xx + hc * .7, yb - hc); g.stroke(); }
+  g.restore();
+  g.strokeStyle = 'rgba(245,165,36,.9)'; g.lineWidth = 2.5; rr(x0, yb - hc, w, hc, Math.min(6, w / 8)); g.stroke();
+  g.globalAlpha = 1; g.restore();
+  if (o.axis) line((x0 + x1) / 2, yb - hc - hs - 14, (x0 + x1) / 2, yb + 8, 'rgba(245,165,36,.7)', 2, [8, 8]);
+  if (o.corner) { const cx = o.corner === 'L' ? x0 : x1; g.beginPath(); g.arc(cx, yb, 8, 0, 7); g.fillStyle = C.err; g.fill(); }
+}
+// vista de cima: centro em pixels, raio em pixels, ang = giro (rad)
+function millTop(cx, cy, r, ang, a) {
+  g.save(); g.globalAlpha = a == null ? 1 : a;
+  const gr = g.createRadialGradient(cx - r * .3, cy - r * .3, r * .1, cx, cy, r);
+  gr.addColorStop(0, 'rgba(225,232,240,.55)'); gr.addColorStop(1, 'rgba(110,122,138,.45)');
+  g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = gr; g.fill();
+  g.strokeStyle = 'rgba(245,165,36,.95)'; g.lineWidth = 3; g.stroke();
+  // 4 dentes (canais) girando
+  g.strokeStyle = 'rgba(40,52,68,.7)'; g.lineWidth = Math.max(2, r / 18);
+  const a0 = ang == null ? -(window.TNOW || 0) * 7 : ang;
+  for (let k = 0; k < 4; k++) { const t0 = a0 + k * Math.PI / 2; g.beginPath(); g.moveTo(cx + r * .18 * Math.cos(t0), cy + r * .18 * Math.sin(t0));
+    g.quadraticCurveTo(cx + r * .75 * Math.cos(t0 + .55), cy + r * .75 * Math.sin(t0 + .55), cx + r * Math.cos(t0 + .25), cy + r * Math.sin(t0 + .25)); g.stroke(); }
+  g.beginPath(); g.arc(cx, cy, Math.max(4, r * .1), 0, 7); g.fillStyle = C.tool; g.fill();
+  g.restore();
 }

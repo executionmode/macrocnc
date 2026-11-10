@@ -6,24 +6,22 @@ const r3 = v => Math.round(v * 1000) / 1000;
 const TAN = d => Math.tan(d * Math.PI / 180);
 const K = 1 / TAN(A.B), HT = A.W - A.Z, TOPD = A.D - 2 * HT * K, RT = TOPD / 2, RB = A.D / 2;
 const ZS = [...new Set(RAW.segs.filter(s => s[8] === 2).map(s => s[6]))];
-const cen = z => RT + (A.W - z) * K + A.E / 2;
+const cen = z => RT + (A.W - z) * K + A.T / 2;
 Object.assign(FX, {
-  D: A.D, B: A.B, W: A.W, Z: A.Z, Q: A.Q, E: A.E, T: A.T, R: A.R, F: A.F, h: HT,
-  k: r3(K), topd: r3(TOPD), rt: r3(RT), rb: RB, e2: A.E / 2, x1: r3(cen(0)), x10: r3(cen(-10)), xl: r3(cen(A.Z)),
-  zq: A.W + A.Q, z2: A.W - A.Q, n: ZS.length, out: RB + A.E / 2 + 2, safe: A.W + A.R, qk: r3(A.Q * K),
+  D: A.D, B: A.B, W: A.W, Z: A.Z, Q: A.Q, T: A.T, R: A.R, F: A.F, h: HT,
+  k: r3(K), topd: r3(TOPD), rt: r3(RT), rb: RB, e2: A.T / 2, x1: r3(cen(0)), x10: r3(cen(-10)), xl: r3(cen(A.Z)),
+  zq: A.W + A.Q, z2: A.W - A.Q, n: ZS.length, out: RB + A.T / 2 + 2, safe: A.W + A.R, qk: r3(A.Q * K),
   g65a: RAW.g65.split(' ').slice(0, 7).join(' '), g65b: RAW.g65.split(' ').slice(7).join(' ')
 });
-const MAC = ['O1630 ;', 'IF [#20 LE 0] THEN #3000 = 281 ;', 'IF [#26 GE #23] THEN #3000 = 282 ;', 'IF [#7 LE 0] THEN #3000 = 283 ;', 'IF [#8 LT 0] THEN #3000 = 285 ;',
-  'IF [#17 LE 0] THEN #3000 = 287 ;', 'IF [#2 EQ #0] GOTO 4 ;', 'IF [#2 GE 90] THEN #3000 = 289 ;', 'IF [#2 LT 0] THEN #3000 = 289 ;',
+const MAC = ['O1630 ;', 'IF [#20 LE 0] THEN #3000 = 281 ;', 'IF [#26 GE #23] THEN #3000 = 282 ;', 'IF [#7 LE 0] THEN #3000 = 283 ;',
+  'IF [#17 LE 0] THEN #3000 = 287 ;', 'IF [#2 EQ #0] GOTO 4 ;', 'IF [#2 GE 90] THEN #3000 = 289 ;', 'IF [#2 LT 1] THEN #3000 = 289 ;',
   '#104 = 1 / TAN[#2] ;', '#1 = #7 - 2 * [#23 - #26] * #104 ;', 'IF [#1 LT 0] THEN #3000 = 284 ;', 'GOTO 5 ;',
   'N4 IF [#1 LT 0] THEN #3000 = 284 ;', 'IF [#1 GE #7] THEN #3000 = 284 ;', '#104 = [#7 - #1] / 2 / [#23 - #26] ;',
-  'N5 #110 = 0 ;', 'IF [#8 LT #20] THEN #110 = 1 ;', 'IF [#110 EQ 0] GOTO 55 ;', 'IF [#104 LT 0.9999] THEN #3000 = 286 ;',
-  'IF [#17 GT [#20 - #8] / 2] THEN #3000 = 288 ;', 'GOTO 6 ;', 'N55 IF [#104 * #17 GT #20] THEN #3000 = 290 ;',
-  'N6 #100 = #7 / 2 ;', '#101 = #1 / 2 ;', '#103 = #23 + #17 ;', '#108 = 0 ;',
-  'N10 #103 = #103 - #17 ;', 'IF [#103 LT #26] THEN #103 = #26 ;', '#107 = #101 + [#23 - #103] * #104 + #8 / 2 ;',
-  'IF [#108 NE 0] GOTO 20 ;', 'G0 X[#24 + #100 + #8 / 2 + 2] Y#25 ;', 'G0 Z[#23 + #18] ;', 'G1 Z#103 F#9 ;', 'G1 X[#24 + #107] F#9 ;',
+  'N5 IF [#104 * #17 GT #20] THEN #3000 = 290 ;', '#100 = #7 / 2 ;', '#101 = #1 / 2 ;', '#103 = #23 + #17 ;', '#108 = 0 ;',
+  'N10 #103 = #103 - #17 ;', 'IF [#103 LT #26] THEN #103 = #26 ;', '#107 = #101 + [#23 - #103] * #104 + #20 / 2 ;',
+  'IF [#108 NE 0] GOTO 20 ;', 'G0 X[#24 + #100 + #20 / 2 + 2] Y#25 ;', 'G0 Z[#23 + #18] ;', 'G1 Z#103 F#9 ;', 'G1 X[#24 + #107] F#9 ;',
   '#108 = 1 ;', 'GOTO 30 ;', 'N20 G1 X[#24 + #107] Z#103 F#9 ;', 'N30 G2 X[#24 + #107] Y#25 I[-#107] J0 F#9 ;',
-  'IF [#103 GT #26] GOTO 10 ;', 'G1 X[#24 + #100 + #8 / 2 + 2] F#9 ;', 'G0 Z[#23 + #18] ;', 'M99 ;'];
+  'IF [#103 GT #26] GOTO 10 ;', 'G1 X[#24 + #100 + #20 / 2 + 2] F#9 ;', 'G0 Z[#23 + #18] ;', 'M99 ;'];
 const MAIN = ['%', 'O0031 (' + tr('mainComment') + ') ;', 'G21 G40 G90 G94 ;', 'G54 ;', 'T1 ;', 'M6 ;', 'G0 X0 Y0 ;', 'S2500 M3 ;', 'G43 H1 Z120. ;', 'M8 ;',
   FX.g65a, '    ' + FX.g65b + ' ;', 'G0 Z100. ;', 'M9 ;', 'G53 H0 Z0 ;', 'M30 ;', '%'];
 
@@ -56,21 +54,7 @@ function sideView(zc, a) { // zc: Z até onde já cortou (null = bruto inteiro)
   text(tr('axis'), sx(0) + 10, sy(zb) + 36, 24, C.mut, { w: 700 });
 }
 function coneLine(a) { g.globalAlpha = a; line(sx(RT), sy(A.W), sx(RB), sy(A.Z), C.ok, 6); g.globalAlpha = 1; }
-function endMill(rc, z, a) { // fresa de topo reta: centro em rc, ponta em z
-  g.globalAlpha = a == null ? 1 : a;
-  const x0 = sx(rc - A.T / 2), x1 = sx(rc + A.T / 2), yb = sy(z);
-  g.fillStyle = 'rgba(245,165,36,.30)'; g.fillRect(x0, yb - 230, x1 - x0, 230); g.strokeStyle = C.tool; g.lineWidth = 4; g.strokeRect(x0, yb - 230, x1 - x0, 230);
-  line(sx(rc), yb - 250, sx(rc), yb + 10, C.tool, 2, [8, 8]);
-  g.beginPath(); g.arc(x0, yb, 9, 0, 7); g.fillStyle = C.err; g.fill();
-  g.globalAlpha = 1;
-}
-function vmill(rc, z, a) { // fresa 90° (ponta viva)
-  g.globalAlpha = a == null ? 1 : a;
-  const w = 12, yb = sy(z), x = sx(rc);
-  g.beginPath(); g.moveTo(x, yb); g.lineTo(x + w * SV.s, yb - w * SV.s); g.lineTo(x + w * SV.s, yb - 230); g.lineTo(x - w * SV.s, yb - 230); g.lineTo(x - w * SV.s, yb - w * SV.s); g.closePath();
-  g.fillStyle = 'rgba(245,165,36,.30)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-  g.globalAlpha = 1;
-}
+function endMill(rc, z, a) { millSide(sx(rc - A.T / 2), sx(rc + A.T / 2), sy(z), { alpha: a, corner: 'L', axis: true }); }
 function zLabel(z, col, label) { line(sx(-3), sy(z), sx(RB + 6), sy(z), col, 2, [10, 8]); text(label, sx(RB + 7), sy(z) + 10, 28, col, { w: 800, mono: true }); }
 
 let this_hl = [9];
@@ -90,7 +74,7 @@ sc('c1', { draw(t, T) {
 
 /* 2. letras */
 const LETV = [['X', '#24', A.X, 1], ['Y', '#25', A.Y, 1], ['D', '#7', A.D, 1], ['B', '#2', A.B, 1], ['W', '#23', A.W, 2], ['Z', '#26', A.Z, 2],
-  ['Q', '#17', A.Q, 2], ['E', '#8', A.E, 3], ['T', '#20', A.T, 3], ['R', '#18', A.R, 3], ['F', '#9', A.F, 3]];
+  ['Q', '#17', A.Q, 2], ['T', '#20', A.T, 3], ['R', '#18', A.R, 3], ['F', '#9', A.F, 3]];
 sc('c2', { code: () => ({ lines: MAIN, hl: [10, 11], title: tr('mainTitle'), n: 9 }),
   draw(t, T, at) {
     const a0 = ease((t - .2) / .6);
@@ -101,7 +85,7 @@ sc('c2', { code: () => ({ lines: MAIN, hl: [10, 11], title: tr('mainTitle'), n: 
     LETV.forEach((l, i) => {
       const a = ease((t - at(l[3]) - (i % 4) * .2) / .5); if (a <= 0) return;
       const col = i % 3, row = Math.floor(i / 3), x = 50 + col * 332, y = 430 + row * 162;
-      const hot = key && ['D', 'B', 'W', 'Z', 'Q', 'E'].indexOf(l[0]) >= 0;
+      const hot = key && ['D', 'B', 'W', 'Z', 'Q', 'T'].indexOf(l[0]) >= 0;
       g.globalAlpha = a; card(x, y, 316, 146, hot ? 'rgba(60,207,142,.9)' : 'rgba(102,184,255,.4)'); g.globalAlpha = 1;
       text(l[0], x + 26, y + 92, 74, C.tool, { w: 900, mono: true, alpha: a });
       text(tr('c2.n' + l[0]), x + 104, y + 52, 25, C.txt, { alpha: a });
@@ -113,17 +97,17 @@ sc('c2', { code: () => ({ lines: MAIN, hl: [10, 11], title: tr('mainTitle'), n: 
 /* 3. conferências */
 sc('c3', { code: () => ({ lines: MAC, hl: this_hl }),
   draw(t, T, at) {
-    this_hl = t > at(2) ? [5] : t > at(1) ? [2] : [1, 2, 3, 4, 5];
+    this_hl = t > at(2) ? [4] : t > at(1) ? [2] : [1, 2, 3, 4];
     sideView(null, .5);
-    const rows = [['T ≤ 0', '281'], ['Z ≥ W', '282'], ['D ≤ 0', '283'], ['E < 0', '285'], ['Q ≤ 0', '287']];
-    rows.forEach((r, i) => { const a = ease((t - at(0) - .4 - i * .35) / .4); if (a <= 0) return; const y = 300 + i * 92, hot = (t > at(1) && t < at(2) && i === 1) || (t > at(2) && i === 4);
+    const rows = [['T ≤ 0', '281'], ['Z ≥ W', '282'], ['D ≤ 0', '283'], ['Q ≤ 0', '287']];
+    rows.forEach((r, i) => { const a = ease((t - at(0) - .4 - i * .35) / .4); if (a <= 0) return; const y = 300 + i * 92, hot = (t > at(1) && t < at(2) && i === 1) || (t > at(2) && i === 3);
       g.globalAlpha = a; card(200, y, 680, 78, hot ? C.err : 'rgba(102,184,255,.35)'); g.globalAlpha = 1;
       text(r[0], 240, y + 52, 38, hot ? C.err : C.txt, { mono: true, w: 800, alpha: a }); text(tr('alarm') + ' ' + r[1], 840, y + 52, 34, C.err, { a: 'right', w: 800, alpha: a }); });
     formula(t, [[at(1) + .5, 'IF [' + gc(A.Z) + ' GE ' + gc(A.W) + '] ?', C.tool], [at(1) + 2, tr('c3.no'), C.ok], [at(2) + .5, 'IF [' + gc(A.Q) + ' LE 0] ? ' + tr('c3.no'), C.ok]], 820, 170);
   } });
 
 /* 4. abertura do cone (#104) */
-sc('c4', { code: () => ({ lines: MAC, hl: [9] }),
+sc('c4', { code: () => ({ lines: MAC, hl: [8] }),
   draw(t, T, at) {
     sideView(null, 1); coneLine(1);
     const a1 = ease((t - at(1)) / .8), a2 = ease((t - at(2)) / .8);
@@ -143,7 +127,7 @@ sc('c4', { code: () => ({ lines: MAC, hl: [9] }),
   } });
 
 /* 5. diâmetro do topo (#1) */
-sc('c5', { code: () => ({ lines: MAC, hl: [10] }),
+sc('c5', { code: () => ({ lines: MAC, hl: [9] }),
   draw(t, T, at) {
     sideView(null, 1); coneLine(.6);
     const a1 = ease((t - at(1)) / .8), a2 = ease((t - at(2)) / .8), a3 = ease((t - at(3)) / .8);
@@ -154,29 +138,20 @@ sc('c5', { code: () => ({ lines: MAC, hl: [10] }),
       [at(2) + .5, '#1 = ' + gc(A.D) + ' - ' + gc(r3(2 * HT * K)), C.tool], [at(3) + .2, '#1 = ' + gc(TOPD) + '   (Ø ' + tr('c5.top') + ')', C.ok]], 820);
   } });
 
-/* 6. tipo de fresa (#110) */
-sc('c6', { code: () => ({ lines: MAC, hl: this_hl }),
+/* 6. conferência do passe (alarme 290) */
+sc('c6', { code: () => ({ lines: MAC, hl: [15] }),
   draw(t, T, at) {
-    this_hl = t > at(2) ? [18, 22] : [16, 17];
-    const a1 = ease((t - at(0) - .3) / .6), a2 = ease((t - at(1)) / .6);
-    // dois cartões: fresa 90° e fresa reta
-    g.globalAlpha = a1; card(60, 260, 470, 520, t > at(1) && t < at(2) ? C.tool : 'rgba(102,184,255,.4)'); card(550, 260, 470, 520, t > at(2) ? C.ok : 'rgba(102,184,255,.4)'); g.globalAlpha = 1;
-    text(tr('c6.lv'), 295, 320, 32, C.txt, { a: 'center', w: 800, alpha: a1 }); text(tr('c6.lf'), 785, 320, 32, C.txt, { a: 'center', w: 800, alpha: a1 });
-    // desenhos
-    g.globalAlpha = a1;
-    g.beginPath(); g.moveTo(295, 640); g.lineTo(395, 540); g.lineTo(395, 400); g.lineTo(195, 400); g.lineTo(195, 540); g.closePath(); g.fillStyle = 'rgba(245,165,36,.3)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-    g.fillStyle = 'rgba(245,165,36,.3)'; g.fillRect(685, 400, 200, 240); g.strokeStyle = C.tool; g.strokeRect(685, 400, 200, 240);
-    g.beginPath(); g.arc(685, 640, 10, 0, 7); g.fillStyle = C.err; g.fill();
-    g.globalAlpha = 1;
-    text('E0  →  #110 = 1', 295, 700, 32, C.tool, { a: 'center', w: 800, mono: true, alpha: a1 }); text('B ≤ 45°', 295, 750, 30, C.mut, { a: 'center', w: 800, alpha: a1 });
-    text('E = T  →  #110 = 0', 785, 700, 32, C.ok, { a: 'center', w: 800, mono: true, alpha: a1 }); text('B 1 → 89°', 785, 750, 30, C.mut, { a: 'center', w: 800, alpha: a1 });
-    formula(t, [[at(1) + .3, 'IF [#8 LT #20] THEN #110 = 1'], [at(2) + .2, 'IF [' + gc(A.E) + ' LT ' + gc(A.T) + '] ? ' + tr('no') + ' → #110 = 0', C.ok], [at(3) + .2, gc(A.Q) + ' * ' + gc(K) + ' = ' + gc(A.Q * K) + ' < ' + gc(A.T) + ' ✓', C.ok]], 820);
+    sideView(null, 1); coneLine(1);
+    const z1 = -6, z2 = z1 - 3, a1 = ease((t - at(1)) / .6);
+    endMill(cen(z1), z1, .35); if (a1 > 0) endMill(cen(z2), z2, a1);
+    if (a1 > 0) { g.globalAlpha = a1; dim(sx(cen(z1) - A.T / 2), sy(z2) + 40, sx(cen(z2) - A.T / 2), sy(z2) + 40, 'Q × #104', C.tool, [0, 44], 28); g.globalAlpha = 1; }
+    formula(t, [[at(0) + .3, 'IF [#104 * #17 GT #20] → 290'], [at(1) + .3, gc(K) + ' × ' + gc(A.Q) + ' = ' + gc(r3(A.Q * K)), C.tool], [at(2) + .3, gc(r3(A.Q * K)) + ' < ' + gc(A.T) + '  → ' + tr('c3.no'), C.ok]], 820);
   } });
 
 /* 7. N10: o Z de cada volta */
 sc('c7', { code: () => ({ lines: MAC, hl: this_hl }),
   draw(t, T, at) {
-    this_hl = t > at(2) ? [27, 28] : [25, 27];
+    this_hl = t > at(2) ? [20, 21] : [18, 20];
     sideView(null, 1); coneLine(.5);
     const a1 = ease((t - at(1)) / .6), a2 = ease((t - at(2)) / .6);
     if (a1 > 0) { zLabel(A.W + A.Q * 10, C.mut, 'W + Q'); }
@@ -187,27 +162,27 @@ sc('c7', { code: () => ({ lines: MAC, hl: this_hl }),
   } });
 
 /* 8. #107: raio do centro da fresa */
-sc('c8', { code: () => ({ lines: MAC, hl: [29] }),
+sc('c8', { code: () => ({ lines: MAC, hl: [22] }),
   draw(t, T, at) {
     const z = t > at(3) ? -10 : 0, rc = cen(z);
     sideView(z, 1); coneLine(.6); endMill(rc, z, ease((t - at(1)) / .6));
     const a1 = ease((t - at(1)) / .6);
     if (a1 > 0) { g.globalAlpha = a1;
       dim(sx(0), sy(z) + 40, sx(rc - A.T / 2), sy(z) + 40, num(r3(rc - A.T / 2)), C.ok, [0, 44], 30);
-      dim(sx(rc - A.T / 2), sy(z) + 100, sx(rc), sy(z) + 100, 'E/2 = ' + num(A.E / 2), C.tool, [0, 44], 30);
+      dim(sx(rc - A.T / 2), sy(z) + 100, sx(rc), sy(z) + 100, 'T/2 = ' + num(A.T / 2), C.tool, [0, 44], 30);
       line(sx(0), sy(z) + 160, sx(rc), sy(z) + 160, C.cyan, 4); text('#107 = ' + num(r3(rc)), sx(rc) + 12, sy(z) + 170, 32, C.cyan, { w: 800 });
       g.globalAlpha = 1; }
-    const s0 = '#107 = ' + gc(RT) + ' + [' + gc(A.W) + ' - ' + gc(z) + '] * ' + gc(K) + ' + ' + gc(A.E / 2);
-    formula(t, [[at(0) + .4, '#107 = #101 + [#23 - #103] * #104 + #8 / 2'], [at(1) + .4, '#107 = ' + gc(RT) + ' + 0 + ' + gc(A.E / 2), C.tool], [at(2) + .2, '#107 = ' + gc(cen(0)), C.ok],
+    const s0 = '#107 = ' + gc(RT) + ' + [' + gc(A.W) + ' - ' + gc(z) + '] * ' + gc(K) + ' + ' + gc(A.T / 2);
+    formula(t, [[at(0) + .4, '#107 = #101 + [#23 - #103] * #104 + #20 / 2'], [at(1) + .4, '#107 = ' + gc(RT) + ' + 0 + ' + gc(A.T / 2), C.tool], [at(2) + .2, '#107 = ' + gc(cen(0)), C.ok],
       [at(3) + .4, s0, C.tool], [at(4) + .2, '#107 = ' + gc(cen(-10)), C.ok]], 770, 300);
   } });
 
 /* 9. primeira volta: entra por fora e faz o G2 */
 const TP = { cx: 540, cy: 560, s: 5.6 };
-sc('c9', { code: () => ({ lines: MAC, hl: this_hl, first: 29 }),
+sc('c9', { code: () => ({ lines: MAC, hl: this_hl, first: 22 }),
   draw(t, T, at) {
     const st = t > at(3) ? 4 : t > at(2) ? 3 : t > at(1) ? 1 : 0;
-    this_hl = st >= 4 ? [38] : st >= 3 ? [34] : st >= 1 ? [31, 32, 33] : [30];
+    this_hl = st >= 4 ? [31] : st >= 3 ? [27] : st >= 1 ? [24, 25, 26] : [23];
     // vista de cima
     g.beginPath(); g.arc(TP.cx, TP.cy, RB * TP.s, 0, 7); g.fillStyle = 'rgba(93,134,189,.3)'; g.fill(); g.strokeStyle = C.edge; g.lineWidth = 3; g.stroke();
     g.beginPath(); g.arc(TP.cx, TP.cy, RT * TP.s, 0, 7); g.fillStyle = C.part; g.fill(); g.strokeStyle = C.ok; g.lineWidth = 3; g.stroke();
@@ -217,16 +192,15 @@ sc('c9', { code: () => ({ lines: MAC, hl: this_hl, first: 29 }),
     if (st >= 4) { x = cen(0); ang = clamp((t - at(3) - .3) / (T - at(3) - 1.5), 0, 1) * 2 * Math.PI;
       g.beginPath(); g.arc(TP.cx, TP.cy, x * TP.s, 0, -ang, true); g.strokeStyle = C.tool; g.lineWidth = 5; g.stroke(); }
     const px = TP.cx + x * TP.s * Math.cos(-ang), py = TP.cy + x * TP.s * Math.sin(-ang);
-    g.beginPath(); g.arc(px, py, A.T / 2 * TP.s, 0, 7); g.fillStyle = 'rgba(245,165,36,.25)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-    g.beginPath(); g.arc(px, py, 6, 0, 7); g.fillStyle = C.tool; g.fill();
-    formula(t, [[at(1) + .3, 'X = ' + gc(RB) + ' + ' + gc(A.E / 2) + ' + 2 = ' + gc(FX.out), C.tool], [at(2) + .3, 'G1 X' + gc(cen(0)), C.ok], [at(3) + .3, 'G2 X' + gc(cen(0)) + ' Y0 I-' + gc(cen(0)) + ' J0', C.ok]], 840, 230);
+    millTop(px, py, A.T / 2 * TP.s);
+    formula(t, [[at(1) + .3, 'X = ' + gc(RB) + ' + ' + gc(A.T / 2) + ' + 2 = ' + gc(FX.out), C.tool], [at(2) + .3, 'G1 X' + gc(cen(0)), C.ok], [at(3) + .3, 'G2 X' + gc(cen(0)) + ' Y0 I-' + gc(cen(0)) + ' J0', C.ok]], 840, 230);
   } });
 
 /* 10. o laço */
-sc('c10', { code: () => ({ lines: MAC, hl: this_hl, first: 29 }),
+sc('c10', { code: () => ({ lines: MAC, hl: this_hl, first: 22 }),
   draw(t, T, at) {
     const f = clamp((t - at(1)) / (at(3) - at(1)), 0, 1), i = Math.min(ZS.length - 1, Math.floor(f * ZS.length)), z = ZS[i];
-    this_hl = t > at(3) ? [39] : [37, 38, 39];
+    this_hl = t > at(3) ? [32] : [30, 31, 32];
     sideView(z, 1); coneLine(.4); endMill(cen(z), z, 1);
     chip(290, 880, '#103', gc(z), C.ok, 1); chip(790, 880, '#107', gc(cen(z)), C.cyan, 1);
     text(tr('c10.turn', { a: i + 1, b: ZS.length }), 540, 975, 38, C.txt, { a: 'center', w: 800 });
@@ -235,9 +209,9 @@ sc('c10', { code: () => ({ lines: MAC, hl: this_hl, first: 29 }),
   } });
 
 /* 11. fim */
-sc('c11', { code: () => ({ lines: MAC, hl: this_hl, first: 33 }),
+sc('c11', { code: () => ({ lines: MAC, hl: this_hl, first: 26 }),
   draw(t, T, at) {
-    this_hl = t > at(1) ? [41, 42] : [40];
+    this_hl = t > at(1) ? [34, 35] : [33];
     sideView(A.Z, 1); coneLine(.4);
     const u = ease((t - at(0) - .5) / 1), z = t > at(1) ? lerp(A.Z, A.W + A.R, ease((t - at(1)) / 1)) : A.Z;
     endMill(lerp(cen(A.Z), FX.out, u), z, 1);
@@ -246,7 +220,7 @@ sc('c11', { code: () => ({ lines: MAC, hl: this_hl, first: 33 }),
 
 /* 12. resumo */
 sc('c12', { draw(t, T, at) {
-  const res = [['#104 = 1 / TAN[B]', tr('c12.r1')], ['#1 = D - 2·H·#104', tr('c12.r2')], ['#110', tr('c12.r3')], ['#103 - Q', tr('c12.r4')], ['#107', tr('c12.r5')], ['G2 ... I-#107', tr('c12.r6')]];
+  const res = [['#104 = 1 / TAN[B]', tr('c12.r1')], ['#1 = D - 2·H·#104', tr('c12.r2')], ['Q × #104 ≤ T', tr('c12.r3')], ['#103 - Q', tr('c12.r4')], ['#107', tr('c12.r5')], ['G2 ... I-#107', tr('c12.r6')]];
   res.forEach((r, i) => { const a = ease((t - .3 - i * .5) / .4); if (a <= 0) return;
     const y = 260 + i * 108; g.globalAlpha = a; card(70, y, 940, 94, 'rgba(60,207,142,.4)'); g.globalAlpha = 1;
     text(r[0], 100, y + 58, 32, C.tool, { mono: true, w: 700, alpha: a }); text(r[1], 980, y + 58, 32, C.txt, { a: 'right', w: 600, alpha: a }); });

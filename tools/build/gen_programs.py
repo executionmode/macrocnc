@@ -18,8 +18,8 @@ def semis(code):
 
 raio_main = M[16].replace('O0033 (RAIO R49.77', 'O0032 (RAIO R49.77')
 
-CONE_MAIN = open('/mnt/user-data/uploads/bd22bc7f-PRINCIPAL_O0031.txt').read().strip()
-CONE_SUB = open('/mnt/user-data/uploads/674c5c7a-SUB_O1630.txt').read().strip()
+CONE_MAIN = open('/home/claude/build/src/PRINCIPAL_O0031.txt').read().strip()
+CONE_SUB = open('/home/claude/build/src/SUB_O1630.txt').read().strip()
 
 RF_MAIN = open('/mnt/user-data/uploads/756b59f9-PRINCIPAL_O0039.txt').read().strip()
 RC_MAIN = open('/mnt/user-data/uploads/a1b36185-PRINCIPAL_O0040.txt').read().strip()
@@ -27,6 +27,8 @@ RF_SUB = open('/mnt/user-data/uploads/279a1435-SUB_O1627.txt').read().strip()
 RC_SUB = open('/mnt/user-data/uploads/15431327-SUB_O1635.txt').read().strip()
 
 CF_MAIN = open('/mnt/user-data/uploads/c8a1516a-PRINCIPAL_O0029.txt').read().strip()
+CR_MAIN = open('/home/claude/build/src/PRINCIPAL_O0041.txt').read().strip()
+CR_SUB = open('/home/claude/build/src/SUB_O1637.txt').read().strip()
 CF_SUB = open('/mnt/user-data/uploads/ecf93b56-SUB_O1628.txt').read().strip()
 
 SUBS = {
@@ -34,6 +36,7 @@ SUBS = {
     '1627': {'num': 1627, 'code': RF_SUB},
     '1635': {'num': 1635, 'code': RC_SUB},
     '1630': {'num': 1630, 'code': CONE_SUB},
+    '1637': {'num': 1637, 'code': CR_SUB},
     '1611-canto': {'num': 1611, 'label': 'Origem no canto da área', 'code': M[2]},
     '1611-centro': {'num': 1611, 'label': 'Origem no centro da área', 'code': M[3]},
     '1612': {'num': 1612, 'code': M[5]},
@@ -110,17 +113,25 @@ PROGRAMS = [
    'desc': 'Arco de raio C do diâmetro D (no Z de W) até o diâmetro A. Final pelo ângulo B ou pela altura I. Uma volta G2 em cada posição.',
    'main': raio_main, 'subs': ['1631'],
    'notes': ['Renumerado de O0033 para O0032 no app, porque O0033 já é a rosca e O0031 é o cone externo.', 'Desbaste já precisa estar feito.']},
-  {'id': 'm-cone', 'cat': 'macro', 'num': 31, 'title': 'Cone externo (fresa 90° ou de topo reto)', 'status': 'nao-testado',
-   'desc': 'Cone na peça de fora (menor no topo, maior D na base) em várias passadas: desce Q em cada volta G2 sobre a linha do cone. O cone é definido pelo ângulo B ou pelo diâmetro do topo A. Fresa de topo reto (E = T) faz qualquer ângulo; fresa 90° cônica de 1 a 45°.',
+  {'id': 'm-cone', 'cat': 'macro', 'num': 31, 'title': 'Cone externo (fresa de topo reto)', 'status': 'nao-testado',
+   'desc': 'Cone na peça de fora (menor no topo, maior D na base) em várias passadas com fresa 90° (fresa de topo reto): a quina de baixo da fresa desce Q em cada volta G2 sobre a linha do cone. O cone é definido pelo ângulo B (1 a 89) ou pelo diâmetro do topo A.',
    'main': CONE_MAIN, 'subs': ['1630'],
    'presets': [
-     {'label': 'Fresa de topo reta - B60 (E = T)', 'call': 'G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 E25. T25. R5. F800.'},
-     {'label': 'Fresa 90° cônica - B30', 'call': 'G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800.'},
-     {'label': 'Pelo diâmetro do topo - A44', 'call': 'G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 E0 T28. R5. F800.'}],
-   'notes': ['O corretor de comprimento fica na ponta da fresa (o ponto mais baixo).',
-             'Fresa de topo reta: informe E igual a T. A quina de baixo segue a linha e faz qualquer ângulo de 1 a 89.',
-             'Fresa 90° cônica: B de 1 a 45. Use B (ângulo em relação à face de cima) ou A (diâmetro do topo).',
-             'Q é obrigatório: quanto a ponta desce em cada volta. Q pequeno = melhor acabamento.']},
+     {'label': 'Pelo ângulo - B60', 'call': 'G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800.'},
+     {'label': 'Pelo diâmetro do topo - A44', 'call': 'G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 T28. R5. F800.'}],
+   'notes': ['Fresa 90° = fresa de topo reto. O corretor de comprimento fica na ponta da fresa.',
+             'A quina de baixo da fresa segue a linha do cone e faz qualquer ângulo B de 1 a 89. Use B (ângulo em relação à face de cima) ou A (diâmetro do topo).',
+             'Q é obrigatório: quanto a fresa desce em cada volta. Q pequeno = melhor acabamento.']},
+  {'id': 'm-cone-redonda', 'cat': 'macro', 'num': 41, 'title': 'Cone externo com pastilha redonda', 'status': 'nao-testado',
+   'desc': 'Cone na peça de fora com fresa de pastilha redonda, em várias passadas: o centro da pastilha anda paralelo à linha do cone, uma volta G2 em cada posição, descendo Q. O cone é definido pelo ângulo B (1 a 89) ou pelo diâmetro do topo A.',
+   'main': CR_MAIN, 'subs': ['1637'],
+   'presets': [
+     {'label': 'Pastilha 12 (E6) - B60', 'call': 'G65 P1637 X0 Y0 D60. B60 W0 Z-20. Q0.3 E6. T50. R5. F1500.'},
+     {'label': 'Pelo diâmetro do topo - A30', 'call': 'G65 P1637 X0 Y0 D60. A30. W0 Z-20. Q0.3 E6. T50. R5. F1500.'}],
+   'notes': ['E = raio da pastilha (pastilha de 12 = E6). T = diâmetro maior da fresa, medido na ponta externa da pastilha.',
+             'O corretor de comprimento fica no ponto mais baixo da pastilha.',
+             'A pastilha redonda não faz canto vivo: na base do cone fica um raio igual a E.',
+             'Sem pastilha redonda, use o O1630 (cone com fresa 90°, de topo reto).']},
   {'id': 'm-raio-furo', 'cat': 'macro', 'num': 39, 'title': 'Raio na quina do furo', 'status': 'nao-testado',
    'desc': 'Arredonda a boca de um furo já usinado (raio convexo C). A quina de baixo da fresa de topo reta segue o raio, de cima para baixo, uma volta G3 a cada H graus.',
    'main': RF_MAIN, 'subs': ['1627'],
@@ -212,6 +223,7 @@ STOCK = {
  'm-raio-cil': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.W||0)-(L.C||5)-20, tool:L.T})",
  'm-chanfro-furo': "({shape:'round', d:L.D+60, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20, tool:L.T, holeD:L.D, holeZ:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20})",
  'm-cone': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})",
+ 'm-cone-redonda': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})",
  'm-raio-diam': "({shape:'round', d:L.A, cx:L.X||0, cy:L.Y||0, top:L.W, bottom:L.W-(L.I||40)-10, tool:L.T})",
  'p-rosca': "({shape:'round', d:2*V[6]+60, cx:0, cy:0, top:0, bottom:V[5]-10, tool:13.85})",
  'p-helice': "({shape:'round', d:V[1]+40, cx:G.x, cy:G.y, top:V[5]||0, bottom:V[7]-10, tool:V[2]})",
@@ -221,7 +233,7 @@ STOCK = {
  'p-interp-chanfro': "({shape:'round', d:V[1]+V[2]*0.9, cx:0, cy:0, top:V[4], bottom:V[8]-10, tool:V[2]})",
  'p-raio-fundo': "({shape:'round', d:V[1]+60, cx:G.x, cy:G.y, top:0, bottom:V[6]-15, tool:V[2], holeD:V[1], holeZ:V[6]})",
 }
-EXTRA.setdefault('m-cone', {})['toolShapeExpr'] = "((L.E||0) >= (L.T||0) ? null : {type:'v', angle:90, tipD: L.E||0})"
+EXTRA.setdefault('m-cone-redonda', {})['toolShapeExpr'] = "({type:'r', cornerR: L.E||0})"
 for k, v in STOCK.items():
     EXTRA.setdefault(k, {})['stockExpr'] = v
 for p in PROGRAMS:

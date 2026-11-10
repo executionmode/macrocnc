@@ -235,38 +235,32 @@ window.PROGRAMS = [
   "id": "m-cone",
   "cat": "macro",
   "num": 31,
-  "title": "Cone externo (fresa 90° ou de topo reto)",
+  "title": "Cone externo (fresa de topo reto)",
   "status": "nao-testado",
-  "desc": "Cone na peça de fora (menor no topo, maior D na base) em várias passadas: desce Q em cada volta G2 sobre a linha do cone. O cone é definido pelo ângulo B ou pelo diâmetro do topo A. Fresa de topo reto (E = T) faz qualquer ângulo; fresa 90° cônica de 1 a 45°.",
-  "main": "%\nO0031 (CONE EXTERNO COM FRESA 90 GRAUS - O1630) ;\nG21 G40 G90 G94 ;\nG54 ;\nT1 ;\nM6 ;\nG0 X0 Y0 ;\nS2500 M3 ;\nG43 H1 Z120. ;\nM8 ;\nG65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 E25. T25. R5. F800. ;\nG0 Z100. ;\nM9 ;\nG53 H0 Z0 ;\nM30 ;\n%",
+  "desc": "Cone na peça de fora (menor no topo, maior D na base) em várias passadas com fresa 90° (fresa de topo reto): a quina de baixo da fresa desce Q em cada volta G2 sobre a linha do cone. O cone é definido pelo ângulo B (1 a 89) ou pelo diâmetro do topo A.",
+  "main": "%\nO0031 (CONE EXTERNO COM FRESA 90 GRAUS - O1630) ;\nG21 G40 G90 G94 ;\nG54 ;\nT1 ;\nM6 ;\nG0 X0 Y0 ;\nS2500 M3 ;\nG43 H1 Z120. ;\nM8 ;\nG65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800. ;\nG0 Z100. ;\nM9 ;\nG53 H0 Z0 ;\nM30 ;\n%",
   "subs": [
    {
     "num": 1630,
-    "code": "%\nO1630 (MACRO CONE EXTERNO COM FRESA 90 GRAUS EM PASSADAS - CHAMADA POR G65 P1630) ;\n(O CORRETOR DE COMPRIMENTO FICA NA PONTA DA FRESA - O PONTO MAIS BAIXO) ;\n(CONE NA PECA DE FORA - DIAMETRO MENOR NO TOPO E MAIOR NA BASE - O BRUTO TEM O DIAMETRO D DA BASE) ;\n(A PONTA ANDA SOBRE A LINHA DO CONE - DE CIMA PARA BAIXO - UMA VOLTA COMPLETA EM CADA POSICAO - SENTIDO HORARIO G2) ;\n(SEMPRE FAZ VARIAS PASSADAS - O Q DEFINE QUANTO A PONTA DESCE EM CADA VOLTA - Q PEQUENO = MELHOR ACABAMENTO) ;\n(O CONE E DEFINIDO PELO ANGULO B OU PELO DIAMETRO DO TOPO A) ;\n(B = ANGULO DO CONE EM RELACAO A FACE DE CIMA - FRESA RETA E = T DE 1 ATE 89 - FRESA 90 CONICA DE 1 ATE 45) ;\n(SE INFORMAR B O DIAMETRO A E CALCULADO E NAO PRECISA INFORMAR) ;\n(FRESA DE TOPO RETA - INFORME E IGUAL A T - A QUINA DE BAIXO SEGUE A LINHA E FAZ QUALQUER ANGULO) ;\n(LETRAS DO G65 P1630) ;\n(X = X DO CENTRO DO CONE) ;\n(Y = Y DO CENTRO DO CONE) ;\n(D = DIAMETRO MAIOR DO CONE - NA BASE - IGUAL AO DIAMETRO DO BRUTO) ;\n(B = ANGULO DO CONE EM RELACAO A FACE DE CIMA - FRESA RETA E = T DE 1 ATE 89 - FRESA 90 CONICA DE 1 ATE 45) ;\n(A = DIAMETRO MENOR DO CONE NO TOPO - NAO USA SE INFORMAR B) ;\n(W = Z DO TOPO DO CONE) ;\n(Z = Z DA BASE DO CONE) ;\n(Q = PASSE EM Z - QUANTO A PONTA DESCE EM CADA VOLTA) ;\n(E = DIAMETRO DA PONTA PLANA DA FRESA - 0 = PONTA VIVA) ;\n(T = DIAMETRO MAIOR DA FRESA) ;\n(R = PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(F = AVANCO DO CORTE) ;\n(EXEMPLO COM ANGULO - G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800.) ;\n(EXEMPLO COM DIAMETRO DO TOPO - G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 E0 T28. R5. F800.) ;\n(VARIAVEIS RECEBIDAS DO G65) ;\n(#24 = X  X DO CENTRO DO CONE) ;\n(#25 = Y  Y DO CENTRO DO CONE) ;\n(#7 = D  DIAMETRO MAIOR DO CONE) ;\n(#2 = B  ANGULO DO CONE EM RELACAO A FACE DE CIMA) ;\n(#1 = A  DIAMETRO MENOR DO CONE) ;\n(#23 = W  Z DO TOPO DO CONE) ;\n(#26 = Z  Z DA BASE DO CONE) ;\n(#17 = Q  PASSE EM Z A CADA VOLTA) ;\n(#8 = E  DIAMETRO DA PONTA PLANA) ;\n(#20 = T  DIAMETRO MAIOR DA FRESA) ;\n(#18 = R  PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(#9 = F  AVANCO DO CORTE) ;\n(VARIAVEIS DE CALCULO DA MACRO) ;\n(#100 = RAIO DO BRUTO = RAIO MAIOR DO CONE) ;\n(#101 = RAIO MENOR DO CONE NO TOPO) ;\n(#103 = Z DA PONTA NA VOLTA ATUAL) ;\n(#104 = ABERTURA DO CONE = RAIO QUE AUMENTA PARA CADA 1 DE DESCIDA) ;\n(#107 = RAIO DO CENTRO DA FRESA NA VOLTA ATUAL) ;\n(#108 = 0 ANTES DA PRIMEIRA VOLTA - 1 DEPOIS) ;\n(#110 = 1 FRESA CONICA - 0 FRESA COM PONTA PLANA IGUAL AO DIAMETRO) ;\nIF [#20 LE 0] THEN #3000 = 281 (T INVALIDO) ;\nIF [#26 GE #23] THEN #3000 = 282 (Z FINAL TEM QUE SER MENOR QUE W) ;\nIF [#7 LE 0] THEN #3000 = 283 (D INVALIDO) ;\nIF [#8 LT 0] THEN #3000 = 285 (E INVALIDO) ;\nIF [#17 LE 0] THEN #3000 = 287 (Q INVALIDO - INFORME O PASSE EM Z) ;\nIF [#2 EQ #0] GOTO 4 ;\n(CONE DEFINIDO PELO ANGULO B) ;\nIF [#2 GE 90] THEN #3000 = 289 (B INVALIDO) ;\nIF [#2 LT 0] THEN #3000 = 289 (B INVALIDO) ;\n#104 = 1 / TAN[#2] ;\n#1 = #7 - 2 * [#23 - #26] * #104 ;\nIF [#1 LT 0] THEN #3000 = 284 (B MUITO ABERTO - O TOPO PASSOU DO CENTRO - DIMINUA A ALTURA OU AUMENTE B) ;\nGOTO 5 ;\n(CONE DEFINIDO PELO DIAMETRO A) ;\nN4 IF [#1 LT 0] THEN #3000 = 284 (A INVALIDO) ;\nIF [#1 GE #7] THEN #3000 = 284 (A TEM QUE SER MENOR QUE D) ;\n#104 = [#7 - #1] / 2 / [#23 - #26] ;\nN5 #110 = 0 ;\nIF [#8 LT #20] THEN #110 = 1 ;\nIF [#110 EQ 0] GOTO 55 ;\nIF [#104 LT 0.9999] THEN #3000 = 286 (CONE MAIS FECHADO QUE 45 - FRESA 90 NAO FAZ) ;\nIF [#17 GT [#20 - #8] / 2] THEN #3000 = 288 (Q MAIOR QUE O ALCANCE DA FRESA) ;\nGOTO 6 ;\n(FRESA RETA - QUINA DE BAIXO SEGUE A LINHA - SEM LIMITE DE ANGULO - O PASSO RADIAL NAO PODE PASSAR DO DIAMETRO) ;\nN55 IF [#104 * #17 GT #20] THEN #3000 = 290 (Q MUITO GRANDE PARA ESSE ANGULO - AVANCO RADIAL MAIOR QUE A FRESA) ;\nN6 #100 = #7 / 2 ;\n#101 = #1 / 2 ;\n#103 = #23 + #17 ;\n#108 = 0 ;\n(N10 = CADA POSICAO DA PONTA - COMECA NO TOPO E DESCE PELA LINHA DO CONE) ;\nN10 #103 = #103 - #17 ;\nIF [#103 LT #26] THEN #103 = #26 ;\n#107 = #101 + [#23 - #103] * #104 + #8 / 2 ;\nIF [#108 NE 0] GOTO 20 ;\n(PRIMEIRA VOLTA - ENTRA POR FORA DO BRUTO E ENCOSTA NO TOPO DO CONE) ;\nG0 X[#24 + #100 + #8 / 2 + 2] Y#25 ;\nG0 Z[#23 + #18] ;\nG1 Z#103 F#9 ;\nG1 X[#24 + #107] F#9 ;\n#108 = 1 ;\nGOTO 30 ;\nN20 G1 X[#24 + #107] Z#103 F#9 ;\nN30 G2 X[#24 + #107] Y#25 I[-#107] J0 F#9 ;\nIF [#103 GT #26] GOTO 10 ;\nG1 X[#24 + #100 + #8 / 2 + 2] F#9 ;\nG0 Z[#23 + #18] ;\nM99 ;\n%",
+    "code": "%\nO1630 (MACRO CONE EXTERNO COM FRESA 90 GRAUS EM PASSADAS - CHAMADA POR G65 P1630) ;\n(FRESA 90 GRAUS = FRESA DE TOPO RETA - O CORRETOR DE COMPRIMENTO FICA NA PONTA DA FRESA) ;\n(CONE NA PECA DE FORA - DIAMETRO MENOR NO TOPO E MAIOR NA BASE - O BRUTO TEM O DIAMETRO D DA BASE) ;\n(A QUINA DE BAIXO DA FRESA ANDA SOBRE A LINHA DO CONE - DE CIMA PARA BAIXO - UMA VOLTA COMPLETA EM CADA POSICAO - SENTIDO HORARIO G2) ;\n(SEMPRE FAZ VARIAS PASSADAS - O Q DEFINE QUANTO A FRESA DESCE EM CADA VOLTA - Q PEQUENO = MELHOR ACABAMENTO) ;\n(O CONE E DEFINIDO PELO ANGULO B OU PELO DIAMETRO DO TOPO A) ;\n(SE INFORMAR B O DIAMETRO A E CALCULADO E NAO PRECISA INFORMAR) ;\n(LETRAS DO G65 P1630) ;\n(X = X DO CENTRO DO CONE) ;\n(Y = Y DO CENTRO DO CONE) ;\n(D = DIAMETRO MAIOR DO CONE - NA BASE - IGUAL AO DIAMETRO DO BRUTO) ;\n(B = ANGULO DO CONE EM RELACAO A FACE DE CIMA - DE 1 ATE 89) ;\n(A = DIAMETRO MENOR DO CONE NO TOPO - NAO USA SE INFORMAR B) ;\n(W = Z DO TOPO DO CONE) ;\n(Z = Z DA BASE DO CONE) ;\n(Q = PASSE EM Z - QUANTO A FRESA DESCE EM CADA VOLTA) ;\n(T = DIAMETRO DA FRESA) ;\n(R = PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(F = AVANCO DO CORTE) ;\n(EXEMPLO COM ANGULO - G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800.) ;\n(EXEMPLO COM DIAMETRO DO TOPO - G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 T28. R5. F800.) ;\n(VARIAVEIS RECEBIDAS DO G65) ;\n(#24 = X  X DO CENTRO DO CONE) ;\n(#25 = Y  Y DO CENTRO DO CONE) ;\n(#7 = D  DIAMETRO MAIOR DO CONE) ;\n(#2 = B  ANGULO DO CONE EM RELACAO A FACE DE CIMA) ;\n(#1 = A  DIAMETRO MENOR DO CONE) ;\n(#23 = W  Z DO TOPO DO CONE) ;\n(#26 = Z  Z DA BASE DO CONE) ;\n(#17 = Q  PASSE EM Z A CADA VOLTA) ;\n(#20 = T  DIAMETRO DA FRESA) ;\n(#18 = R  PLANO DE SEGURANCA ACIMA DO TOPO) ;\n(#9 = F  AVANCO DO CORTE) ;\n(VARIAVEIS DE CALCULO DA MACRO) ;\n(#100 = RAIO DO BRUTO = RAIO MAIOR DO CONE) ;\n(#101 = RAIO MENOR DO CONE NO TOPO) ;\n(#103 = Z DA FRESA NA VOLTA ATUAL) ;\n(#104 = ABERTURA DO CONE = RAIO QUE AUMENTA PARA CADA 1 DE DESCIDA) ;\n(#107 = RAIO DO CENTRO DA FRESA NA VOLTA ATUAL) ;\n(#108 = 0 ANTES DA PRIMEIRA VOLTA - 1 DEPOIS) ;\nIF [#20 LE 0] THEN #3000 = 281 (T INVALIDO) ;\nIF [#26 GE #23] THEN #3000 = 282 (Z FINAL TEM QUE SER MENOR QUE W) ;\nIF [#7 LE 0] THEN #3000 = 283 (D INVALIDO) ;\nIF [#17 LE 0] THEN #3000 = 287 (Q INVALIDO - INFORME O PASSE EM Z) ;\nIF [#2 EQ #0] GOTO 4 ;\n(CONE DEFINIDO PELO ANGULO B) ;\nIF [#2 GE 90] THEN #3000 = 289 (B INVALIDO) ;\nIF [#2 LT 1] THEN #3000 = 289 (B INVALIDO) ;\n#104 = 1 / TAN[#2] ;\n#1 = #7 - 2 * [#23 - #26] * #104 ;\nIF [#1 LT 0] THEN #3000 = 284 (B MUITO ABERTO - O TOPO PASSOU DO CENTRO - DIMINUA A ALTURA OU AUMENTE B) ;\nGOTO 5 ;\n(CONE DEFINIDO PELO DIAMETRO A) ;\nN4 IF [#1 LT 0] THEN #3000 = 284 (A INVALIDO) ;\nIF [#1 GE #7] THEN #3000 = 284 (A TEM QUE SER MENOR QUE D) ;\n#104 = [#7 - #1] / 2 / [#23 - #26] ;\nN5 IF [#104 * #17 GT #20] THEN #3000 = 290 (Q MUITO GRANDE PARA ESSE ANGULO - AVANCO RADIAL MAIOR QUE A FRESA) ;\n#100 = #7 / 2 ;\n#101 = #1 / 2 ;\n#103 = #23 + #17 ;\n#108 = 0 ;\n(N10 = CADA POSICAO DA FRESA - COMECA NO TOPO E DESCE PELA LINHA DO CONE) ;\nN10 #103 = #103 - #17 ;\nIF [#103 LT #26] THEN #103 = #26 ;\n#107 = #101 + [#23 - #103] * #104 + #20 / 2 ;\nIF [#108 NE 0] GOTO 20 ;\n(PRIMEIRA VOLTA - ENTRA POR FORA DO BRUTO E ENCOSTA NO TOPO DO CONE) ;\nG0 X[#24 + #100 + #20 / 2 + 2] Y#25 ;\nG0 Z[#23 + #18] ;\nG1 Z#103 F#9 ;\nG1 X[#24 + #107] F#9 ;\n#108 = 1 ;\nGOTO 30 ;\nN20 G1 X[#24 + #107] Z#103 F#9 ;\nN30 G2 X[#24 + #107] Y#25 I[-#107] J0 F#9 ;\nIF [#103 GT #26] GOTO 10 ;\nG1 X[#24 + #100 + #20 / 2 + 2] F#9 ;\nG0 Z[#23 + #18] ;\nM99 ;\n%",
     "key": "1630"
    }
   ],
   "presets": [
    {
-    "label": "Fresa de topo reta - B60 (E = T)",
-    "call": "G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 E25. T25. R5. F800."
-   },
-   {
-    "label": "Fresa 90° cônica - B30",
-    "call": "G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800."
+    "label": "Pelo ângulo - B60",
+    "call": "G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800."
    },
    {
     "label": "Pelo diâmetro do topo - A44",
-    "call": "G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 E0 T28. R5. F800."
+    "call": "G65 P1630 X0 Y0 D60. A44. W0 Z-8. Q0.5 T28. R5. F800."
    }
   ],
   "notes": [
-   "O corretor de comprimento fica na ponta da fresa (o ponto mais baixo).",
-   "Fresa de topo reta: informe E igual a T. A quina de baixo segue a linha e faz qualquer ângulo de 1 a 89.",
-   "Fresa 90° cônica: B de 1 a 45. Use B (ângulo em relação à face de cima) ou A (diâmetro do topo).",
-   "Q é obrigatório: quanto a ponta desce em cada volta. Q pequeno = melhor acabamento."
+   "Fresa 90° = fresa de topo reto. O corretor de comprimento fica na ponta da fresa.",
+   "A quina de baixo da fresa segue a linha do cone e faz qualquer ângulo B de 1 a 89. Use B (ângulo em relação à face de cima) ou A (diâmetro do topo).",
+   "Q é obrigatório: quanto a fresa desce em cada volta. Q pequeno = melhor acabamento."
   ],
-  "toolShapeExpr": "((L.E||0) >= (L.T||0) ? null : {type:'v', angle:90, tipD: L.E||0})",
   "stockExpr": "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})"
  },
  {
@@ -298,7 +292,7 @@ window.PROGRAMS = [
    "E = raio da pastilha (pastilha de 12 = E6). T = diâmetro maior da fresa, medido na ponta externa da pastilha.",
    "O corretor de comprimento fica no ponto mais baixo da pastilha.",
    "A pastilha redonda não faz canto vivo: na base do cone fica um raio igual a E.",
-   "Sem pastilha redonda, use o O1630 (cone com fresa 90° ou de topo reto)."
+   "Sem pastilha redonda, use o O1630 (cone com fresa 90°, de topo reto)."
   ],
   "toolShapeExpr": "({type:'r', cornerR: L.E||0})",
   "stockExpr": "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})"

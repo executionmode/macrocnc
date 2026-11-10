@@ -15,20 +15,19 @@ L = {}
 
 # ---------------------------------------------------------------- PT
 L['pt'] = dict(
-    t16='16. Cone externo com fresa 90° ou de topo reto (O1630)',
+    t16='16. Cone externo com fresa 90° (topo reto) (O1630)',
     h16=(
         '<p>Assista ao vídeo: ele mostra a macro passo a passo, com a fresa andando sobre a linha do cone e as contas de cada volta.</p>'
         '<h3>16.1 Resumo</h3>'
-        '<p>Faz um cone na parte de fora da peça, com o diâmetro menor no topo e o maior na base. A ponta da fresa anda sobre a linha do cone, de cima para baixo, com uma volta completa G2 em cada posição. A letra <b>Q</b> diz quanto a ponta desce em cada volta.</p>'
-        + code('G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800. ;') +
+        '<p>Faz um cone na parte de fora da peça, com o diâmetro menor no topo e o maior na base, usando <b>fresa 90°</b> (fresa de topo reto). A quina de baixo da fresa anda sobre a linha do cone, de cima para baixo, com uma volta completa G2 em cada posição. A letra <b>Q</b> diz quanto a fresa desce em cada volta.</p>'
+        + code('G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800. ;') +
         tbl(['Letra', 'O que é'], [
             ['X Y', 'centro do cone'], ['D', 'diâmetro maior, na base (igual ao bruto)'],
             ['B', 'ângulo do cone em relação à face de cima'], ['A', 'diâmetro menor no topo (no lugar do B)'],
-            ['W / Z', 'Z do topo / Z da base'], ['Q', 'quanto a ponta desce em cada volta'],
-            ['E', 'diâmetro da ponta plana da fresa: 0 = fresa 90° com ponta viva; E = T = fresa de topo reta'],
-            ['T', 'diâmetro maior da fresa'], ['R / F', 'plano de segurança / avanço']]) +
-        '<ul><li><b>Fresa 90° cônica</b> (E0): B de 1 a 45.</li><li><b>Fresa de topo reta</b> (E igual a T): a quina de baixo segue a linha e faz qualquer B de 1 a 89.</li>'
-        '<li>O corretor de comprimento fica na ponta da fresa (o ponto mais baixo).</li><li>Q pequeno = melhor acabamento: entre as voltas sobra um degrau de até Q de altura.</li>'
+            ['W / Z', 'Z do topo / Z da base'], ['Q', 'quanto a fresa desce em cada volta'],
+            ['T', 'diâmetro da fresa'], ['R / F', 'plano de segurança / avanço']]) +
+        '<ul><li>A quina de baixo da fresa segue a linha do cone e faz qualquer B de 1 a 89.</li>'
+        '<li>O corretor de comprimento fica na ponta da fresa.</li><li>Q pequeno = melhor acabamento: entre as voltas sobra um degrau de até Q de altura.</li>'
         '<li>Com fresa de pastilha redonda, use a O1637 (capítulo 17).</li></ul>'),
     t17='17. Macros adicionais: chaveta, raios, chanfro no furo e cone com pastilha redonda',
     intro17=(
@@ -91,29 +90,28 @@ L['pt'] = dict(
             ['O1633 rosca em círculo (D direto)', 'Rosca interna fresada, raio final informado em D', '<code>G65 P1633 X0 Y0 J375. B12 A15. K2. D1. Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1634 rosca em círculo (D e T)', 'Rosca interna fresada, raio calculado por D e pela fresa T', '<code>G65 P1634 X0 Y0 J375. B12 A15. K2. D16. T13.85 Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1636 raio na base do cilindro', 'Raio côncavo entre o cilindro e a face de baixo', '<code>G65 P1636 X0 Y0 D80. W0 Z-20. C5. H1. T28. R5. F800. Q300.</code>']])),
-    res16=['A ponta anda sobre a linha do cone, uma volta por posição.', 'Fresa 90°: B até 45. Fresa reta (E = T): B de 1 a 89.', 'Q pequeno = acabamento melhor.'],
+    res16=['A quina da fresa anda sobre a linha do cone, uma volta por posição.', 'Fresa 90° (topo reto): B de 1 a 89.', 'Q pequeno = acabamento melhor.'],
     res17=['Uma volta completa em cada posição do perfil.', 'Raios: passo H em graus. Chanfro e cone: passo Q em Z.', 'Fresa de canto vivo; pastilha redonda só na O1637.'],
-    ex8=('<p><b>Exercício 8: cone</b></p><p>No <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 E0 T28. R5. F800.</code>, qual o diâmetro do cone no topo? E quantas voltas, mais ou menos, a macro faz?</p>'),
+    ex8=('<p><b>Exercício 8: cone</b></p><p>No <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 T28. R5. F800.</code>, qual o diâmetro do cone no topo? E quantas voltas, mais ou menos, a macro faz?</p>'),
     ans8=('<p>Abertura = 1 / TAN 60 = 0.577 de raio por milímetro de descida.</p><p>Diâmetro do topo = 60 − 2 × 20 × 0.577 = <b>36.906</b>.</p><p>Voltas ≈ altura / Q = 20 / 0.5 = <b>40 voltas</b>.</p>'),
     grp_vid='Macros com vídeo', grp_novid='Macros sem vídeo',
 )
 
 # ---------------------------------------------------------------- EN
 L['en'] = dict(
-    t16='16. Outside cone with a 90° cutter or flat end mill (O1630)',
+    t16='16. Outside cone with a 90° cutter (flat end mill) (O1630)',
     h16=(
         '<p>Watch the video: it shows the macro step by step, with the cutter running along the cone line and the math for each turn.</p>'
         '<h3>16.1 Summary</h3>'
-        '<p>Makes a cone on the outside of the part, with the small diameter at the top and the large one at the base. The cutter tip runs along the cone line, top to bottom, with one full G2 turn at each position. Letter <b>Q</b> sets how much the tip goes down each turn.</p>'
-        + code('G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800. ;') +
+        '<p>Makes a cone on the outside of the part, with the small diameter at the top and the large one at the base, using a <b>90° cutter</b> (flat end mill). The bottom corner of the cutter runs along the cone line, top to bottom, with one full G2 turn at each position. Letter <b>Q</b> sets how much the cutter goes down each turn.</p>'
+        + code('G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800. ;') +
         tbl(['Letter', 'What it is'], [
             ['X Y', 'cone center'], ['D', 'large diameter at the base (same as the stock)'],
             ['B', 'cone angle to the top face'], ['A', 'small diameter at the top (instead of B)'],
-            ['W / Z', 'top Z / base Z'], ['Q', 'how much the tip goes down each turn'],
-            ['E', 'flat tip diameter of the cutter: 0 = 90° cutter with sharp tip; E = T = flat end mill'],
-            ['T', 'large cutter diameter'], ['R / F', 'safety plane / feed']]) +
-        '<ul><li><b>90° conical cutter</b> (E0): B from 1 to 45.</li><li><b>Flat end mill</b> (E equal to T): the bottom corner follows the line and makes any B from 1 to 89.</li>'
-        '<li>The length offset is at the cutter tip (the lowest point).</li><li>Small Q = better finish: a step up to Q high is left between turns.</li>'
+            ['W / Z', 'top Z / base Z'], ['Q', 'how much the cutter goes down each turn'],
+            ['T', 'cutter diameter'], ['R / F', 'clearance plane / feed']]) +
+        '<ul><li>The bottom corner of the cutter follows the cone line and makes any B from 1 to 89.</li>'
+        '<li>The length offset is at the cutter tip.</li><li>Small Q = better finish: a step up to Q high is left between turns.</li>'
         '<li>With a round insert cutter, use O1637 (chapter 17).</li></ul>'),
     t17='17. More macros: keyway, radii, hole chamfer and cone with round insert',
     intro17=(
@@ -176,29 +174,28 @@ L['en'] = dict(
             ['O1633 thread on a circle (direct D)', 'Thread milling inside, final radius given in D', '<code>G65 P1633 X0 Y0 J375. B12 A15. K2. D1. Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1634 thread on a circle (D and T)', 'Thread milling inside, radius computed from D and cutter T', '<code>G65 P1634 X0 Y0 J375. B12 A15. K2. D16. T13.85 Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1636 radius at the cylinder base', 'Concave radius between the cylinder and the bottom face', '<code>G65 P1636 X0 Y0 D80. W0 Z-20. C5. H1. T28. R5. F800. Q300.</code>']])),
-    res16=['The tip runs along the cone line, one turn per position.', '90° cutter: B up to 45. Flat end mill (E = T): B from 1 to 89.', 'Small Q = better finish.'],
+    res16=['The cutter corner runs along the cone line, one turn per position.', '90° cutter (flat end mill): B from 1 to 89.', 'Small Q = better finish.'],
     res17=['One full turn at each position of the profile.', 'Radii: step H in degrees. Chamfer and cone: step Q in Z.', 'Sharp-corner cutter; round insert only on O1637.'],
-    ex8=('<p><b>Exercise 8: cone</b></p><p>In <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 E0 T28. R5. F800.</code>, what is the cone diameter at the top? And roughly how many turns does the macro make?</p>'),
+    ex8=('<p><b>Exercise 8: cone</b></p><p>In <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 T28. R5. F800.</code>, what is the cone diameter at the top? And roughly how many turns does the macro make?</p>'),
     ans8=('<p>Opening = 1 / TAN 60 = 0.577 of radius per millimeter down.</p><p>Top diameter = 60 − 2 × 20 × 0.577 = <b>36.906</b>.</p><p>Turns ≈ height / Q = 20 / 0.5 = <b>40 turns</b>.</p>'),
     grp_vid='Macros with video', grp_novid='Macros without video',
 )
 
 # ---------------------------------------------------------------- FR (Québec)
 L['fr-CA'] = dict(
-    t16='16. Cône extérieur avec fraise 90° ou fraise en bout (O1630)',
+    t16='16. Cône extérieur avec fraise 90° (fraise en bout) (O1630)',
     h16=(
         '<p>Regardez la vidéo : elle montre la macro étape par étape, avec la fraise qui suit la ligne du cône et les calculs de chaque tour.</p>'
         '<h3>16.1 Résumé</h3>'
-        '<p>Fait un cône sur l’extérieur de la pièce, avec le petit diamètre en haut et le grand à la base. La pointe de la fraise suit la ligne du cône, du haut vers le bas, avec un tour complet G2 à chaque position. La lettre <b>Q</b> indique la descente de la pointe à chaque tour.</p>'
-        + code('G65 P1630 X0 Y0 D60. B30 W0 Z-8. Q0.5 E0 T28. R5. F800. ;') +
+        '<p>Fait un cône sur l’extérieur de la pièce, avec le petit diamètre en haut et le grand à la base, avec une <b>fraise 90°</b> (fraise en bout). Le coin du bas de la fraise suit la ligne du cône, du haut vers le bas, avec un tour complet G2 à chaque position. La lettre <b>Q</b> indique la descente de la fraise à chaque tour.</p>'
+        + code('G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.3 T25. R5. F800. ;') +
         tbl(['Lettre', 'Ce que c’est'], [
             ['X Y', 'centre du cône'], ['D', 'grand diamètre, à la base (égal au brut)'],
             ['B', 'angle du cône par rapport à la face du dessus'], ['A', 'petit diamètre en haut (à la place de B)'],
-            ['W / Z', 'Z du dessus / Z de la base'], ['Q', 'descente de la pointe à chaque tour'],
-            ['E', 'diamètre de la pointe plate de la fraise : 0 = fraise 90° à pointe vive; E = T = fraise en bout'],
-            ['T', 'grand diamètre de la fraise'], ['R / F', 'plan de sécurité / avance']]) +
-        '<ul><li><b>Fraise conique 90°</b> (E0) : B de 1 à 45.</li><li><b>Fraise en bout</b> (E égal à T) : le coin du bas suit la ligne et fait tout angle B de 1 à 89.</li>'
-        '<li>Le correcteur de longueur est à la pointe de la fraise (le point le plus bas).</li><li>Petit Q = meilleur fini : il reste une marche d’au plus Q de hauteur entre les tours.</li>'
+            ['W / Z', 'Z du dessus / Z de la base'], ['Q', 'descente de la fraise à chaque tour'],
+            ['T', 'diamètre de la fraise'], ['R / F', 'plan de dégagement / avance']]) +
+        '<ul><li>Le coin du bas de la fraise suit la ligne du cône et fait tout angle B de 1 à 89.</li>'
+        '<li>Le correcteur de longueur est à la pointe de la fraise.</li><li>Petit Q = meilleur fini : il reste une marche d’au plus Q de hauteur entre les tours.</li>'
         '<li>Avec une fraise à plaquette ronde, utilisez O1637 (chapitre 17).</li></ul>'),
     t17='17. Autres macros : rainure de clavette, rayons, chanfrein de trou et cône à plaquette ronde',
     intro17=(
@@ -261,9 +258,9 @@ L['fr-CA'] = dict(
             ['O1633 filetage en cercle (D direct)', 'Filetage intérieur fraisé, rayon final donné en D', '<code>G65 P1633 X0 Y0 J375. B12 A15. K2. D1. Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1634 filetage en cercle (D et T)', 'Filetage intérieur fraisé, rayon calculé par D et la fraise T', '<code>G65 P1634 X0 Y0 J375. B12 A15. K2. D16. T13.85 Q0.25 W0 Z-30. R5. F30.</code>'],
             ['O1636 rayon à la base du cylindre', 'Rayon concave entre le cylindre et la face du bas', '<code>G65 P1636 X0 Y0 D80. W0 Z-20. C5. H1. T28. R5. F800. Q300.</code>']])),
-    res16=['La pointe suit la ligne du cône, un tour par position.', 'Fraise 90° : B jusqu’à 45. Fraise en bout (E = T) : B de 1 à 89.', 'Petit Q = meilleur fini.'],
+    res16=['Le coin de la fraise suit la ligne du cône, un tour par position.', 'Fraise 90° (en bout) : B de 1 à 89.', 'Petit Q = meilleur fini.'],
     res17=['Un tour complet à chaque position du profil.', 'Rayons : pas H en degrés. Chanfrein et cône : pas Q en Z.', 'Fraise à coin vif; plaquette ronde seulement sur O1637.'],
-    ex8=('<p><b>Exercice 8 : cône</b></p><p>Dans <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 E0 T28. R5. F800.</code>, quel est le diamètre du cône en haut? Et environ combien de tours la macro fait-elle?</p>'),
+    ex8=('<p><b>Exercice 8 : cône</b></p><p>Dans <code>G65 P1630 X0 Y0 D60. B60 W0 Z-20. Q0.5 T28. R5. F800.</code>, quel est le diamètre du cône en haut? Et environ combien de tours la macro fait-elle?</p>'),
     ans8=('<p>Ouverture = 1 / TAN 60 = 0.577 de rayon par millimètre de descente.</p><p>Diamètre du dessus = 60 − 2 × 20 × 0.577 = <b>36.906</b>.</p><p>Tours ≈ hauteur / Q = 20 / 0.5 = <b>40 tours</b>.</p>'),
     grp_vid='Macros avec vidéo', grp_novid='Macros sans vidéo',
 )
@@ -279,3 +276,35 @@ def ch17_html(d):
         h += '<p><b>%s</b></p><ul>%s</ul>' % (lb['math'], ''.join('<li>%s</li>' % m for m in s['math']))
         h += '<p><b>%s</b></p><ul>%s</ul>' % (lb['check'], ''.join('<li>%s</li>' % m for m in s['check']))
     return h + d['other']
+
+
+# ---- revisão: sem fresa cônica (cap. 14 / O1623 sai) ----
+FIX = {
+ 'pt': dict(
+   repl=[('<p><b>Exemplo</b>: alarme <code>202 (B MAIOR QUE 45)</code> no chanfro: foi digitado <code>B60.</code>. A fresa de chanfrar cônica só faz até 45° em relação à face do topo (com fresa de topo reta veja O1628 e O1630). Veja o capítulo 14.</p>',
+          '<p><b>Exemplo</b>: alarme <code>173 (H TEM QUE SER MENOR QUE 90)</code> no raio: foi digitado <code>H90.</code>. O passo em graus de cada passada tem que ser menor que 90. Veja o capítulo 13.</p>'),
+         (', 90° (chanfro).', '.'), (' (ponta, no caso da fresa de chanfrar)', '')],
+   ex5=('<p><b>Exercício 5: chanfro no furo</b></p><p>No O1628 com <code>C2. B30 Q0.5</code>: qual a altura do chanfro na parede do furo? E o passo no raio a cada volta? Quantas voltas a macro faz?</p>'),
+   ans5='<p>Altura na parede = C × TAN B = 2 × 0.577 = <b>1.155</b>.</p><p>Passo no raio = Q / TAN B = 0.5 / 0.577 = <b>0.866</b>.</p><p>A distância até a parede vai de 2 a 0: 1.134, 0.268 e 0 = <b>3 voltas</b>.</p>',
+   ex6a=('<code>G65 P1623 ... B60.</code>', '<code>G65 P1630 ... B95.</code>'),
+   ans6a=('<li>(a) B60 no O1623: <b>alarme 202</b> (B maior que 45).</li>', '<li>(a) B95 no O1630: <b>alarme 289</b> (B inválido, tem que ser de 1 a 89).</li>'),
+   quiz9=('No cone O1630, o que a letra Q define?', ['O diâmetro da fresa', 'Quanto a fresa desce em cada volta', 'O ângulo do cone', 'O plano de segurança'], 1)),
+ 'en': dict(
+   repl=[('<p><b>Example</b>: alarm <code>202 (B GREATER THAN 45)</code> on the chamfer: <code>B60.</code> was typed. The conical chamfer mill only goes up to 45° to the top face (with a flat end mill see O1628 and O1630). See chapter 14.</p>',
+          '<p><b>Example</b>: alarm <code>173 (H MUST BE LESS THAN 90)</code> on the radius: <code>H90.</code> was typed. The step in degrees per pass must be less than 90. See chapter 13.</p>'),
+         (', 90° (chamfer).', '.'), (' (at the tip, for a chamfer mill)', '')],
+   ex5=('<p><b>Exercise 5: hole chamfer</b></p><p>On O1628 with <code>C2. B30 Q0.5</code>: what is the chamfer height on the hole wall? And the radial step each turn? How many turns does the macro make?</p>'),
+   ans5='<p>Height on the wall = C × TAN B = 2 × 0.577 = <b>1.155</b>.</p><p>Radial step = Q / TAN B = 0.5 / 0.577 = <b>0.866</b>.</p><p>The distance to the wall goes from 2 to 0: 1.134, 0.268 and 0 = <b>3 turns</b>.</p>',
+   ex6a=('<code>G65 P1623 ... B60.</code>', '<code>G65 P1630 ... B95.</code>'),
+   ans6a=('<li>(a) B60 on O1623: <b>alarm 202</b> (B greater than 45).</li>', '<li>(a) B95 on O1630: <b>alarm 289</b> (B invalid, it must be 1 to 89).</li>'),
+   quiz9=('On cone O1630, what does letter Q set?', ['The cutter diameter', 'How much the cutter goes down each turn', 'The cone angle', 'The clearance plane'], 1)),
+ 'fr-CA': dict(
+   repl=[('<p><b>Exemple</b> : alarme <code>202 (B PLUS GRAND QUE 45)</code> sur le chanfrein : <code>B60.</code> a été tapé. La fraise à chanfreiner conique va seulement jusqu’à 45° par rapport à la face du dessus (avec une fraise en bout, voyez O1628 et O1630). Voyez le chapitre 14.</p>',
+          '<p><b>Exemple</b> : alarme <code>173 (H DOIT ETRE PLUS PETIT QUE 90)</code> sur le rayon : <code>H90.</code> a été tapé. Le pas en degrés de chaque passe doit être plus petit que 90. Voyez le chapitre 13.</p>'),
+         (', 90° (chanfrein).', '.'), (' (à la pointe, pour une fraise à chanfreiner)', '')],
+   ex5=('<p><b>Exercice 5 : chanfrein de trou</b></p><p>Avec O1628 et <code>C2. B30 Q0.5</code> : quelle est la hauteur du chanfrein sur la paroi du trou? Et le pas sur le rayon à chaque tour? Combien de tours la macro fait-elle?</p>'),
+   ans5='<p>Hauteur sur la paroi = C × TAN B = 2 × 0,577 = <b>1,155</b>.</p><p>Pas sur le rayon = Q / TAN B = 0,5 / 0,577 = <b>0,866</b>.</p><p>La distance jusqu’à la paroi va de 2 à 0 : 1,134, 0,268 et 0 = <b>3 tours</b>.</p>',
+   ex6a=('<code>G65 P1623 ... B60.</code>', '<code>G65 P1630 ... B95.</code>'),
+   ans6a=('<li>(a) B60 sur O1623 : <b>alarme 202</b> (B plus grand que 45).</li>', '<li>(a) B95 sur O1630 : <b>alarme 289</b> (B invalide, il doit être de 1 à 89).</li>'),
+   quiz9=('Dans le cône O1630, que définit la lettre Q?', ['Le diamètre de la fraise', 'La descente de la fraise à chaque tour', 'L’angle du cône', 'Le plan de dégagement'], 1)),
+}

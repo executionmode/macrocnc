@@ -54,11 +54,7 @@ function poly(a, stock) {
   line(px(-3), py(0), px(3), py(0), C.mut, 2); line(px(0), py(-3), px(0), py(3), C.mut, 2);
 }
 function cornerCircle(a) { g.globalAlpha = a; g.beginPath(); g.arc(px(A.X), py(A.Y), RC * PV.s, 0, 7); g.strokeStyle = C.cyan; g.lineWidth = 2.5; g.setLineDash([12, 10]); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
-function tool(x, y, a) {
-  g.globalAlpha = a == null ? 1 : a;
-  g.beginPath(); g.arc(px(x), py(y), RT * PV.s, 0, 7); g.fillStyle = 'rgba(245,165,36,.22)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-  g.beginPath(); g.arc(px(x), py(y), 6, 0, 7); g.fillStyle = C.tool; g.fill(); g.globalAlpha = 1;
-}
+function tool(x, y, a) { millTop(px(x), py(y), RT * PV.s, undefined, a); }
 function dot(x, y, col, r) { g.beginPath(); g.arc(px(x), py(y), r || 8, 0, 7); g.fillStyle = col; g.fill(); }
 function pathUpTo(f, col) { // desenha a trajetória do centro até a fração f; devolve a posição
   const n = PATH.length, k = Math.floor(f * n);

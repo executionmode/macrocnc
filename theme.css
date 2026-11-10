@@ -276,3 +276,10 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
   border: 1px solid var(--ui-line); background: rgba(11,21,38,.75); color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; justify-self: end; }
 .lang-pill .ic { width: 16px; height: 16px; color: var(--ui-cyan); } .lang-pill b { font-weight: 700; letter-spacing: .5px; }
 .hero-lang { position: absolute; top: 20px; right: calc(17% + 6px); z-index: 3; backdrop-filter: blur(6px); }
+/* aba de vídeos do treinamento */
+.tr-tabs { margin: 14px 0 6px; }
+.tr-vids { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.tr-vcard { background: var(--card, #0d141c); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.tr-vcard-h { display: flex; align-items: center; gap: 10px; }
+.tr-vcard-h .tr-num { flex: none; }
+.tr-vcard video { width: 100%; max-height: 70vh; border-radius: 12px; background: #000; aspect-ratio: 9 / 16; object-fit: contain; }

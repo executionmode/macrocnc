@@ -29,9 +29,7 @@ function topPart(a) {
 function holeTop(fill) { g.beginPath(); g.arc(HV.cx, HV.cy, A.D / 2 * HV.s, 0, 7); if (fill) { g.fillStyle = '#03070f'; g.fill(); } g.strokeStyle = C.ok; g.lineWidth = 4; g.stroke(); }
 function toolTop(ang, a, r) {
   r = r == null ? RP : r; const x = HV.cx + r * Math.cos(ang) * HV.s, y = HV.cy - r * Math.sin(ang) * HV.s;
-  g.globalAlpha = a == null ? 1 : a;
-  g.beginPath(); g.arc(x, y, A.T / 2 * HV.s, 0, 7); g.fillStyle = 'rgba(245,165,36,.25)'; g.fill(); g.strokeStyle = C.tool; g.lineWidth = 4; g.stroke();
-  g.beginPath(); g.arc(x, y, 6, 0, 7); g.fillStyle = C.tool; g.fill(); g.globalAlpha = 1;
+  millTop(x, y, A.T / 2 * HV.s, undefined, a);
   return { x, y };
 }
 function pathCircle(a) { g.globalAlpha = a == null ? 1 : a; g.beginPath(); g.arc(HV.cx, HV.cy, RP * HV.s, 0, 7); g.strokeStyle = C.cyan; g.lineWidth = 3; g.setLineDash([12, 9]); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
@@ -45,11 +43,7 @@ function sidePart(depth) {
   g.fillStyle = C.part; g.fillRect(L, szp(A.W), Rr - L, bot - szp(A.W)); g.strokeStyle = C.edge; g.lineWidth = 3; g.strokeRect(L, szp(A.W), Rr - L, bot - szp(A.W));
   if (depth < A.W) { g.fillStyle = '#03070f'; g.fillRect(sxp(-A.D / 2), szp(A.W) - 2, A.D * SV.sx, szp(depth) - szp(A.W) + 2); }
 }
-function sideTool(xc, z, a) {
-  g.globalAlpha = a == null ? 1 : a;
-  g.fillStyle = 'rgba(245,165,36,.85)'; g.fillRect(sxp(xc - A.T / 2), szp(z) - 100, A.T * SV.sx, 100);
-  g.fillStyle = '#7d8ea8'; g.fillRect(sxp(xc) - 40, szp(z) - 150, 80, 50); g.globalAlpha = 1;
-}
+function sideTool(xc, z, a) { millSide(sxp(xc - A.T / 2), sxp(xc + A.T / 2), szp(z), { alpha: a, axis: true }); }
 function zTag(z, col, lab, a) { line(sxp(-26), szp(z), sxp(-21), szp(z), col, 3); text(lab || ('Z' + gc(z)), sxp(-27), szp(z) + 10, 28, col, { a: 'right', w: 800, mono: true, alpha: a }); }
 
 function formula(t, steps, y0, h) {
