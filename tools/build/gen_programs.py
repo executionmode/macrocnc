@@ -141,9 +141,9 @@ PROGRAMS = [
    'presets': [
      {'label': 'Exemplo O0042 - 8 paletas', 'call': 'G65 P1638 X0 Y0 D299.5 B48 W0 Z-108. Q0.3 E6. T50. J22.5 K8 U3. R100. F3000.'},
      {'label': 'Sem descer abaixo da base - H1', 'call': 'G65 P1638 X0 Y0 D299.5 B48 W0 Z-108. Q0.3 E6. T50. J22.5 K8 U3. H1. R100. F3000.'}],
-   'notes': ['A paleta é definida no programa principal, antes do G65: #130 a #135 = aresta 1 e #136 a #141 = aresta 2 (ponta externa X Y, ponta interna X Y, raio e lado do centro). #142 = 1 normal ou -1 espelhado.',
+   'notes': ['Os dados da paleta (indutor 20159) ficam dentro do sub O1638: #130 a #133 = aresta 1 e #134 a #137 = aresta 2 (X Y do centro do arco, raio e lado). #138 = raio onde a paleta encosta no cubo.',
              'J = ângulo do centro da paleta 1 na ponta externa. K = número de paletas. U = folga do arco para cada lado da paleta (sem U usa 3).',
-             'A primeira volta começa sozinha no Z onde o cone encosta na ponta interna da paleta, mesmo com W no topo da peça.',
+             'Do topo W até o Z onde o cone encosta no cubo faz voltas completas, como na O1637. Dali para baixo usina só o topo das paletas.',
              'Sem H1, o último nível põe o ponto de contato no Z da base e a parte de baixo da pastilha passa um pouco abaixo dela (no exemplo, cerca de 2 mm). Com H1 o ponto mais baixo da pastilha para no Z da base.',
              'E = raio da pastilha (pastilha de 12 = E6). O corretor fica no ponto mais baixo da pastilha.',
              'Na simulação o bruto é um cilindro inteiro; na peça real só existem as paletas.']},
