@@ -29,6 +29,8 @@ RC_SUB = open('/mnt/user-data/uploads/15431327-SUB_O1635.txt').read().strip()
 CF_MAIN = open('/mnt/user-data/uploads/c8a1516a-PRINCIPAL_O0029.txt').read().strip()
 CR_MAIN = open('/home/claude/build/src/PRINCIPAL_O0041.txt').read().strip()
 CR_SUB = open('/home/claude/build/src/SUB_O1637.txt').read().strip()
+CP_MAIN = open('/home/claude/build/src/PRINCIPAL_O0042.txt').read().strip()
+CP_SUB = open('/home/claude/build/src/SUB_O1638.txt').read().strip()
 CF_SUB = open('/mnt/user-data/uploads/ecf93b56-SUB_O1628.txt').read().strip()
 
 SUBS = {
@@ -37,6 +39,7 @@ SUBS = {
     '1635': {'num': 1635, 'code': RC_SUB},
     '1630': {'num': 1630, 'code': CONE_SUB},
     '1637': {'num': 1637, 'code': CR_SUB},
+    '1638': {'num': 1638, 'code': CP_SUB},
     '1611-canto': {'num': 1611, 'label': 'Origem no canto da área', 'code': M[2]},
     '1611-centro': {'num': 1611, 'label': 'Origem no centro da área', 'code': M[3]},
     '1612': {'num': 1612, 'code': M[5]},
@@ -132,6 +135,18 @@ PROGRAMS = [
              'O corretor de comprimento fica no ponto mais baixo da pastilha.',
              'A pastilha redonda não faz canto vivo: na base do cone fica um raio igual a E.',
              'Sem pastilha redonda, use o O1630 (cone com fresa 90°, de topo reto).']},
+  {'id': 'm-cone-paletas', 'cat': 'macro', 'num': 42, 'title': 'Cone só nas paletas (pastilha redonda)', 'status': 'nao-testado',
+   'desc': 'Cone externo usinado só no topo das paletas (indutor), com fresa de pastilha redonda. Em cada nível de Z a macro calcula onde as duas arestas da paleta cruzam o raio do cone e faz um arco só nessa largura, vai e volta G3 / G2. Repete para as K paletas, a 360 / K uma da outra.',
+   'main': CP_MAIN, 'subs': ['1638'],
+   'presets': [
+     {'label': 'Exemplo O0042 - 8 paletas', 'call': 'G65 P1638 X0 Y0 D299.5 B48 W0 Z-108. Q0.3 E6. T50. J22.5 K8 U3. R100. F3000.'},
+     {'label': 'Sem descer abaixo da base - H1', 'call': 'G65 P1638 X0 Y0 D299.5 B48 W0 Z-108. Q0.3 E6. T50. J22.5 K8 U3. H1. R100. F3000.'}],
+   'notes': ['A paleta é definida no programa principal, antes do G65: #130 a #135 = aresta 1 e #136 a #141 = aresta 2 (ponta externa X Y, ponta interna X Y, raio e lado do centro). #142 = 1 normal ou -1 espelhado.',
+             'J = ângulo do centro da paleta 1 na ponta externa. K = número de paletas. U = folga do arco para cada lado da paleta (sem U usa 3).',
+             'A primeira volta começa sozinha no Z onde o cone encosta na ponta interna da paleta, mesmo com W no topo da peça.',
+             'Sem H1, o último nível põe o ponto de contato no Z da base e a parte de baixo da pastilha passa um pouco abaixo dela (no exemplo, cerca de 2 mm). Com H1 o ponto mais baixo da pastilha para no Z da base.',
+             'E = raio da pastilha (pastilha de 12 = E6). O corretor fica no ponto mais baixo da pastilha.',
+             'Na simulação o bruto é um cilindro inteiro; na peça real só existem as paletas.']},
   {'id': 'm-raio-furo', 'cat': 'macro', 'num': 39, 'title': 'Raio na quina do furo', 'status': 'nao-testado',
    'desc': 'Arredonda a boca de um furo já usinado (raio convexo C). A quina de baixo da fresa de topo reta segue o raio, de cima para baixo, uma volta G3 a cada H graus.',
    'main': RF_MAIN, 'subs': ['1627'],
@@ -224,6 +239,7 @@ STOCK = {
  'm-chanfro-furo': "({shape:'round', d:L.D+60, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20, tool:L.T, holeD:L.D, holeZ:(L.W||0)-(L.C||2)*Math.tan((L.B||45)*Math.PI/180)-20})",
  'm-cone': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})",
  'm-cone-redonda': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})",
+ 'm-cone-paletas': "({shape:'round', d:L.D, cx:L.X||0, cy:L.Y||0, top:L.W||0, bottom:(L.Z||0)-10, tool:L.T})",
  'm-raio-diam': "({shape:'round', d:L.A, cx:L.X||0, cy:L.Y||0, top:L.W, bottom:L.W-(L.I||40)-10, tool:L.T})",
  'p-rosca': "({shape:'round', d:2*V[6]+60, cx:0, cy:0, top:0, bottom:V[5]-10, tool:13.85})",
  'p-helice': "({shape:'round', d:V[1]+40, cx:G.x, cy:G.y, top:V[5]||0, bottom:V[7]-10, tool:V[2]})",
@@ -234,6 +250,7 @@ STOCK = {
  'p-raio-fundo': "({shape:'round', d:V[1]+60, cx:G.x, cy:G.y, top:0, bottom:V[6]-15, tool:V[2], holeD:V[1], holeZ:V[6]})",
 }
 EXTRA.setdefault('m-cone-redonda', {})['toolShapeExpr'] = "({type:'r', cornerR: L.E||0})"
+EXTRA.setdefault('m-cone-paletas', {})['toolShapeExpr'] = "({type:'r', cornerR: L.E||0})"
 for k, v in STOCK.items():
     EXTRA.setdefault(k, {})['stockExpr'] = v
 for p in PROGRAMS:
