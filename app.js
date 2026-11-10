@@ -1538,11 +1538,11 @@
   });
   window.addEventListener('appinstalled', function () { $('#btnInstall').classList.add('hidden'); toast('App instalado.'); });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    navigator.serviceWorker.register('sw.js').then(function (reg) {
-      reg.addEventListener('updatefound', function () {
-        var nw = reg.installing;
-        nw && nw.addEventListener('statechange', function () { if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('Nova versão disponível: feche e abra o app.'); });
-      });
+    var swReloaded = false, hadCtrl = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (swReloaded || !hadCtrl) return; swReloaded = true; location.reload(); });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      reg.update().catch(function () {});
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') reg.update().catch(function () {}); });
     }).catch(function () {});
   }
 
