@@ -342,7 +342,7 @@
   };
 
   /* ---------- estado da tela ---------- */
-  var el = {}, ctx, W = 0, H = 0, dpr = 1, pxk = 1, printMode = false;
+  var el = {}, ctx, W = 0, H = 0, dpr = 1, pxk = 1, printMode = false, touchMode = false;
   var view = { cx: 0, cy: 0, s: 2 };
   var tool = 'select', vals = {}, editing = null, sel = null, hover = null, snapHit = null, picks = [], mode2 = null;
   var undoS = [], redoS = [], built = false, firstFit = true, ghost = null;
@@ -821,7 +821,8 @@
     doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; prims(e).forEach(function (p, pi) { if (p.k !== 'l') return; var d = distPrim(p, w[0], w[1]); if (d < bd) { bd = d; best = { e: e, pi: pi, p: p, w: w }; } }); });
     return best;
   }
-  function ptRef(p) { return { x: p.x, y: p.y, ref: p.ref || null }; }
+  function ptRef(p) { return { x: p.x, y: p.y, ref: p.ref || null, nm: p.nm || null, ent: p.ent || null, prim: p.prim || null }; }
+  function cleanPt(p) { return { x: p.x, y: p.y, ref: p.ref || null }; }
   function addDim(d) { d.t = 'dim'; d.id = uid(); doc.ents.push(d); return d; }
   function autoDimCore() {
     doc.ents = doc.ents.filter(function (e) { return !(e.t === 'dim' && e.auto); });
@@ -858,25 +859,66 @@
 
   /* ---------- toque na tela ---------- */
   function findSnap(sx, sy) {
-    var best = null, bd = 16;
-    function chk(x, y, nm, ref) { var s = toS(x, y), d = Math.hypot(s[0] - sx, s[1] - sy); if (d < bd) { bd = d; best = { x: x, y: y, nm: nm, ref: ref || null }; } }
+    var R0 = touchMode ? 30 : 16, best = null, bd = R0;
+    function chk(x, y, nm, ref, ent) { var s = toS(x, y), d = Math.hypot(s[0] - sx, s[1] - sy); if (d < bd - 0.01) { bd = d; best = { x: x, y: y, nm: nm, ref: ref || null, ent: ent || null }; } }
     chk(doc.origin.x, doc.origin.y, 'origem');
-    var lines = [];
+    var lines = [], all = [];
     doc.ents.forEach(function (e) {
-      if ((editing && e === editing) || !vis(e)) return;
-      snapPts(e).forEach(function (p, i) { chk(p[0], p[1], p[2], { id: e.id, i: i }); });
-      if (lines.length < 300) prims(e).forEach(function (p) { if (p.k === 'l') lines.push(p); });
+      if ((editing && e === editing) || !vis(e) || e.t === 'dim') return;
+      snapPts(e).forEach(function (p, i) { chk(p[0], p[1], p[2], { id: e.id, i: i }, e); });
+      prims(e).forEach(function (p) { if (p.cl) return; if (all.length < 600) all.push({ p: p, e: e }); if (p.k === 'l' && lines.length < 300) lines.push(p); });
     });
+    var w = toW(sx, sy), R = R0 / view.s;
     if (!best) {   // cruzamentos de linhas perto do dedo
-      var w = toW(sx, sy), R = 20 / view.s;
       var near = lines.filter(function (p) { return distSeg(w[0], w[1], p.x1, p.y1, p.x2, p.y2) < R; });
       for (var i = 0; i < near.length; i++) for (var j = i + 1; j < near.length; j++) {
         var a = near[i], b = near[j], X = lineX(a.x1, a.y1, a.x2, a.y2, b.x1, b.y1, b.x2, b.y2);
         if (X && X[2] > -1e-6 && X[2] < 1 + 1e-6 && X[3] > -1e-6 && X[3] < 1 + 1e-6) chk(X[0], X[1], 'cruzamento');
       }
     }
+    if (!best) {   // ponto em cima da linha ou do círculo mais perto
+      var bp = null, bdd = R;
+      all.forEach(function (it) { var d = distPrim(it.p, w[0], w[1]); if (d < bdd) { bdd = d; bp = it; } });
+      if (bp) {
+        var p = bp.p, q;
+        if (p.k === 'l') { var dx = p.x2 - p.x1, dy = p.y2 - p.y1, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((w[0] - p.x1) * dx + (w[1] - p.y1) * dy) / L)) : 0; q = [p.x1 + t * dx, p.y1 + t * dy]; }
+        else { var a = Math.atan2(w[1] - p.y, w[0] - p.x); q = [p.x + p.r * Math.cos(a), p.y + p.r * Math.sin(a)]; }
+        best = { x: q[0], y: q[1], nm: p.k === 'l' ? 'na linha' : p.hole ? 'no furo' : 'no círculo', ref: null, ent: bp.e, prim: p };
+      }
+    }
     return best;
   }
+  // linhas/círculos que acendem para mostrar de onde saiu o ponto
+  function hlPrims(p) {
+    if (!p || !p.ent) return [];
+    if (p.prim) return [p.prim];
+    var ps = prims(p.ent).filter(function (q) { return !q.cl; });
+    var on = ps.filter(function (q) { return distPrim(q, p.x, p.y) < 1e-6; });
+    if (on.length) return on;
+    var cen = ps.filter(function (q) { return q.k !== 'l' && Math.hypot(q.x - p.x, q.y - p.y) < 1e-6; });
+    return cen.length ? cen : ps;
+  }
+  function drawHl(p, label) {
+    ctx.save(); ctx.strokeStyle = COL.pick; ctx.lineWidth = 3.5; ctx.globalAlpha = 0.9;
+    hlPrims(p).forEach(function (q) {
+      ctx.beginPath();
+      if (q.k === 'l') { var a = toS(q.x1, q.y1), b = toS(q.x2, q.y2); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+      else if (q.k === 'c') { var c = toS(q.x, q.y); ctx.arc(c[0], c[1], Math.max(q.r * view.s, 1), 0, 7); }
+      else { var ca = toS(q.x, q.y); ctx.arc(ca[0], ca[1], q.r * view.s, -q.a0 * D2R, -q.a1 * D2R, true); }
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    var s = toS(p.x, p.y);
+    ctx.fillStyle = COL.pick; ctx.beginPath(); ctx.arc(s[0], s[1], 5.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    var txt = (label ? label + ' · ' : '') + T(p.nm || 'ponto livre');
+    ctx.font = '600 12px system-ui, sans-serif'; var tw = ctx.measureText(txt).width, bx = Math.min(s[0] + 10, W - tw - 14), by = Math.max(s[1] - 38, 4);
+    ctx.fillStyle = 'rgba(255,122,69,.95)'; ctx.fillRect(bx, by, tw + 10, 20);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, bx + 5, by + 10);
+    ctx.restore();
+  }
+  var flash = null, flashT = 0;
+  function flashPick(p) { flash = p; clearTimeout(flashT); flashT = setTimeout(function () { flash = null; draw(); }, 1600); }
   function gridStep() { var raw = 12 / view.s, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
   function pickPoint(sx, sy, raw) {
     var w = toW(sx, sy);
@@ -929,7 +971,7 @@
       return;
     }
     if (t === 'dim') { dimTap(sx, sy); return; }
-    p = pickPoint(sx, sy);
+    p = pickPoint(sx, sy); flashPick(p);
     if (t === 'origin') { pushUndo(); doc.origin = { x: p.x, y: p.y }; save(); toast(T('Origem posta') + (p.nm ? ' (' + T(p.nm) + ')' : '') + '.'); draw(); return; }
     if (t === 'line') {
       if (vals.modo === 'la' || !picks.length) { setField('x1', p.x - o.x); setField('y1', p.y - o.y); picks = vals.modo === 'la' ? [] : [1]; preview(); return; }
@@ -946,9 +988,13 @@
   function dimTap(sx, sy) {
     var dk = vals.dk, p;
     if (dk === 'lin') {
-      if (picks.length < 2) { p = pickPoint(sx, sy); picks.push(ptRef(p)); draw(); return; }
+      if (picks.length < 2) {
+        p = pickPoint(sx, sy); picks.push(ptRef(p)); draw();
+        toast((picks.length === 1 ? T('1º ponto') : T('2º ponto')) + ': ' + T(p.nm || 'ponto livre') + '. ' + T(picks.length === 1 ? 'Toque no 2º ponto.' : 'Toque onde a cota vai ficar.'));
+        return;
+      }
       var w = toW(sx, sy); pushUndo();
-      addDim({ k: 'lin', o: vals.o, p1: picks[0], p2: picks[1], q: { x: w[0], y: w[1] } }); picks = []; save(); toast(T('Cota criada.')); draw(); return;
+      addDim({ k: 'lin', o: vals.o, p1: cleanPt(picks[0]), p2: cleanPt(picks[1]), q: { x: w[0], y: w[1] } }); picks = []; save(); toast(T('Cota criada.')); draw(); return;
     }
     if (dk === 'dia' || dk === 'rad') {
       var c = circPick(sx, sy); if (!c) return toast(T('Toque em cima de um círculo, furo ou arco.'));
@@ -965,13 +1011,14 @@
       addDim({ k: 'ang', l1: { ref: { id: a.e.id, pi: a.pi }, x1: a.p.x1, y1: a.p.y1, x2: a.p.x2, y2: a.p.y2 }, l2: { ref: { id: b.e.id, pi: b.pi }, x1: b.p.x1, y1: b.p.y1, x2: b.p.x2, y2: b.p.y2 }, t1: a.w, t2: b.w, rr: Math.hypot(w3[0] - I[0], w3[1] - I[1]) });
       picks = []; save(); toast(T('Cota criada.')); draw(); return;
     }
-    if (dk === 'ord') { p = pickPoint(sx, sy); pushUndo(); addDim({ k: 'ord', p: ptRef(p) }); save(); toast(T('Cota criada.')); draw(); }
+    if (dk === 'ord') { p = pickPoint(sx, sy); flashPick(p); pushUndo(); addDim({ k: 'ord', p: cleanPt(p) }); save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); }
   }
 
   function bindPointer() {
     var cv = el.cv, P = {}, start = null, moved = false, pinch = null;
     cv.style.touchAction = 'none';
     cv.addEventListener('pointerdown', function (e) {
+      touchMode = e.pointerType !== 'mouse';
       cv.setPointerCapture(e.pointerId); P[e.pointerId] = [e.offsetX, e.offsetY];
       var ids = Object.keys(P);
       if (ids.length === 1) { start = { x: e.offsetX, y: e.offsetY, cx: view.cx, cy: view.cy }; moved = false; pinch = null; }
@@ -1093,6 +1140,7 @@
     ctx.beginPath(); ctx.moveTo(os[0], os[1]); ctx.arc(os[0], os[1], rO, Math.PI / 2, Math.PI); ctx.closePath(); ctx.fill();
     ctx.font = '600 ' + (11 * pxk) + 'px system-ui, sans-serif'; ctx.fillStyle = COL.org; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('X0 Y0', os[0] + 10 * pxk, os[1] - 9 * pxk);
     if (printMode) return;
+    if (flash && !(tool === 'dim' && vals.dk === 'lin')) drawHl(flash);
     if (snapHit) { var sp = toS(snapHit.x, snapHit.y); ctx.strokeStyle = COL.snap; ctx.lineWidth = 2; ctx.strokeRect(sp[0] - 6, sp[1] - 6, 12, 12); }
     else if (hover && (tool !== 'select' || mode2)) { var hp = toS(hover.x, hover.y); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hp[0] - 8, hp[1]); ctx.lineTo(hp[0] + 8, hp[1]); ctx.moveTo(hp[0], hp[1] - 8); ctx.lineTo(hp[0], hp[1] + 8); ctx.stroke(); }
     if (mode2) { ctx.fillStyle = 'rgba(255,122,69,.95)'; ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(T(mode2 === 'calib' ? 'Calibrar: toque em 2 pontos' : 'Toque no zero da peça na foto'), W / 2, H - 14); }
@@ -1108,7 +1156,7 @@
     if (tool === 'arc' && vals.modo === 'p3') picks.forEach(function (p) { dot(p[0], p[1]); });
     if (tool === 'fillet' || (tool === 'dim' && vals.dk === 'ang')) picks.forEach(function (pk) { var p = prims(pk.e)[pk.pi]; if (!p) return; ctx.lineWidth = 3; var a = toS(p.x1, p.y1), b = toS(p.x2, p.y2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
     if (tool === 'dim' && vals.dk === 'lin') {
-      picks.forEach(function (p) { dot(p.x, p.y); });
+      picks.forEach(function (p, i) { drawHl(p, i ? '2º' : '1º'); });
       if (picks.length === 2 && hover) drawDim({ t: 'dim', k: 'lin', o: vals.o, p1: picks[0], p2: picks[1], q: { x: hover.x, y: hover.y } }, COL.ghost);
     }
   }

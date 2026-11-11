@@ -493,5 +493,15 @@ I18N.add({
   "Arquivo salvo.": "File saved.",
   "Dentro do Claude este tipo de arquivo não pode ser baixado. Use o app instalado.": "This file type cannot be downloaded inside Claude. Use the installed app.",
   "Não foi possível salvar o arquivo aqui.": "Could not save the file here.",
-  "Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.": "Inside Claude the photo cannot be sent to the assistant. Use the installed app with the API key."
+  "Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.": "Inside Claude the photo cannot be sent to the assistant. Use the installed app with the API key.",
+  "1º ponto": "1st point",
+  "2º ponto": "2nd point",
+  "Toque no 2º ponto.": "Tap the 2nd point.",
+  "Toque onde a cota vai ficar.": "Tap where the dimension goes.",
+  "na linha": "on line",
+  "no círculo": "on circle",
+  "no furo": "on hole",
+  "ponto livre": "free point",
+  "1º": "1st",
+  "2º": "2nd"
 });

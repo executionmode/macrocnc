@@ -493,5 +493,15 @@ I18N.add({
   "Arquivo salvo.": "Fichier enregistré.",
   "Dentro do Claude este tipo de arquivo não pode ser baixado. Use o app instalado.": "Ce type de fichier ne peut pas être téléchargé dans Claude. Utilise l’app installée.",
   "Não foi possível salvar o arquivo aqui.": "Impossible d’enregistrer le fichier ici.",
-  "Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.": "Dans Claude, la photo ne peut pas être envoyée à l’assistant. Utilise l’app installée avec la clé API."
+  "Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.": "Dans Claude, la photo ne peut pas être envoyée à l’assistant. Utilise l’app installée avec la clé API.",
+  "1º ponto": "1er point",
+  "2º ponto": "2e point",
+  "Toque no 2º ponto.": "Touche le 2e point.",
+  "Toque onde a cota vai ficar.": "Touche l’endroit de la cote.",
+  "na linha": "sur la ligne",
+  "no círculo": "sur le cercle",
+  "no furo": "sur le trou",
+  "ponto livre": "point libre",
+  "1º": "1er",
+  "2º": "2e"
 });
