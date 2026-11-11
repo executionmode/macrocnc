@@ -382,3 +382,7 @@ label.ui-btn { cursor: pointer; text-align: center; }
 .tr-course-list { display: flex; flex-direction: column; gap: 6px; }
 .tr-course-list .tr-group { margin-top: 6px; }
 .tr-crs.on { border-color: var(--accent, #2f86ff); box-shadow: 0 0 0 1px var(--accent, #2f86ff) inset; }
+
+/* seletor de foto por cima do botão */
+.cad-pickw { position: relative; overflow: hidden; }
+.cad-over { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }

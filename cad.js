@@ -472,6 +472,8 @@
     full_close: function () { closeFull(); }
   };
   function onChange(e) {
+    var pk = e.target.dataset && e.target.dataset.pick;
+    if (pk && e.target.files && e.target.files[0]) { var f = e.target.files[0]; e.target.value = ''; if (pk === 'bg') readImage(f, 1600, function (src) { setBg(src); }); else readImage(f, 1568, function (src) { agentAttach(src); }); return; }
     if (e.target.id === 'cadImg' && e.target.files[0]) { readImage(e.target.files[0], 1568, function (src) { agentAttach(src); }); e.target.value = ''; }
     if (e.target.id === 'cadBgImg' && e.target.files[0]) { readImage(e.target.files[0], 1600, function (src) { setBg(src); }); e.target.value = ''; }
     if (e.target.dataset && e.target.dataset.bgop && doc.bg) { doc.bg.op = +e.target.value; save(); draw(); }
@@ -1231,7 +1233,9 @@
   /* ---------- janelas ---------- */
   function openModal(title, html) { el.mt.textContent = title; el.mb.innerHTML = html; el.modal.classList.remove('hidden'); }
   function closeModal() { el.modal.classList.add('hidden'); }
-  function fileBtn(forId, label, cls) { return '<label class="ui-btn ' + (cls || '') + '" for="' + forId + '">' + esc(T(label)) + '</label>'; }
+  /* o input de arquivo fica por cima do botão (toque direto nele): funciona também no app do Claude no Android */
+  function pickIn(k) { return '<input type="file" accept="image/*" class="cad-over" data-pick="' + k + '">'; }
+  function fileBtn(forId, label, cls) { return '<span class="ui-btn cad-pickw ' + (cls || '') + '">' + esc(T(label)) + pickIn(forId === 'cadBgImg' ? 'bg' : 'ag') + '</span>'; }
   function btn(a, label, cls, extra) { return '<button type="button" class="ui-btn ' + (cls || '') + '" data-a="' + a + '"' + (extra || '') + '>' + esc(T(label)) + '</button>'; }
   function openMenu() {
     openModal(T('Opções'), '<div class="cad-menu">' +
@@ -1634,7 +1638,7 @@
       '<div class="cad-chat" id="cadChat"></div>' +
       (ready ? '' : '<p class="cad-hint cad-warn">' + esc(T('O assistente ainda não está configurado. Configure em Perfil > Configurações (chave da API ou proxy).')) + '</p>') +
       '<div class="cad-att hidden" id="cadAtt"></div>' +
-      '<div class="cad-cin"><label class="cad-b cad-cam" for="cadImg" aria-label="Foto">📷</label><textarea id="cadMsg" rows="2" placeholder="' + esc(T('Ex.: disco Ø300 com furo central Ø80 e 8 furos Ø12 no PCD 240')) + '"></textarea><button type="button" class="ui-btn primary" data-a="agsend" id="cadSend">' + esc(T('Enviar')) + '</button></div>');
+      '<div class="cad-cin"><span class="cad-b cad-cam cad-pickw" aria-label="Foto">📷' + pickIn('ag') + '</span><textarea id="cadMsg" rows="2" placeholder="' + esc(T('Ex.: disco Ø300 com furo central Ø80 e 8 furos Ø12 no PCD 240')) + '"></textarea><button type="button" class="ui-btn primary" data-a="agsend" id="cadSend">' + esc(T('Enviar')) + '</button></div>');
     renderChat();
     var ta = el.full.querySelector('#cadMsg');
     ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !/Android|iPhone|iPad/i.test(navigator.userAgent)) { e.preventDefault(); agentSend(); } });
@@ -1661,7 +1665,7 @@
   }
   function showAttach() {
     var a = el.full.querySelector('#cadAtt'); if (!a) return;
-    a.innerHTML = '<img src="' + attach + '" alt=""><span>' + esc(T('Foto anexada')) + '</span><label class="cad-b cad-cam" for="cadImg" aria-label="Trocar foto">↻</label><button type="button" class="cad-b" data-a="agnophoto" aria-label="Tirar foto">✕</button>';
+    a.innerHTML = '<img src="' + attach + '" alt=""><span>' + esc(T('Foto anexada')) + '</span><span class="cad-b cad-cam cad-pickw" aria-label="Trocar foto">↻' + pickIn('ag') + '</span><button type="button" class="cad-b" data-a="agnophoto" aria-label="Tirar foto">✕</button>';
     a.classList.remove('hidden');
   }
   function agentAttach(src) { attach = src; if (!agentOpen) openAgent(); else showAttach(); }

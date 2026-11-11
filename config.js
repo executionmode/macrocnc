@@ -3,7 +3,7 @@
  * Assim, quem instalar o app já usa o assistente sem configurar nada.
  */
 window.APP_CONFIG = {
-  version: '3.12.1',
+  version: '3.12.2',
   proxyUrl: '',                 // ex.: 'https://macro-cnc-proxy.seunome.workers.dev'
   model: 'claude-sonnet-5-5',
   maxTokens: 8000,
