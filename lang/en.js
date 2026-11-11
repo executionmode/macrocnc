@@ -516,5 +516,17 @@ I18N.add({
   "meio em cima": "top middle",
   "canto direito em cima": "top right corner",
   "Profundidade de cada elemento (vazio = passante)": "Depth of each element (empty = through)",
-  "passante": "through"
+  "passante": "through",
+  "CORTE": "SECTION",
+  "Título": "Title",
+  "Data": "Date",
+  "Espessura": "Thickness",
+  "Folha": "Sheet",
+  "Conferido": "Checked",
+  "Aprovado": "Approved",
+  "Passante": "Through",
+  "Rebaixo (prof. mm)": "Pocket (depth mm)",
+  "Chanfro até a borda (ângulo °)": "Chamfer to the edge (angle °)",
+  "largura": "width",
+  "altura": "height"
 });

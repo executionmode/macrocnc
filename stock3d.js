@@ -151,13 +151,14 @@
 
   /* ---------- desenho ---------- */
   function render(canvas, st, view, showTool) {
-    var dpr = window.devicePixelRatio || 1;
-    var W = canvas.clientWidth || 800, H = Math.round(W * 0.75);
+    var prn = !!view.print;   // folha para imprimir: fundo branco, peça cinza uniforme, sem legenda
+    var dpr = prn ? 1 : (window.devicePixelRatio || 1);
+    var W = view.W || canvas.clientWidth || 800, H = view.H || Math.round(W * 0.75);
     if (canvas.width !== W * dpr || canvas.height !== H * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
     var c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
     var pal = view.pal === 'green';   // cores de simulação do comando (bloco verde, corte cinza) — usado nos vídeos
     var g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, pal ? '#3b3f45' : '#1b2733'); g.addColorStop(1, pal ? '#1c1e22' : '#0b1015');
-    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.fillStyle = prn ? '#ffffff' : g; c.fillRect(0, 0, W, H);
 
     var az = view.az * Math.PI / 180, el = view.el * Math.PI / 180;
     var ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
@@ -196,8 +197,9 @@
     function S(x, y, z) { var q = P(x, y, z); return [ox + q[0] * sc, oy + q[1] * sc]; }
     function wall(xa, ya, za, xb, yb, zb, shade) {
       var a = S(xa, ya, za), b = S(xb, yb, zb), b2 = S(xb, yb, bottom), a2 = S(xa, ya, bottom);
-      c.fillStyle = pal ? 'rgb(' + Math.round(28 * shade) + ',' + Math.round(150 * shade) + ',' + Math.round(30 * shade) + ')' : 'rgb(' + Math.round(70 * shade) + ',' + Math.round(78 * shade) + ',' + Math.round(88 * shade) + ')';
+      c.fillStyle = prn ? 'rgb(' + Math.round(120 * shade) + ',' + Math.round(126 * shade) + ',' + Math.round(134 * shade) + ')' : pal ? 'rgb(' + Math.round(28 * shade) + ',' + Math.round(150 * shade) + ',' + Math.round(30 * shade) + ')' : 'rgb(' + Math.round(70 * shade) + ',' + Math.round(78 * shade) + ',' + Math.round(88 * shade) + ')';
       c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(b2[0], b2[1]); c.lineTo(a2[0], a2[1]); c.closePath(); c.fill();
+      if (prn) { c.strokeStyle = c.fillStyle; c.lineWidth = 1.2; c.stroke(); }
     }
     // a fresa entra na ordem de desenho pela profundidade: o material na frente dela (parede do furo) a esconde
     var toolPending = !!(showTool && st.tool), toolDep = 0;
@@ -284,7 +286,8 @@
       var lum = Math.max(0, (-dzx * Lw[0] - dzy * Lw[1] + Lw[2]) / nl);
       var h0 = st.h0, hm = (h00 + h10 + h01 + h11) / 4, hb = (h0[k] + h0[k + 1] + h0[k + nx] + h0[k + nx + 1]) / 4, cut = hm < hb - 0.01;
       var f = 0.28 + 0.72 * lum, R, Gc, B;
-      if (pal) { if (cut) { R = 178; Gc = 182; B = 188; } else { R = 52; Gc = 205; B = 52; } }
+      if (prn) { R = 196; Gc = 200; B = 206; }
+      else if (pal) { if (cut) { R = 178; Gc = 182; B = 188; } else { R = 52; Gc = 205; B = 52; } }
       else if (cut) { var dz = Math.min(1, (top - hm) / zr); R = 120 + 80 * dz; Gc = 170 - 10 * dz; B = 215 - 120 * dz; }
       else { R = 160; Gc = 166; B = 174; }
       c.fillStyle = 'rgb(' + Math.round(R * f) + ',' + Math.round(Gc * f) + ',' + Math.round(B * f) + ')';
@@ -298,7 +301,7 @@
       var p = S(cl.x, cl.y, cl.z); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(p[0], p[1], 6, 0, 7); c.fill();
     });
     c.fillStyle = '#94a3b3'; c.font = '11px system-ui';
-    if (st.label !== '') c.fillText(st.label != null ? st.label : (window.T || String)('1 dedo gira · 2 dedos zoom e move · fresa ' + (Math.round(st.D * 100) / 100) + ' mm · bruto no topo Z' + st.top), 10, H - 8);
+    if (st.label !== '' && !prn) c.fillText(st.label != null ? st.label : (window.T || String)('1 dedo gira · 2 dedos zoom e move · fresa ' + (Math.round(st.D * 100) / 100) + ' mm · bruto no topo Z' + st.top), 10, H - 8);
   }
 
   root.Stock3D = { build: build, advance: advance, render: render };

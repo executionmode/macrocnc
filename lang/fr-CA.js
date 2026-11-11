@@ -516,5 +516,17 @@ I18N.add({
   "meio em cima": "milieu en haut",
   "canto direito em cima": "coin en haut à droite",
   "Profundidade de cada elemento (vazio = passante)": "Profondeur de chaque élément (vide = débouchant)",
-  "passante": "débouchant"
+  "passante": "débouchant",
+  "CORTE": "COUPE",
+  "Título": "Titre",
+  "Data": "Date",
+  "Espessura": "Épaisseur",
+  "Folha": "Feuille",
+  "Conferido": "Vérifié",
+  "Aprovado": "Approuvé",
+  "Passante": "Débouchant",
+  "Rebaixo (prof. mm)": "Lamage (prof. mm)",
+  "Chanfro até a borda (ângulo °)": "Chanfrein jusqu’au bord (angle °)",
+  "largura": "largeur",
+  "altura": "hauteur"
 });

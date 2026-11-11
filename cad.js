@@ -477,7 +477,16 @@
     if (e.target.id === 'cadImg' && e.target.files[0]) { readImage(e.target.files[0], 1568, function (src) { agentAttach(src); }); e.target.value = ''; }
     if (e.target.id === 'cadBgImg' && e.target.files[0]) { readImage(e.target.files[0], 1600, function (src) { setBg(src); }); e.target.value = ''; }
     if (e.target.dataset && e.target.dataset.bgop && doc.bg) { doc.bg.op = +e.target.value; save(); draw(); }
-    if (e.target.dataset && e.target.dataset.prof3d != null) { var en = doc.ents[+e.target.dataset.prof3d], pv = num(e.target.value); if (en) { if (pv > 0) en.prof = pv; else delete en.prof; save(); draw(); render3D(true); } }
+    if (e.target.dataset && (e.target.dataset.kind3d != null || e.target.dataset.val3d != null)) {
+      var ix = +(e.target.dataset.kind3d != null ? e.target.dataset.kind3d : e.target.dataset.val3d), en = doc.ents[ix];
+      var row = e.target.closest('.cad-dli'), kd = row.querySelector('select').value, pv = num(row.querySelector('input').value);
+      if (en) {
+        delete en.prof; delete en.cham;
+        if (kd === 'prof') { if (!(pv > 0)) pv = 5; en.prof = pv; }
+        if (kd === 'cham') { if (!(pv > 0 && pv < 90)) pv = 30; en.cham = pv; }
+        save(); draw(); render3D(true); refreshDepth();
+      }
+    }
     if (e.target.dataset && e.target.dataset.esp != null) { var v = num(e.target.value); if (v > 0) { doc.esp = v; save(); render3D(true); } }
   }
 
@@ -1413,10 +1422,92 @@
     draw();
     return c;
   }
-  function exportPNG() { var c = renderSheet(2400, 1697); c.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); }
+  /* folha A4 em pé no padrão de desenho técnico: moldura, legenda, vista de cima com cotas,
+     cortes A-A e B-B tirados do 3D e a peça em 3D (isométrica) */
+  function renderA4(PW, PH) {
+    var st = build3D(); if (!st) return null;
+    var c = document.createElement('canvas'); c.width = PW; c.height = PH;
+    var g = c.getContext('2d'), k = PW / 1000, m = 28 * k;
+    g.fillStyle = '#fff'; g.fillRect(0, 0, PW, PH);
+    var nx = st.nx, ny = st.ny, cell = st.cell, x0 = st.x0, y0 = st.y0, esp = st.top - st.bottom;
+    var bx0 = st.ob[0], by0 = st.ob[1], bx1 = st.ob[2], by1 = st.ob[3];
+    var pcx = (bx0 + bx1) / 2, pcy = (by0 + by1) / 2, pw = bx1 - bx0, ph = by1 - by0;
+    // regiões
+    var tbH = 110 * k, inner = { x: m, y: m, w: PW - 2 * m, h: PH - 2 * m - tbH };
+    var topR = { x: inner.x + 10 * k, y: inner.y + inner.h * 0.33, w: inner.w * 0.58, h: inner.h * 0.38 };
+    var isoR = { x: inner.x + inner.w * 0.42, y: inner.y + 10 * k, w: inner.w * 0.57, h: inner.h * 0.34 };
+    var secA = { x: topR.x, y: inner.y + inner.h * 0.71, w: inner.w * 0.56, h: inner.h * 0.28 };
+    var secB = { x: inner.x + inner.w * 0.58, y: secA.y, w: inner.w * 0.41, h: secA.h };
+    // vista de cima: mesmo desenho da tela, com cotas, numa escala comum
+    var sv = { ctx: ctx, W: W, H: H, dpr: dpr, view: view, COL: COL, pxk: pxk, sel: sel, ghost: ghost, hover: hover, snapHit: snapHit }, topView;
+    var tc = document.createElement('canvas'); tc.width = Math.round(topR.w); tc.height = Math.round(topR.h);
+    try {
+      ctx = tc.getContext('2d'); W = tc.width; H = tc.height; dpr = 1; COL = COL_PRINT; printMode = true; pxk = PW / 1150; sel = null; ghost = null; hover = null; snapHit = null;
+      view = { cx: 0, cy: 0, s: 1 }; fitTo(doc.ents.filter(vis), 40 * k);
+      var sMax = Math.min((secA.w - 90 * k) / pw, (secA.h - 110 * k) / Math.max(esp, 1), (secB.w - 90 * k) / ph);
+      if (view.s > sMax) view.s = sMax;
+      paint(); topView = { s: view.s, cx: view.cx, cy: view.cy };
+    } finally {
+      ctx = sv.ctx; W = sv.W; H = sv.H; dpr = sv.dpr; view = sv.view; COL = sv.COL; pxk = sv.pxk; sel = sv.sel; ghost = sv.ghost; hover = sv.hover; snapHit = sv.snapHit; printMode = false;
+    }
+    g.drawImage(tc, topR.x, topR.y);
+    var S = topView.s;
+    function tx(x) { return topR.x + topR.w / 2 + (x - topView.cx) * S; }
+    function ty(y) { return topR.y + topR.h / 2 - (y - topView.cy) * S; }
+    // linhas de corte
+    g.save(); g.strokeStyle = '#c0392b'; g.lineWidth = 1.6 * k; g.setLineDash([22 * k, 6 * k, 4 * k, 6 * k]);
+    g.beginPath(); g.moveTo(tx(bx0) - 24 * k, ty(pcy)); g.lineTo(tx(bx1) + 24 * k, ty(pcy)); g.moveTo(tx(pcx), ty(by1) - 24 * k); g.lineTo(tx(pcx), ty(by0) + 24 * k); g.stroke(); g.restore();
+    g.fillStyle = '#111'; g.font = '700 ' + (16 * k) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('A', tx(bx0) - 34 * k, ty(pcy)); g.fillText('A', tx(bx1) + 34 * k, ty(pcy));
+    g.fillText('B', tx(pcx), ty(by1) - 34 * k); g.fillText('B', tx(pcx), ty(by0) + 34 * k);
+    // corte: perfil do mapa de alturas ao longo de uma linha
+    function section(R, along, title) {
+      var n = along === 'x' ? nx : ny, fix = along === 'x' ? Math.round((pcy - y0) / cell) : Math.round((pcx - x0) / cell);
+      var a0 = along === 'x' ? bx0 : by0, len = along === 'x' ? pw : ph;
+      var ox = R.x + R.w / 2 - len / 2 * S, base = R.y + R.h - 50 * k;
+      function hz(t) { var kk = along === 'x' ? fix * nx + t : t * nx + fix; return st.inside[kk] ? st.h[kk] : null; }
+      function X(t) { return ox + Math.max(0, Math.min(len, (along === 'x' ? x0 : y0) + t * cell - a0)) * S; }
+      function Z(z) { return base - (z - st.bottom) * S; }
+      var runs = [], cur = null;
+      for (var t = 0; t < n; t++) { var z = hz(t); if (z != null) { if (!cur) { cur = []; runs.push(cur); } cur.push([X(t), Z(z)]); } else cur = null; }
+      runs.forEach(function (r) {
+        g.beginPath(); g.moveTo(r[0][0], Z(st.bottom)); r.forEach(function (p) { g.lineTo(p[0], p[1]); }); g.lineTo(r[r.length - 1][0], Z(st.bottom)); g.closePath();
+        g.save(); g.clip(); g.strokeStyle = '#555'; g.lineWidth = 1 * k;
+        for (var hh = -R.h; hh < R.w + R.h; hh += 9 * k) { g.beginPath(); g.moveTo(R.x + hh, base + 10 * k); g.lineTo(R.x + hh + R.h, base + 10 * k - R.h); g.stroke(); }
+        g.restore();
+        g.strokeStyle = '#111'; g.lineWidth = 2 * k; g.beginPath(); g.moveTo(r[0][0], Z(st.bottom)); r.forEach(function (p) { g.lineTo(p[0], p[1]); }); g.lineTo(r[r.length - 1][0], Z(st.bottom)); g.closePath(); g.stroke();
+      });
+      // cotas: altura e comprimento
+      g.strokeStyle = '#1f5fbf'; g.fillStyle = '#1f5fbf'; g.lineWidth = 1.2 * k; g.font = '600 ' + (14 * k) + 'px system-ui, sans-serif';
+      var xl = ox - 26 * k, zt = Z(st.top), zb = Z(st.bottom);
+      g.beginPath(); g.moveTo(xl, zt); g.lineTo(xl, zb); g.moveTo(xl - 6 * k, zt); g.lineTo(ox - 4 * k, zt); g.moveTo(xl - 6 * k, zb); g.lineTo(ox - 4 * k, zb); g.stroke();
+      g.save(); g.translate(xl - 12 * k, (zt + zb) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(fmt(esp), 0, 0); g.restore();
+      var yl = base + 26 * k, xa = ox, xb = ox + len * S;
+      g.beginPath(); g.moveTo(xa, yl); g.lineTo(xb, yl); g.moveTo(xa, base + 4 * k); g.lineTo(xa, yl + 6 * k); g.moveTo(xb, base + 4 * k); g.lineTo(xb, yl + 6 * k); g.stroke();
+      g.textAlign = 'center'; g.fillText(fmt(len), (xa + xb) / 2, yl + 14 * k);
+      g.fillStyle = '#111'; g.font = '700 ' + (17 * k) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(title, R.x, Z(st.top) - 26 * k);
+    }
+    section(secA, 'x', T('CORTE') + ' A-A'); section(secB, 'y', T('CORTE') + ' B-B');
+    // peça em 3D (isométrica)
+    var ic = document.createElement('canvas'); ic.width = Math.round(isoR.w); ic.height = Math.round(isoR.h);
+    if (root.Stock3D) { var st2 = build3D(); root.Stock3D.render(ic, st2, { az: -35, el: 32, zoom: 0.95, panX: 0, panY: 0, print: true, W: ic.width, H: ic.height }, false); g.drawImage(ic, isoR.x, isoR.y); }
+    // moldura e legenda
+    g.strokeStyle = '#111'; g.lineWidth = 2.4 * k; g.strokeRect(m, m, PW - 2 * m, PH - 2 * m);
+    var ty0 = PH - m - tbH; g.beginPath(); g.moveTo(m, ty0); g.lineTo(PW - m, ty0); g.stroke();
+    var cols = [0, 0.46, 0.64, 0.82, 1].map(function (f) { return m + f * (PW - 2 * m); });
+    g.lineWidth = 1.4 * k; g.beginPath(); cols.slice(1, 4).forEach(function (x) { g.moveTo(x, ty0); g.lineTo(x, PH - m); }); g.moveTo(cols[1], ty0 + tbH / 2); g.lineTo(PW - m, ty0 + tbH / 2); g.stroke();
+    function cellTxt(x, y, lab, val) { g.textAlign = 'left'; g.fillStyle = '#666'; g.font = '500 ' + (11 * k) + 'px system-ui, sans-serif'; g.fillText(lab, x + 8 * k, y + 14 * k); g.fillStyle = '#111'; g.font = '700 ' + (15 * k) + 'px system-ui, sans-serif'; g.fillText(val, x + 8 * k, y + 36 * k); }
+    g.textBaseline = 'middle';
+    cellTxt(cols[0], ty0, T('Título'), doc.name); cellTxt(cols[0], ty0 + tbH / 2, 'Macro CNC', T('Medidas em mm'));
+    cellTxt(cols[1], ty0, T('Data'), new Date().toLocaleDateString()); cellTxt(cols[2], ty0, T('Espessura'), fmt(esp) + ' mm');
+    cellTxt(cols[3], ty0, T('Folha'), 'A4'); cellTxt(cols[1], ty0 + tbH / 2, T('Desenho'), ''); cellTxt(cols[2], ty0 + tbH / 2, T('Conferido'), ''); cellTxt(cols[3], ty0 + tbH / 2, T('Aprovado'), '');
+    return c;
+  }
+  function exportPNG() { var a4 = renderA4(2480, 3508); if (a4) return a4.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); var c = renderSheet(2400, 1697); c.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); }
   function pdfBytes() {
-    var c = renderSheet(2480, 1754), jpg = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
-    var PWp = 842, PHp = 595, parts = [], offs = [], len = 0;
+    var c = renderA4(2480, 3508), port = !!c; if (!c) c = renderSheet(2480, 1754);
+    var jpg = atob(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+    var PWp = port ? 595 : 842, PHp = port ? 842 : 595, parts = [], offs = [], len = 0;
     function add(s) { parts.push(s); len += s.length; }
     function obj(n, body) { offs[n] = len; add(n + ' 0 obj\n' + body + '\nendobj\n'); }
     add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
@@ -1479,6 +1570,16 @@
     return loops;
   }
   function polyArea(p) { var a = 0; for (var i = 0, j = p.length - 1; i < p.length; j = i++) a += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]); return Math.abs(a / 2); }
+  function distPoly(x, y, sh) {   // distância do ponto até a borda do contorno
+    var e = sh.ent;
+    if (e && e.t === 'circle') return Math.abs(Math.hypot(x - e.x, y - e.y) - e.d / 2);
+    var p = sh.pts, best = Infinity;
+    for (var i = 0, j = p.length - 1; i < p.length; j = i++) {
+      var ax = p[j][0], ay = p[j][1], bx = p[i][0], by = p[i][1], dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)) : 0;
+      best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+    }
+    return best;
+  }
   function inPoly(x, y, p) { var c = false; for (var i = 0, j = p.length - 1; i < p.length; j = i++) { if ((p[i][1] > y) !== (p[j][1] > y) && x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) c = !c; } return c; }
   function shapePoly(e) {
     if (e.t === 'circle') { var p = []; for (var i = 0; i < 96; i++) { var a = i / 96 * 2 * Math.PI; p.push([e.x + e.d / 2 * Math.cos(a), e.y + e.d / 2 * Math.sin(a)]); } return p; }
@@ -1497,6 +1598,9 @@
     shapes.sort(function (a, b) { return b.area - a.area; });
     var outer = shapes[0];
     var inner = shapes.slice(1).filter(function (s) { var p = s.pts[0], q = s.pts[Math.floor(s.pts.length / 2)]; return inPoly(p[0], p[1], outer.pts) || inPoly((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, outer.pts); });
+    // chanfro: a partir deste contorno até a borda da peça, caindo no ângulo dado (medido a partir da face)
+    var chams = inner.filter(function (s) { return s.ent && s.ent.cham > 0; }).map(function (s) { s.tg = Math.tan(Math.min(s.ent.cham, 89) * Math.PI / 180); return s; });
+    inner = inner.filter(function (s) { return !(s.ent && s.ent.cham > 0); });
     var holes = []; doc.ents.forEach(function (e) { if (e.t === 'holes') holePts(e).forEach(function (q) { holes.push([q[0], q[1], e.d / 2, e.prof]); }); });
     var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
     outer.pts.forEach(function (p) { bx0 = Math.min(bx0, p[0]); by0 = Math.min(by0, p[1]); bx1 = Math.max(bx1, p[0]); by1 = Math.max(by1, p[1]); });
@@ -1506,11 +1610,12 @@
       var k = j * nx + i, x = x0 + i * cell, y = y0 + j * cell;
       h0[k] = top; h[k] = top; ins[k] = inPoly(x, y, outer.pts) ? 1 : 0;
       if (!ins[k]) continue;
+      for (var c2 = 0; c2 < chams.length; c2++) { var ch = chams[c2]; if (!inPoly(x, y, ch.pts)) h[k] = Math.min(h[k], top - distPoly(x, y, ch) * ch.tg); }
       for (var s = 0; s < inner.length; s++) { var sh = inner[s]; if (inPoly(x, y, sh.pts)) { var pf = sh.ent && sh.ent.prof; if (pf > 0 && pf < esp) h[k] = Math.min(h[k], top - pf); else { ins[k] = 0; break; } } }
       if (!ins[k]) continue;
       for (var q = 0; q < holes.length; q++) { var ho = holes[q]; if ((x - ho[0]) * (x - ho[0]) + (y - ho[1]) * (y - ho[1]) <= ho[2] * ho[2]) { if (ho[3] > 0 && ho[3] < esp) h[k] = Math.min(h[k], top - ho[3]); else { ins[k] = 0; break; } } }
     }
-    return { exp: null, h0: h0, sim: { zMin: bottom }, D: 0, r: 0, top: top, bottom: bottom, x0: x0, y0: y0, cell: cell, nx: nx, ny: ny, h: h, inside: ins, idx: 0, collisions: [], tool: null, shape: 'rect',
+    return { ob: [bx0, by0, bx1, by1], exp: null, h0: h0, sim: { zMin: bottom }, D: 0, r: 0, top: top, bottom: bottom, x0: x0, y0: y0, cell: cell, nx: nx, ny: ny, h: h, inside: ins, idx: 0, collisions: [], tool: null, shape: 'rect',
       label: T('1 dedo gira · 2 dedos zoom e move') + ' · ' + T('espessura') + ' ' + fmt(esp) + ' mm' };
   }
   function openFull(html) { el.full.innerHTML = html; el.full.classList.remove('hidden'); }
@@ -1538,9 +1643,21 @@
     return '<div class="cad-dl"><b>' + esc(T('Profundidade de cada elemento (vazio = passante)')) + '</b>' + cand.map(function (i) {
       var e = doc.ents[i], n = e.t === 'holes' ? holePts(e).length : 1;
       var nm = e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados');
-      return '<label class="cad-f cad-dli"><span>' + esc(nm) + '</span><input type="text" inputmode="decimal" data-prof3d="' + i + '" placeholder="' + esc(T('passante')) + '" value="' + (e.prof > 0 ? fmt(e.prof) : '') + '"></label>';
+      var kind = e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val = e.cham > 0 ? fmt(e.cham) : e.prof > 0 ? fmt(e.prof) : '';
+      var opts = [['pas', 'Passante'], ['prof', 'Rebaixo (prof. mm)']];
+      if (e.t !== 'holes') opts.push(['cham', 'Chanfro até a borda (ângulo °)']);
+      var info = '';
+      if (kind === 'cham') { var w = chamWidth(e, big); if (w > 0) info = '<small>' + esc(T('largura') + ' ' + fmt(w) + ' · ' + T('altura') + ' ' + fmt(w * Math.tan(e.cham * Math.PI / 180))) + ' mm</small>'; }
+      return '<div class="cad-dli"><span>' + esc(nm) + info + '</span><select data-kind3d="' + i + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === kind ? ' selected' : '') + '>' + esc(T(o[1])) + '</option>'; }).join('') + '</select>' +
+        '<input type="text" inputmode="decimal" data-val3d="' + i + '"' + (kind === 'pas' ? ' disabled' : '') + ' value="' + val + '"></div>';
     }).join('') + '</div>';
   }
+  function chamWidth(e, bigIdx) {   // largura do chanfro: do contorno até a borda da peça (círculos concêntricos)
+    var o = doc.ents[bigIdx]; if (!o || e.t !== 'circle') return 0;
+    if (o.t === 'circle' && Math.hypot(o.x - e.x, o.y - e.y) < 1e-6) return (o.d - e.d) / 2;
+    return 0;
+  }
+  function refreshDepth() { var d = el.full && el.full.querySelector('.cad-dl'); if (d) { var t = document.createElement('div'); t.innerHTML = depthList(); d.parentNode.replaceChild(t.firstChild, d); } }
   function render3D(rebuild) {
     if (!v3) return;
     if (rebuild) { var st = build3D(); if (st) v3.st = st; }
@@ -1611,7 +1728,7 @@
       'Você pode desenhar e mudar o desenho mandando ações. Responda com um texto curto e, se for mexer no desenho, um único bloco ```json com {"actions":[...]} no fim.',
       'Unidades: mm. Ângulos em graus, 0 = para a direita (+X), anti-horário. TODAS as coordenadas das ações e do estado são em relação à origem X0 Y0 do desenho.',
       'Tipos de elemento (campo "t"):',
-      '- circle: x, y (centro), d (diâmetro), prof (opcional: profundidade se for rebaixo; sem prof = passante quando fica dentro da peça).',
+      '- circle: x, y (centro), d (diâmetro), prof (opcional: profundidade se for rebaixo; sem prof = passante quando fica dentro da peça), cham (opcional: ângulo em graus de um chanfro que começa neste círculo e vai até a borda da peça; ex.: face chanfrada a 30°).',
       '- rect: x, y (canto esquerdo de baixo), w (largura em X), h (altura em Y), r (raio nos cantos, 0 = vivo), prof (opcional).',
       '- line: x1, y1, x2, y2.',
       '- arc: x, y (centro), r, a0, a1 (de a0 até a1 no sentido anti-horário, a1 > a0).',
@@ -1757,7 +1874,7 @@
     ['y', 'y1', 'y2'].forEach(function (k) { if (n[k] != null) n[k] = +n[k] + o.y; });
     if (n.pts) n.pts = n.pts.map(function (p) { return [+p[0] + o.x, +p[1] + o.y]; });
     ['p1', 'p2', 'p', 'q'].forEach(function (k) { if (n[k]) n[k] = { x: +n[k].x + o.x, y: +n[k].y + o.y }; });
-    ['d', 'w', 'h', 'r', 'a0', 'a1', 'v', 'ang', 'pcd', 'dist', 'dx', 'dy', 'n', 'nx', 'ny', 'prof'].forEach(function (k) { if (n[k] != null && n[k] !== '') n[k] = +n[k]; });
+    ['d', 'w', 'h', 'r', 'a0', 'a1', 'v', 'ang', 'pcd', 'dist', 'dx', 'dy', 'n', 'nx', 'ny', 'prof', 'cham'].forEach(function (k) { if (n[k] != null && n[k] !== '') n[k] = +n[k]; });
     return n;
   }
   function relEnt(e) {
@@ -1791,6 +1908,7 @@
       else return false;
     }
     if (n.prof != null && !(n.prof > 0)) delete n.prof;
+    if (n.cham != null && !(n.cham > 0 && n.cham < 90)) delete n.cham;
     return true;
   }
   function runActions(acts) {
