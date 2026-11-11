@@ -995,6 +995,32 @@
     doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; prims(e).forEach(function (p, pi) { if (p.k !== 'l') return; var d = distPrim(p, w[0], w[1]); if (d < bd) { bd = d; best = { e: e, pi: pi, p: p, w: w }; } }); });
     return best;
   }
+  /* cotas: furo e círculo sempre pelo centro (nunca pela borda/quadrante) */
+  function centerRef(e, cx, cy) {
+    var S = snapPts(e);
+    for (var i = 0; i < S.length; i++) if (S[i][2] === 'centro' && Math.abs(S[i][0] - cx) < 1e-6 && Math.abs(S[i][1] - cy) < 1e-6) return { x: cx, y: cy, nm: e.t === 'holes' ? 'centro do furo' : 'centro', ref: { id: e.id, i: i }, ent: e };
+    return { x: cx, y: cy, nm: 'centro', ref: null, ent: e };
+  }
+  function dimPick(sx, sy) {
+    var w = toW(sx, sy), tol = (touchMode ? 22 : 12) / view.s, best = null, br = Infinity;
+    doc.ents.forEach(function (e) {
+      if (!vis(e) || e.t === 'dim') return;
+      prims(e).forEach(function (p) {
+        if (p.k !== 'c' || p.cl) return;
+        var d = Math.hypot(w[0] - p.x, w[1] - p.y);
+        // dentro do furo/círculo pequeno, ou em cima da borda dele
+        if ((d <= p.r + tol && (e.t === 'holes' || p.r * view.s < 60)) || Math.abs(d - p.r) <= tol) { if (p.r < br) { br = p.r; best = { e: e, x: p.x, y: p.y }; } }
+      });
+    });
+    if (best) return centerRef(best.e, best.x, best.y);
+    var q = pickPoint(sx, sy);
+    if (q.ent && (q.nm === 'quadrante' || q.nm === 'no furo' || q.nm === 'no círculo') && q.prim !== undefined) {
+      var c = null; prims(q.ent).forEach(function (pp) { if (pp.k === 'c' && !pp.cl && Math.abs(Math.hypot(q.x - pp.x, q.y - pp.y) - pp.r) < 1e-3) c = pp; });
+      if (c) return centerRef(q.ent, c.x, c.y);
+    }
+    if (q.ent && q.nm === 'quadrante') { var S = snapPts(q.ent), cc = null; S.forEach(function (t) { if (t[2] === 'centro' && Math.abs(Math.hypot(q.x - t[0], q.y - t[1]) - (q.ent.d || 0) / 2) < 1e-3) cc = t; }); if (cc) return centerRef(q.ent, cc[0], cc[1]); }
+    return q;
+  }
   function ptRef(p) { return { x: p.x, y: p.y, ref: p.ref || null, nm: p.nm || null, ent: p.ent || null, prim: p.prim || null }; }
   function cleanPt(p) { return { x: p.x, y: p.y, ref: p.ref || null }; }
   function addDim(d) { d.t = 'dim'; d.id = uid(); doc.ents.push(d); return d; }
@@ -1164,7 +1190,7 @@
     var dk = vals.dk, p;
     if (dk === 'lin') {
       if (picks.length < 2) {
-        p = pickPoint(sx, sy); picks.push(ptRef(p)); draw();
+        p = dimPick(sx, sy); picks.push(ptRef(p)); draw();
         toast((picks.length === 1 ? T('1º ponto') : T('2º ponto')) + ': ' + T(p.nm || 'ponto livre') + '. ' + T(picks.length === 1 ? 'Toque no 2º ponto.' : 'Toque onde a cota vai ficar.'));
         return;
       }
@@ -1186,7 +1212,7 @@
       addDim({ k: 'ang', l1: { ref: { id: a.e.id, pi: a.pi }, x1: a.p.x1, y1: a.p.y1, x2: a.p.x2, y2: a.p.y2 }, l2: { ref: { id: b.e.id, pi: b.pi }, x1: b.p.x1, y1: b.p.y1, x2: b.p.x2, y2: b.p.y2 }, t1: a.w, t2: b.w, rr: Math.hypot(w3[0] - I[0], w3[1] - I[1]) });
       picks = []; save(); toast(T('Cota criada.')); draw(); return;
     }
-    if (dk === 'ord') { p = pickPoint(sx, sy); flashPick(p); pushUndo(); addDim({ k: 'ord', p: cleanPt(p) }); save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); }
+    if (dk === 'ord') { p = dimPick(sx, sy); flashPick(p); pushUndo(); addDim({ k: 'ord', p: cleanPt(p) }); save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); }
   }
 
   function bindPointer() {
@@ -1236,7 +1262,7 @@
   function clampS(s) { return Math.max(0.005, Math.min(400, s)); }
   function hoverAt(sx, sy) {
     var noSnap = (tool === 'select' && !mode2) || editing || mode2 || tool === 'fillet';
-    var p = noSnap ? null : pickPoint(sx, sy);
+    var p = noSnap ? null : (tool === 'dim' && (vals.dk === 'lin' || vals.dk === 'ord') && !(vals.dk === 'lin' && picks.length >= 2)) ? dimPick(sx, sy) : pickPoint(sx, sy);
     snapHit = p && p.nm ? p : null;
     var w = p ? [p.x, p.y] : toW(sx, sy), r = rel(w[0], w[1]);
     hover = { x: w[0], y: w[1] };

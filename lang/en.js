@@ -583,5 +583,6 @@ I18N.add({
   "Digite o ângulo.": "Type the angle.",
   "Toque nos elementos que quer girar.": "Tap the elements you want to rotate.",
   "Girado": "Rotated",
-  "Toque no centro do giro": "Tap the pivot point"
+  "Toque no centro do giro": "Tap the pivot point",
+  "centro do furo": "hole center"
 });
