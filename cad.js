@@ -509,6 +509,7 @@
       if (t === 'xf' && s[0] === 'alvo' && !editing) return;
       h += '<div class="cad-seg">' + s[1].map(function (o) { return '<button type="button" data-seg="' + s[0] + '" data-v="' + o[0] + '" class="' + (vals[s[0]] === o[0] ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>';
     });
+    if (ORG_TOOLS[t] && !(t === 'holes' && vals.mode === 'lista')) h += orgChooser(t);
     var ff = fieldsOf(t);
     if (ff.length) {
       h += '<div class="cad-fields">';
@@ -610,6 +611,33 @@
     Object.keys(v).forEach(function (k) { if (typeof v[k] === 'number') v[k] = fmt(v[k]); });
     return v;
   }
+  /* origem escolhida na criação da figura */
+  var ORG_TOOLS = { rect: 'grid', circle: 'c', poly: 'c', arc: 'c', holes: 'c' };
+  var ORG_NAMES = { bl: 'canto esquerdo embaixo', bc: 'meio embaixo', br: 'canto direito embaixo', ml: 'meio esquerdo', mc: 'centro', mr: 'meio direito', tl: 'canto esquerdo em cima', tc: 'meio em cima', tr: 'canto direito em cima', c: 'centro' };
+  function orgChooser(t) {
+    var v = vals.org || 'keep', h = '<div class="cad-org"><span>' + esc(T('Origem')) + ':</span>';
+    h += '<button type="button" data-seg="org" data-v="keep" class="cad-org-keep' + (v === 'keep' ? ' on' : '') + '">' + esc(T('Não mudar')) + '</button>';
+    if (ORG_TOOLS[t] === 'grid') {
+      h += '<div class="cad-org-grid">' + ['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'].map(function (k) { return '<button type="button" data-seg="org" data-v="' + k + '" class="' + (v === k ? 'on' : '') + '" aria-label="' + esc(T(ORG_NAMES[k])) + '"><i></i></button>'; }).join('') + '</div>';
+    } else h += '<button type="button" data-seg="org" data-v="c" class="cad-org-keep' + (v === 'c' ? ' on' : '') + '">' + esc(T('No centro')) + '</button>';
+    if (v !== 'keep') h += '<small>' + esc(T('nova origem')) + ': ' + esc(T(ORG_NAMES[v])) + '</small>';
+    return h + '</div>';
+  }
+  function orgPoint(e, k) {
+    if (!e || !k || k === 'keep') return null;
+    if (e.t === 'rect') { var col = k[1], row = k[0]; return [e.x + (col === 'l' ? 0 : col === 'c' ? e.w / 2 : e.w), e.y + (row === 'b' ? 0 : row === 'm' ? e.h / 2 : e.h)]; }
+    return [e.x, e.y];
+  }
+  function moveOrigin(e) {
+    var k = vals.org, p = orgPoint(e, k); if (!p) return '';
+    doc.origin = { x: p[0], y: p[1] }; vals.org = 'keep';
+    return T('Origem posta') + ': ' + T(ORG_NAMES[k] || 'centro') + '.';
+  }
+  function refreshPos(e) {   // campos X/Y passam a mostrar a figura em relação à nova origem
+    var o = doc.origin, x = e.x, y = e.y;
+    if (e.t === 'rect' && vals.ref === 'centro') { x += e.w / 2; y += e.h / 2; }
+    vals.x = fmt(x - o.x); vals.y = fmt(y - o.y);
+  }
   function preview() {
     ghost = null;
     var t = formKey();
@@ -637,10 +665,15 @@
     var r = entFromVals(t); if (r.err) return toast(r.err);
     pushUndo();
     if (editing) {
-      r.e.id = editing.id; var i = doc.ents.indexOf(editing); doc.ents[i] = r.e; editing = r.e; sel = r.e; save(); toast(T('Alterado.')); renderPanel(); preview(); return;
+      r.e.id = editing.id; var i = doc.ents.indexOf(editing); doc.ents[i] = r.e; editing = r.e; sel = r.e;
+      var om2 = moveOrigin(r.e); save(); toast(T('Alterado.') + (om2 ? ' ' + om2 : ''));
+      if (om2) vals = valsFromEnt(r.e);
+      renderPanel(); preview(); return;
     }
-    r.e.id = uid(); doc.ents.push(r.e); save();
-    toast(t === 'holes' ? holePts(r.e).length + ' ' + T('furo(s) adicionado(s).') : T('Adicionado.'));
+    r.e.id = uid(); doc.ents.push(r.e);
+    var om = moveOrigin(r.e); save();
+    toast((t === 'holes' ? holePts(r.e).length + ' ' + T('furo(s) adicionado(s).') : T('Adicionado.')) + (om ? ' ' + om : ''));
+    if (om) { refreshPos(r.e); renderPanel(); }
     if (t === 'line') { var o = doc.origin; setField('x1', r.e.x2 - o.x); setField('y1', r.e.y2 - o.y); picks = [1]; }
     if (t === 'arc' && vals.modo === 'p3') picks = [];
     preview();
@@ -1131,7 +1164,11 @@
     // elementos
     doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; if (e === editing && ghost) return; drawEnt(e, e === sel ? COL.sel : null); });
     doc.ents.forEach(function (e) { if (!vis(e) || e.t !== 'dim') return; drawDim(e, e === sel ? COL.sel : COL.dim); });
-    if (ghost && !printMode) { if (!editing) ctx.setLineDash([6, 4]); drawEnt(ghost, editing ? COL.sel : COL.ghost); ctx.setLineDash([]); }
+    if (ghost && !printMode) {
+      if (!editing) ctx.setLineDash([6, 4]); drawEnt(ghost, editing ? COL.sel : COL.ghost); ctx.setLineDash([]);
+      var op = orgPoint(ghost, vals.org);
+      if (op) { var q = toS(op[0], op[1]); ctx.strokeStyle = COL.pick; ctx.fillStyle = COL.pick; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(q[0], q[1], 8, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.arc(q[0], q[1], 8, -Math.PI / 2, 0); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.arc(q[0], q[1], 8, Math.PI / 2, Math.PI); ctx.closePath(); ctx.fill(); ctx.font = '600 11px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(T('nova origem'), q[0] + 11, q[1] - 10); }
+    }
     if (!printMode) drawPicks();
     // símbolo da origem
     var rO = 7 * pxk;

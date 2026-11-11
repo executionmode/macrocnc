@@ -364,3 +364,11 @@ body.cadmode { overflow: hidden; overscroll-behavior: none; }
 .cad-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; left: 0; top: 0; }
 .cad-cam { cursor: pointer; font-size: 20px; }
 label.ui-btn { cursor: pointer; text-align: center; }
+.cad-org { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 10px; font-size: 13px; color: var(--ui-mut); }
+.cad-org small { flex-basis: 100%; color: #ff9a6b; }
+.cad-org-keep { border: 1px solid var(--ui-line2); background: #0c1626; color: #c8d4e4; border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.cad-org-keep.on { background: var(--ui-blue2); border-color: var(--ui-blue); color: #fff; }
+.cad-org-grid { display: grid; grid-template-columns: repeat(3, 30px); gap: 2px; padding: 3px; border: 1.5px solid #8fa3bd; border-radius: 4px; }
+.cad-org-grid button { width: 30px; height: 24px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.cad-org-grid i { width: 8px; height: 8px; border-radius: 50%; background: #3d5272; }
+.cad-org-grid button.on i { width: 13px; height: 13px; background: #ff7a45; box-shadow: 0 0 0 3px rgba(255,122,69,.3); }

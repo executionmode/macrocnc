@@ -503,5 +503,16 @@ I18N.add({
   "no furo": "sur le trou",
   "ponto livre": "point libre",
   "1º": "1er",
-  "2º": "2e"
+  "2º": "2e",
+  "Não mudar": "Ne pas changer",
+  "No centro": "Au centre",
+  "nova origem": "nouvelle origine",
+  "canto esquerdo embaixo": "coin en bas à gauche",
+  "meio embaixo": "milieu en bas",
+  "canto direito embaixo": "coin en bas à droite",
+  "meio esquerdo": "milieu gauche",
+  "meio direito": "milieu droit",
+  "canto esquerdo em cima": "coin en haut à gauche",
+  "meio em cima": "milieu en haut",
+  "canto direito em cima": "coin en haut à droite"
 });

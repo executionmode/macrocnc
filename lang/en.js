@@ -503,5 +503,16 @@ I18N.add({
   "no furo": "on hole",
   "ponto livre": "free point",
   "1º": "1st",
-  "2º": "2nd"
+  "2º": "2nd",
+  "Não mudar": "Keep",
+  "No centro": "At center",
+  "nova origem": "new origin",
+  "canto esquerdo embaixo": "bottom left corner",
+  "meio embaixo": "bottom middle",
+  "canto direito embaixo": "bottom right corner",
+  "meio esquerdo": "left middle",
+  "meio direito": "right middle",
+  "canto esquerdo em cima": "top left corner",
+  "meio em cima": "top middle",
+  "canto direito em cima": "top right corner"
 });
