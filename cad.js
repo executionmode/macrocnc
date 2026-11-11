@@ -397,7 +397,7 @@
       '<div class="cad-tools">' + TOOLS.map(function (t) { return '<button type="button" data-tool="' + t[0] + '">' + ic(t[2]) + '<span>' + t[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="cad-modal hidden" id="cadModal"><div class="cad-mbox"><div class="cad-mhead"><h2 id="cadMTitle"></h2><button type="button" class="cad-b" data-a="mclose" aria-label="Fechar">✕</button></div><div id="cadMBody"></div></div></div>' +
       '<div class="cad-full hidden" id="cadFull"></div><div class="cad-ask hidden" id="cadAsk"></div>' +
-      '<input type="file" id="cadImg" accept="image/*" class="hidden"><input type="file" id="cadBgImg" accept="image/*" class="hidden">';
+      '<input type="file" id="cadImg" accept="image/*" class="cad-file" tabindex="-1"><input type="file" id="cadBgImg" accept="image/*" class="cad-file" tabindex="-1">';
     el.host = host; el.cv = host.querySelector('#cadCv'); ctx = el.cv.getContext('2d');
     el.xy = host.querySelector('#cadXY'); el.panel = host.querySelector('#cadPanel'); el.name = host.querySelector('#cadName');
     el.undo = host.querySelector('[data-a=undo]'); el.redo = host.querySelector('[data-a=redo]');
@@ -465,6 +465,7 @@
     bgdel: function () { pushUndo(); delete doc.bg; bgImg = null; save(); closeModal(); draw(); },
     bgai: function () { closeModal(); if (doc.bg) agentSendPhoto(doc.bg.src); },
     agent: function () { openAgent(); }, agsend: function () { agentSend(); }, agphoto: function () { el.host.querySelector('#cadImg').click(); },
+    agnophoto: function () { attach = null; var a = el.full.querySelector('#cadAtt'); if (a) a.classList.add('hidden'); },
     agstop: function () { if (agentBusy) agentBusy.abort(); },
     agapply: function (a) { applyPending(a.dataset.i); }, agcancel: function (a) { cancelPending(a.dataset.i); },
     agclear: function () { doc.chat = []; save(); renderChat(); },
@@ -1145,6 +1146,7 @@
   /* ---------- janelas ---------- */
   function openModal(title, html) { el.mt.textContent = title; el.mb.innerHTML = html; el.modal.classList.remove('hidden'); }
   function closeModal() { el.modal.classList.add('hidden'); }
+  function fileBtn(forId, label, cls) { return '<label class="ui-btn ' + (cls || '') + '" for="' + forId + '">' + esc(T(label)) + '</label>'; }
   function btn(a, label, cls, extra) { return '<button type="button" class="ui-btn ' + (cls || '') + '" data-a="' + a + '"' + (extra || '') + '>' + esc(T(label)) + '</button>'; }
   function openMenu() {
     openModal(T('Opções'), '<div class="cad-menu">' +
@@ -1231,9 +1233,9 @@
   }
   function openBg() {
     var h;
-    if (!doc.bg) h = '<p class="cad-hint">' + esc(T('Ponha a foto de um desenho atrás da tela para copiar por cima, ou mande o agente ler as medidas e desenhar.')) + '</p><div class="cad-menu">' + btn('bgpick', 'Escolher ou tirar foto', 'primary') + btn('agent', 'Agente: ler foto e desenhar') + '</div>';
+    if (!doc.bg) h = '<p class="cad-hint">' + esc(T('Ponha a foto de um desenho atrás da tela para copiar por cima, ou mande o agente ler as medidas e desenhar.')) + '</p><div class="cad-menu">' + fileBtn('cadBgImg', 'Escolher ou tirar foto', 'primary') + btn('agent', 'Agente: ler foto e desenhar') + '</div>';
     else h = '<p class="cad-hint">' + esc(T('1) Calibre: toque em 2 pontos da foto e digite a distância real. 2) Toque no ponto da foto que é o zero da peça.')) + '</p><div class="cad-menu">' +
-      btn('bgcal', 'Calibrar (2 pontos)', 'primary') + btn('bgzero', 'Pôr o zero da foto na origem') + btn('bgai', 'Agente: ler esta foto e desenhar') + btn('bgpick', 'Trocar foto') + btn('bgdel', 'Tirar a foto', 'danger') + '</div>' +
+      btn('bgcal', 'Calibrar (2 pontos)', 'primary') + btn('bgzero', 'Pôr o zero da foto na origem') + btn('bgai', 'Agente: ler esta foto e desenhar') + fileBtn('cadBgImg', 'Trocar foto') + btn('bgdel', 'Tirar a foto', 'danger') + '</div>' +
       '<label class="cad-f wide"><span>' + esc(T('Transparência')) + '</span><input type="range" min="0.1" max="1" step="0.05" data-bgop="1" value="' + (doc.bg.op == null ? 0.5 : doc.bg.op) + '"></label>';
     openModal(T('Foto de fundo'), h);
   }
@@ -1538,10 +1540,14 @@
       '<div class="cad-chat" id="cadChat"></div>' +
       (ready ? '' : '<p class="cad-hint cad-warn">' + esc(T('O assistente ainda não está configurado. Configure em Perfil > Configurações (chave da API ou proxy).')) + '</p>') +
       '<div class="cad-att hidden" id="cadAtt"></div>' +
-      '<div class="cad-cin"><button type="button" class="cad-b" data-a="agphoto" aria-label="Foto">📷</button><textarea id="cadMsg" rows="2" placeholder="' + esc(T('Ex.: disco Ø300 com furo central Ø80 e 8 furos Ø12 no PCD 240')) + '"></textarea><button type="button" class="ui-btn primary" data-a="agsend" id="cadSend">' + esc(T('Enviar')) + '</button></div>');
+      '<div class="cad-cin"><label class="cad-b cad-cam" for="cadImg" aria-label="Foto">📷</label><textarea id="cadMsg" rows="2" placeholder="' + esc(T('Ex.: disco Ø300 com furo central Ø80 e 8 furos Ø12 no PCD 240')) + '"></textarea><button type="button" class="ui-btn primary" data-a="agsend" id="cadSend">' + esc(T('Enviar')) + '</button></div>');
     renderChat();
     var ta = el.full.querySelector('#cadMsg');
     ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !/Android|iPhone|iPad/i.test(navigator.userAgent)) { e.preventDefault(); agentSend(); } });
+    ta.addEventListener('paste', function (e) {   // colar a imagem direto na caixa de mensagem
+      var items = (e.clipboardData && e.clipboardData.items) || [];
+      for (var i = 0; i < items.length; i++) if (items[i].kind === 'file' && /^image\//.test(items[i].type)) { e.preventDefault(); readImage(items[i].getAsFile(), 1568, function (src) { agentAttach(src); }); return; }
+    });
     if (attach) showAttach();
   }
   function renderChat() {
@@ -1561,7 +1567,7 @@
   }
   function showAttach() {
     var a = el.full.querySelector('#cadAtt'); if (!a) return;
-    a.innerHTML = '<img src="' + attach + '" alt=""><span>' + esc(T('Foto anexada')) + '</span><button type="button" class="cad-b" data-a="agphoto" aria-label="Trocar foto">↻</button>';
+    a.innerHTML = '<img src="' + attach + '" alt=""><span>' + esc(T('Foto anexada')) + '</span><label class="cad-b cad-cam" for="cadImg" aria-label="Trocar foto">↻</label><button type="button" class="cad-b" data-a="agnophoto" aria-label="Tirar foto">✕</button>';
     a.classList.remove('hidden');
   }
   function agentAttach(src) { attach = src; if (!agentOpen) openAgent(); else showAttach(); }

@@ -361,3 +361,6 @@ body.cadmode { overflow: hidden; overscroll-behavior: none; }
 .cad-askbox { width: 100%; max-width: 380px; background: #0b1526; border: 1px solid var(--ui-line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .cad-askbox b { font-size: 15px; line-height: 1.4; }
 .cad-askbox input { width: 100%; background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 10px; padding: 11px 12px; font: inherit; font-size: 16px; }
+.cad-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; left: 0; top: 0; }
+.cad-cam { cursor: pointer; font-size: 20px; }
+label.ui-btn { cursor: pointer; text-align: center; }
