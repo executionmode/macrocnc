@@ -1247,6 +1247,15 @@
   }
   function fileName(ext) { return ((doc.name || 'desenho').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'desenho') + '.' + ext; }
   var shareOrDownload = function (blob, name) {
+    var p = root.App && root.App.saveFile ? root.App.saveFile(name, blob) : null;
+    if (p) {   // dentro do Claude
+      p.then(function () { toast(T('Arquivo salvo.')); }).catch(function (e) {
+        var c = e && e.code;
+        if (c === 'rejected_extension' || c === 'extension_not_enabled') toast(T('Dentro do Claude este tipo de arquivo não pode ser baixado. Use o app instalado.'));
+        else if (c !== 'declined') toast(T('Não foi possível salvar o arquivo aqui.'));
+      });
+      return;
+    }
     try {
       var f = new File([blob], name, { type: blob.type });
       if (navigator.canShare && navigator.canShare({ files: [f] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) { navigator.share({ files: [f], title: name }).catch(function () {}); return; }

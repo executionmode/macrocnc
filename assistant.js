@@ -168,12 +168,32 @@
     var c = loadCfg();
     if (!cfgReady(c)) {
       if (!sampleFn) throw new Error('Assistente não configurado.');
-      var msgs = messages.map(function (m) { return { role: m.role, content: m.content }; });
+      // dentro do Claude: o conteúdo é só texto; as fotos vão à parte (images)
+      var images = [];
+      var msgs = messages.map(function (m) {
+        if (typeof m.content === 'string') return { role: m.role, content: m.content };
+        var txt = [];
+        m.content.forEach(function (b) {
+          if (b.type === 'text') txt.push(b.text);
+          else if (b.type === 'image') {
+            var bin = atob(b.source.data), u = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+            images.push(new Blob([u], { type: b.source.media_type }));
+            txt.push('[FOTO ANEXADA]');
+          }
+        });
+        return { role: m.role, content: txt.join('\n') };
+      });
       var first = msgs[0], pre = 'INSTRUCOES DO APP (siga sempre, em todas as respostas):\n' + systemText + '\n\n---\n';
-      if (typeof first.content === 'string') first.content = pre + first.content;
-      else first.content = [{ type: 'text', text: pre }].concat(first.content);
+      first.content = pre + first.content;
+      var opts = { onText: function (o) { if (o && typeof o.text === 'string') onText(o.text); }, signal: signal, cache: false, modelTier: 'complex' };
+      if (images.length) {
+        var lim = null; try { lim = sampleFn.limits ? await sampleFn.limits() : null; } catch (e) {}
+        if (lim && !lim.images) throw new Error('Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.');
+        opts.images = images;
+      }
       try {
-        var r = await sampleFn(msgs, { onText: function (o) { if (o && typeof o.text === 'string') onText(o.text); }, signal: signal, cache: false, modelTier: 'complex' });
+        var r = await sampleFn(msgs, opts);
         return r.text || '';
       } catch (e) {
         if (signal && signal.aborted) { var ab = new Error('abort'); ab.name = 'AbortError'; throw ab; }

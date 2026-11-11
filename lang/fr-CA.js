@@ -489,5 +489,9 @@ I18N.add({
   "Enviar": "Envoyer",
   "Confirmar": "Confirmer",
   "OK": "OK",
-  "Cancelar": "Annuler"
+  "Cancelar": "Annuler",
+  "Arquivo salvo.": "Fichier enregistré.",
+  "Dentro do Claude este tipo de arquivo não pode ser baixado. Use o app instalado.": "Ce type de fichier ne peut pas être téléchargé dans Claude. Utilise l’app installée.",
+  "Não foi possível salvar o arquivo aqui.": "Impossible d’enregistrer le fichier ici.",
+  "Aqui dentro do Claude a foto não pode ser enviada ao assistente. Use o app instalado com a chave da API.": "Dans Claude, la photo ne peut pas être envoyée à l’assistant. Utilise l’app installée avec la clé API."
 });

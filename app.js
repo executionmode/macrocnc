@@ -1565,6 +1565,8 @@
       openProg(id); renderProgForm(savedVals(id), call.replace(/^G65 P\d+\s*/, '')); window.scrollTo(0, 0);
       toast(T('Chamada montada pelo desenho. Confira T, Z, K, R e F antes de gerar.'));
     },
-    openEditor: function (text, name) { setEditor(text, name); show('editor'); }
+    openEditor: function (text, name) { setEditor(text, name); show('editor'); },
+    // salvar arquivo pela página do Claude (quando o app roda como artefato); null = não disponível aqui
+    saveFile: function (filename, data) { return RT.downloads ? RT.downloads.save({ filename: filename, data: data }) : null; }
   };
 })();
