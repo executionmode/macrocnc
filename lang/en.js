@@ -528,5 +528,7 @@ I18N.add({
   "Rebaixo (prof. mm)": "Pocket (depth mm)",
   "Chanfro até a borda (ângulo °)": "Chamfer to the edge (angle °)",
   "largura": "width",
-  "altura": "height"
+  "altura": "height",
+  "Desenhado por (folha A4)": "Drawn by (A4 sheet)",
+  "Aprovado por (folha A4)": "Approved by (A4 sheet)"
 });

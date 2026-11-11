@@ -487,6 +487,7 @@
         save(); draw(); render3D(true); refreshDepth();
       }
     }
+    if (e.target.dataset && e.target.dataset.sheet) { var au = sheetAuthors(); au[e.target.dataset.sheet] = e.target.value.trim(); try { localStorage.setItem(SHEET_KEY, JSON.stringify(au)); } catch (er) {} }
     if (e.target.dataset && e.target.dataset.esp != null) { var v = num(e.target.value); if (v > 0) { doc.esp = v; save(); render3D(true); } }
   }
 
@@ -1340,8 +1341,19 @@
   }
 
   /* ---------- exportar ---------- */
+  // nomes da legenda da folha: o que a pessoa digitou neste aparelho, ou o padrão do app (config.js)
+  var SHEET_KEY = 'mcnc.sheet';
+  function sheetAuthors() {
+    var d = (root.APP_CONFIG && root.APP_CONFIG.sheetAuthor) || '', s = null;
+    try { s = JSON.parse(localStorage.getItem(SHEET_KEY) || 'null'); } catch (e) {}
+    return { des: s && s.des != null ? s.des : d, apr: s && s.apr != null ? s.apr : d };
+  }
   function openExport() {
-    openModal(T('Exportar'), '<p class="cad-hint">' + esc(T('As medidas saem em mm, com a origem X0 Y0 do desenho.')) + '</p><div class="cad-menu">' +
+    var au = sheetAuthors();
+    openModal(T('Exportar'), '<p class="cad-hint">' + esc(T('As medidas saem em mm, com a origem X0 Y0 do desenho.')) + '</p>' +
+      '<label class="cad-f"><span>' + esc(T('Desenhado por (folha A4)')) + '</span><input type="text" data-sheet="des" value="' + esc(au.des) + '"></label>' +
+      '<label class="cad-f"><span>' + esc(T('Aprovado por (folha A4)')) + '</span><input type="text" data-sheet="apr" value="' + esc(au.apr) + '"></label>' +
+      '<div class="cad-menu">' +
       btn('xdxf', 'DXF (AutoCAD, SolidWorks)', 'primary') + btn('xpdf', 'PDF (para imprimir)') + btn('xpng', 'Imagem PNG') + btn('xjson', 'Cópia de segurança (.json)') + btn('ijson', 'Abrir cópia de segurança') + '</div>');
   }
   function fileName(ext) { return ((doc.name || 'desenho').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'desenho') + '.' + ext; }
@@ -1500,7 +1512,7 @@
     g.textBaseline = 'middle';
     cellTxt(cols[0], ty0, T('Título'), doc.name); cellTxt(cols[0], ty0 + tbH / 2, 'Macro CNC', T('Medidas em mm'));
     cellTxt(cols[1], ty0, T('Data'), new Date().toLocaleDateString()); cellTxt(cols[2], ty0, T('Espessura'), fmt(esp) + ' mm');
-    cellTxt(cols[3], ty0, T('Folha'), 'A4'); cellTxt(cols[1], ty0 + tbH / 2, T('Desenho'), ''); cellTxt(cols[2], ty0 + tbH / 2, T('Conferido'), ''); cellTxt(cols[3], ty0 + tbH / 2, T('Aprovado'), '');
+    cellTxt(cols[3], ty0, T('Folha'), 'A4'); var au = sheetAuthors(); cellTxt(cols[1], ty0 + tbH / 2, T('Desenho'), au.des); cellTxt(cols[2], ty0 + tbH / 2, T('Conferido'), ''); cellTxt(cols[3], ty0 + tbH / 2, T('Aprovado'), au.apr);
     return c;
   }
   function exportPNG() { var a4 = renderA4(2480, 3508); if (a4) return a4.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); var c = renderSheet(2400, 1697); c.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); }

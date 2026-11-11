@@ -528,5 +528,7 @@ I18N.add({
   "Rebaixo (prof. mm)": "Lamage (prof. mm)",
   "Chanfro até a borda (ângulo °)": "Chanfrein jusqu’au bord (angle °)",
   "largura": "largeur",
-  "altura": "hauteur"
+  "altura": "hauteur",
+  "Desenhado por (folha A4)": "Dessiné par (feuille A4)",
+  "Aprovado por (folha A4)": "Approuvé par (feuille A4)"
 });
