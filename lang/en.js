@@ -545,5 +545,18 @@ I18N.add({
   "Pasta vazia. Abra um desenho e toque em \"Mover para pasta\".": "Empty folder. Open a drawing and tap \"Move to folder\".",
   "Renomear pasta": "Rename folder",
   "Apagar pasta": "Delete folder",
-  "Desenhos salvos": "Saved drawings"
+  "Desenhos salvos": "Saved drawings",
+  "aberto": "open",
+  "Pasta": "Folder",
+  "Salvar desenho": "Save drawing",
+  "Salvar como cópia": "Save as copy",
+  "Tem alterações que ainda não foram salvas.": "There are changes not saved yet.",
+  "Tudo salvo.": "Everything saved.",
+  "Este desenho ainda não foi salvo.": "This drawing has not been saved yet.",
+  "Salvar as alterações em": "Save the changes to",
+  "Este desenho ainda não foi salvo. Salvar agora?": "This drawing has not been saved yet. Save it now?",
+  "Não salvar": "Don't save",
+  "Nenhum desenho salvo ainda. Faça o desenho e toque no botão Salvar (disquete) lá em cima.": "No saved drawings yet. Make the drawing and tap the Save button (floppy disk) at the top.",
+  "Pasta vazia. Para guardar aqui, escolha esta pasta ao salvar.": "Empty folder. To keep a drawing here, pick this folder when saving.",
+  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Claude's cloud storage is full. The drawing was saved on this device only."
 });

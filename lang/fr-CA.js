@@ -545,5 +545,18 @@ I18N.add({
   "Pasta vazia. Abra um desenho e toque em \"Mover para pasta\".": "Dossier vide. Ouvrez un dessin et touchez « Déplacer vers un dossier ».",
   "Renomear pasta": "Renommer le dossier",
   "Apagar pasta": "Supprimer le dossier",
-  "Desenhos salvos": "Dessins enregistrés"
+  "Desenhos salvos": "Dessins enregistrés",
+  "aberto": "ouvert",
+  "Pasta": "Dossier",
+  "Salvar desenho": "Enregistrer le dessin",
+  "Salvar como cópia": "Enregistrer une copie",
+  "Tem alterações que ainda não foram salvas.": "Des modifications ne sont pas encore enregistrées.",
+  "Tudo salvo.": "Tout est enregistré.",
+  "Este desenho ainda não foi salvo.": "Ce dessin n’est pas encore enregistré.",
+  "Salvar as alterações em": "Enregistrer les modifications de",
+  "Este desenho ainda não foi salvo. Salvar agora?": "Ce dessin n’est pas encore enregistré. L’enregistrer maintenant?",
+  "Não salvar": "Ne pas enregistrer",
+  "Nenhum desenho salvo ainda. Faça o desenho e toque no botão Salvar (disquete) lá em cima.": "Aucun dessin enregistré. Faites le dessin et touchez le bouton Enregistrer (disquette) en haut.",
+  "Pasta vazia. Para guardar aqui, escolha esta pasta ao salvar.": "Dossier vide. Pour y ranger un dessin, choisissez ce dossier en enregistrant.",
+  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Le stockage de Claude est plein. Le dessin est enregistré seulement sur cet appareil."
 });

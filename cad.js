@@ -35,12 +35,16 @@
   function loadAll() {
     var s; try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
     if (!s || !s.docs) s = { cur: null, docs: {} };
+    Object.keys(s.docs).forEach(function (k) { var d = s.docs[k]; if (d.saved == null) { d.saved = d.ents.length > 0; if (d.saved) d.savedAt = d.upd; } });
     if (!s.cur || !s.docs[s.cur]) { var id = uid(); s.docs[id] = newDoc(T('Desenho') + ' 1'); s.cur = id; }
     return s;
   }
   var store = null, doc = null;
-  function save() {
-    doc.upd = Date.now();
+  function isDirty() { return !doc.saved ? doc.ents.length > 0 : (doc.upd || 0) > (doc.savedAt || 0); }
+  function updSaveBtn() { var b = el.host && el.host.querySelector('.cad-save'); if (b) b.classList.toggle('dirty', isDirty()); }
+  function save(keepTime) {
+    if (!keepTime) doc.upd = Date.now();
+    setTimeout(updSaveBtn, 0);
     try { localStorage.setItem(KEY, JSON.stringify(store)); }
     catch (e) { toast(T('Sem espaço para salvar no aparelho.') + (doc.bg ? ' ' + T('Tire a foto de fundo para liberar espaço.') : '')); }
   }
@@ -377,7 +381,9 @@
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     bot: '<rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16h5"/>',
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
-    file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>'
+    file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+    save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="6"/>',
+    folder: '<path d="M3 6h6l2 2h10v11H3z"/>'
   };
   function ic(n) { return '<svg class="cad-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + IC[n] + '</svg>'; }
 
@@ -385,7 +391,9 @@
     var host = document.getElementById('cad'); if (!host) return false;
     host.innerHTML =
       '<div class="cad-top">' +
-        '<button type="button" class="cad-name" data-a="files">' + ic('file') + '<span id="cadName" class="notr"></span></button>' +
+        '<button type="button" class="cad-name" data-a="fsavebox"><span id="cadName" class="notr"></span></button>' +
+        '<button type="button" class="cad-b cad-save" data-a="fsavebox" aria-label="Salvar">' + ic('save') + '</button>' +
+        '<button type="button" class="cad-b" data-a="files" aria-label="Desenhos salvos">' + ic('folder') + '</button>' +
         '<button type="button" class="cad-b" data-a="undo" aria-label="Desfazer">' + ic('undo') + '</button>' +
         '<button type="button" class="cad-b" data-a="redo" aria-label="Refazer">' + ic('redo') + '</button>' +
         '<button type="button" class="cad-b" data-a="fit" aria-label="Ver tudo">' + ic('fit') + '</button>' +
@@ -439,24 +447,27 @@
     g65: function () { g65For(editing); },
     origin0: function () { pushUndo(); doc.origin = { x: 0, y: 0 }; save(); toast(T('Origem voltou para o ponto inicial.')); draw(); },
     autodim: function () { closeModal(); autoDim(); },
-    fnew: function () { askText(T('Nome do desenho'), T('Desenho') + ' ' + (Object.keys(store.docs).length + 1), function (nm) { var id = uid(); store.docs[id] = newDoc(nm.trim() || T('Desenho')); switchDoc(id); closeModal(); }); },
-    fopen: function (a) { switchDoc(a.dataset.id); closeModal(); },
-    fsave: function () { save(); toast(T('Desenho salvo') + ': ' + doc.name); },
-    fnewdir: function () { askText(T('Nome da pasta'), '', function (nm) { nm = nm.trim(); if (!nm) return; store.folders = store.folders || []; if (store.folders.indexOf(nm) < 0) store.folders.push(nm); save(); openFiles(); }); },
-    fmove: function () { openMove(); },
-    fmto: function (a) { var f = a.dataset.f || ''; if (f) doc.folder = f; else delete doc.folder; save(); toast(T('Movido para') + ' ' + (f || T('Sem pasta'))); openFiles(); },
-    fdirren: function (a) { var old = a.dataset.f; askText(T('Novo nome da pasta'), old, function (nm) { nm = nm.trim(); if (!nm || nm === old) return openFiles(); store.folders = (store.folders || []).map(function (f) { return f === old ? nm : f; }); Object.keys(store.docs).forEach(function (id) { if (store.docs[id].folder === old) store.docs[id].folder = nm; }); save(); openFiles(); }); },
-    fdirdel: function (a) { var f = a.dataset.f; askOk(T('Apagar a pasta? Os desenhos dela vão para "Sem pasta".'), function () { store.folders = (store.folders || []).filter(function (x) { return x !== f; }); Object.keys(store.docs).forEach(function (id) { if (store.docs[id].folder === f) delete store.docs[id].folder; }); save(); openFiles(); }); },
+    fsavebox: function () { openSave(); },
+    fnew: function () { leaveDoc(function () { askText(T('Nome do desenho'), T('Desenho') + ' ' + (Object.keys(store.docs).length + 1), function (nm) { var id = uid(); store.docs[id] = newDoc(nm.trim() || T('Desenho')); switchDoc(id); closeModal(); }); }); },
+    fopen: function (a) { var id = a.dataset.id; if (id === store.cur) return closeModal(); leaveDoc(function () { switchDoc(id); closeModal(); }); },
+    fsave: function () { doSave(false); },
+    fsavecp: function () { doSave(true); },
+    fpick: function (a) { saveFolder = a.dataset.f || ''; readSaveName(); openSave(true); },
+    fnewdir: function () { readSaveName(); askText(T('Nome da pasta'), '', function (nm) { nm = nm.trim(); if (nm) { store.folders = store.folders || []; if (store.folders.indexOf(nm) < 0) store.folders.push(nm); saveFolder = nm; save(true); syncMeta(); } openSave(true); }); },
+    fdirren: function (a) { var old = a.dataset.f; askText(T('Novo nome da pasta'), old, function (nm) { nm = nm.trim(); if (!nm || nm === old) return openFiles(); store.folders = (store.folders || []).map(function (f) { return f === old ? nm : f; }); Object.keys(store.docs).forEach(function (id) { if (store.docs[id].folder === old) { store.docs[id].folder = nm; dbPut(id); } }); if (openDir === old) openDir = nm; save(true); syncMeta(); openFiles(); }); },
+    fdirdel: function (a) { var f = a.dataset.f; askOk(T('Apagar a pasta? Os desenhos dela vão para "Sem pasta".'), function () { store.folders = (store.folders || []).filter(function (x) { return x !== f; }); Object.keys(store.docs).forEach(function (id) { if (store.docs[id].folder === f) { delete store.docs[id].folder; dbPut(id); } }); save(true); syncMeta(); openFiles(); }); },
     fdir: function (a) { openDir = openDir === a.dataset.f ? null : a.dataset.f; openFiles(); },
-    fren: function () { askText(T('Novo nome'), doc.name, function (n2) { doc.name = n2.trim() || doc.name; save(); el.name.textContent = doc.name; openFiles(); }); },
-    fdel: function () {
-      askOk(T('Apagar este desenho? Não dá para desfazer.'), function () {
-        delete store.docs[store.cur]; var ks = Object.keys(store.docs);
-        if (!ks.length) { var nid = uid(); store.docs[nid] = newDoc(T('Desenho') + ' 1'); ks = [nid]; }
-        switchDoc(ks[0]); closeModal();
+    fdelid: function (a) {
+      var id = a.dataset.id, d = store.docs[id]; if (!d) return;
+      askOk(T('Apagar este desenho? Não dá para desfazer.') + ' (' + d.name + ')', function () {
+        delete store.docs[id]; dbDel(id);
+        if (id === store.cur) { var nid = uid(); store.docs[nid] = newDoc(T('Desenho') + ' ' + (Object.keys(store.docs).length + 1)); switchDoc(nid); }
+        else save(true);
+        openFiles();
       });
     },
-    fdup: function () { var c = clone(doc); c.name = doc.name + ' (' + T('cópia') + ')'; c.chat = []; var id = uid(); store.docs[id] = c; switchDoc(id); closeModal(); },
+    lvsave: function () { closeAsk(); doSave(false, leaveCb); },
+    lvdrop: function () { var f = leaveCb; closeAsk(); if (!doc.saved) delete store.docs[store.cur]; else if (doc.snap) { var o = JSON.parse(doc.snap); o.bg = doc.bg; o.snap = doc.snap; store.docs[store.cur] = o; } if (f) f(); },
     lsel: function (a) { var en = byId(a.dataset.id); closeModal(); if (en) { selectEnt(en); fitTo([en]); draw(); } },
     list: function () { openList(); }, layers: function () { openLayers(); },
     lay: function (a) { doc.hide = doc.hide || {}; doc.hide[a.dataset.l] = !doc.hide[a.dataset.l]; save(); openLayers(); draw(); },
@@ -498,7 +509,7 @@
     if (e.target.dataset && e.target.dataset.esp != null) { var v = num(e.target.value); if (v > 0) { doc.esp = v; save(); render3D(true); } }
   }
 
-  function switchDoc(id) { store.cur = id; doc = store.docs[id]; undoS = []; redoS = []; sel = null; editing = null; bgImg = null; save(); el.name.textContent = doc.name; setTool('select'); updBtns(); fit(); }
+  function switchDoc(id) { var pv = store.docs[store.cur]; if (pv && store.cur !== id && !pv.saved && !pv.ents.length) delete store.docs[store.cur]; store.cur = id; doc = store.docs[id]; undoS = []; redoS = []; sel = null; editing = null; bgImg = null; save(); el.name.textContent = doc.name; setTool('select'); updBtns(); fit(); }
 
   /* ---------- painel ---------- */
   function setTool(t) {
@@ -1258,7 +1269,7 @@
   function openMenu() {
     openModal(T('Opções'), '<div class="cad-menu">' +
       btn('list', 'Lista de elementos') + btn('layers', 'Camadas') + btn('autodim', 'Cotar automático') + btn('v3d', 'Ver em 3D') +
-      btn('xfall', 'Mover / girar / espelhar tudo') + btn('exp', 'Exportar / salvar arquivo') + btn('bg', 'Foto de fundo') + btn('files', 'Desenhos salvos') + btn('clear', 'Apagar tudo', 'danger') + '</div>');
+      btn('xfall', 'Mover / girar / espelhar tudo') + btn('exp', 'Exportar / salvar arquivo') + btn('bg', 'Foto de fundo') + btn('fnew', '+ Novo desenho') + btn('fsavebox', 'Salvar desenho') + btn('files', 'Desenhos salvos') + btn('clear', 'Apagar tudo', 'danger') + '</div>');
   }
   function openList() {
     var h = '';
@@ -1291,30 +1302,91 @@
     store.folders = fs; return fs.sort(function (a, b) { return a.localeCompare(b); });
   }
   function docRow(id) {
-    var d = store.docs[id], dt = new Date(d.upd);
-    return '<button type="button" class="cad-li' + (id === store.cur ? ' on' : '') + '" data-a="fopen" data-id="' + id + '"><b class="notr">' + esc(d.name) + '</b><small>' + d.ents.length + ' ' + esc(T('elementos')) + ' · ' + dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</small></button>';
+    var d = store.docs[id], dt = new Date(d.savedAt || d.upd);
+    return '<div class="cad-drow"><button type="button" class="cad-li' + (id === store.cur ? ' on' : '') + '" data-a="fopen" data-id="' + id + '"><b class="notr">' + esc(d.name) + '</b><small>' + d.ents.length + ' ' + esc(T('elementos')) + ' · ' + dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (id === store.cur ? ' · ' + esc(T('aberto')) : '') + '</small></button>' +
+      '<button type="button" class="cad-b cad-ddel" data-a="fdelid" data-id="' + id + '" aria-label="' + esc(T('Apagar')) + '">✕</button></div>';
   }
   function openFiles() {
-    var ids = Object.keys(store.docs).sort(function (a, b) { return store.docs[b].upd - store.docs[a].upd; });
-    var fs = folderList();
-    var h = '<div class="cad-pbtn">' + btn('fnew', '+ Novo desenho', 'primary') + btn('fnewdir', '+ Nova pasta') + '</div>' +
-      '<div class="cad-cur"><small>' + esc(T('Desenho aberto')) + '</small><b class="notr">' + esc(doc.name) + '</b><span>' + esc(doc.folder ? '📁 ' + doc.folder : T('Sem pasta')) + '</span></div>' +
-      '<div class="cad-pbtn">' + btn('fsave', 'Salvar') + btn('fmove', 'Mover para pasta') + btn('fren', 'Renomear') + btn('fdup', 'Duplicar') + btn('fdel', 'Apagar', 'danger') + '</div><div class="cad-list">';
+    var ids = Object.keys(store.docs).filter(function (id) { return store.docs[id].saved; }).sort(function (a, b) { return (store.docs[b].savedAt || 0) - (store.docs[a].savedAt || 0); });
+    var fs = folderList(), h = '';
+    if (!ids.length && !fs.length) h = '<p class="cad-hint">' + esc(T('Nenhum desenho salvo ainda. Faça o desenho e toque no botão Salvar (disquete) lá em cima.')) + '</p>';
+    h += '<div class="cad-list">';
     fs.forEach(function (f) {
       var inF = ids.filter(function (id) { return store.docs[id].folder === f; }), op = openDir === f;
       h += '<div class="cad-dir"><button type="button" class="cad-dirh" data-a="fdir" data-f="' + esc(f) + '">' + (op ? '📂' : '📁') + ' <b class="notr">' + esc(f) + '</b><small>' + inF.length + '</small></button>' +
-        (op ? '<div class="cad-dirb">' + (inF.length ? inF.map(docRow).join('') : '<p class="cad-hint">' + esc(T('Pasta vazia. Abra um desenho e toque em "Mover para pasta".')) + '</p>') +
+        (op ? '<div class="cad-dirb">' + (inF.length ? inF.map(docRow).join('') : '<p class="cad-hint">' + esc(T('Pasta vazia. Para guardar aqui, escolha esta pasta ao salvar.')) + '</p>') +
           '<div class="cad-pbtn">' + '<button type="button" class="ui-btn" data-a="fdirren" data-f="' + esc(f) + '">' + esc(T('Renomear pasta')) + '</button><button type="button" class="ui-btn danger" data-a="fdirdel" data-f="' + esc(f) + '">' + esc(T('Apagar pasta')) + '</button></div></div>' : '') + '</div>';
     });
     var loose = ids.filter(function (id) { return !store.docs[id].folder; });
     if (loose.length) h += (fs.length ? '<p class="cad-sub">' + esc(T('Sem pasta')) + '</p>' : '') + loose.map(docRow).join('');
     openModal(T('Desenhos salvos'), h + '</div>');
   }
-  function openMove() {
+  /* janela Salvar: nome, pasta, salvar / salvar como cópia */
+  var saveFolder = null, saveName = null;
+  function readSaveName() { var i = el.mb.querySelector('#cadSvName'); if (i) saveName = i.value; }
+  function openSave(keep) {
+    if (!keep) { saveFolder = doc.folder || ''; saveName = doc.name; }
     var fs = folderList();
-    openModal(T('Mover para pasta'), '<p class="cad-hint notr">' + esc(doc.name) + '</p><div class="cad-menu">' +
-      fs.map(function (f) { return '<button type="button" class="ui-btn' + (doc.folder === f ? ' primary' : '') + '" data-a="fmto" data-f="' + esc(f) + '">📁 ' + esc(f) + '</button>'; }).join('') +
-      '<button type="button" class="ui-btn' + (!doc.folder ? ' primary' : '') + '" data-a="fmto" data-f="">' + esc(T('Sem pasta')) + '</button>' + btn('fnewdir', '+ Nova pasta') + '</div>');
+    var h = '<label class="cad-fl"><span>' + esc(T('Nome do desenho')) + '</span><input type="text" id="cadSvName" class="notr" value="' + esc(saveName) + '"></label>' +
+      '<p class="cad-sub">' + esc(T('Pasta')) + '</p><div class="cad-chips">' +
+      '<button type="button" class="ui-btn' + (!saveFolder ? ' primary' : '') + '" data-a="fpick" data-f="">' + esc(T('Sem pasta')) + '</button>' +
+      fs.map(function (f) { return '<button type="button" class="ui-btn' + (saveFolder === f ? ' primary' : '') + '" data-a="fpick" data-f="' + esc(f) + '">📁 ' + esc(f) + '</button>'; }).join('') +
+      btn('fnewdir', '+ Nova pasta') + '</div>' +
+      '<div class="cad-pbtn cad-svb">' + btn('fsave', 'Salvar', 'primary') + (doc.saved ? btn('fsavecp', 'Salvar como cópia') : '') + '</div>' +
+      '<p class="cad-hint">' + esc(doc.saved ? (isDirty() ? T('Tem alterações que ainda não foram salvas.') : T('Tudo salvo.')) : T('Este desenho ainda não foi salvo.')) + '</p>' +
+      '<div class="cad-pbtn">' + btn('fnew', '+ Novo desenho') + btn('files', 'Desenhos salvos') + '</div>';
+    openModal(T('Salvar desenho'), h);
+  }
+  function doSave(copy, after) {
+    readSaveName();
+    var nm = String(saveName == null ? doc.name : saveName).trim() || doc.name, f = saveFolder == null ? (doc.folder || '') : saveFolder;
+    if (copy) { var c = clone(doc); c.chat = []; c.snap = null; if (nm === doc.name) nm = nm + ' (' + T('cópia') + ')'; if (doc.snap) { var o = JSON.parse(doc.snap); o.bg = doc.bg; store.docs[store.cur] = o; } var id = uid(); store.docs[id] = c; store.cur = id; doc = c; }
+    doc.name = nm; if (f) doc.folder = f; else delete doc.folder;
+    doc.saved = true; save(); doc.savedAt = doc.upd; doc.snap = null; var bgk = doc.bg; delete doc.bg; doc.snap = JSON.stringify(doc); if (bgk) doc.bg = bgk; save(true);
+    el.name.textContent = doc.name; updSaveBtn(); dbPut(store.cur); syncMeta();
+    closeModal(); toast(T('Desenho salvo') + ': ' + doc.name + (f ? ' (📁 ' + f + ')' : ''));
+    if (after) after();
+  }
+  /* antes de trocar de desenho: avisa se há alterações sem salvar */
+  var leaveCb = null;
+  function leaveDoc(cb) {
+    if (!isDirty()) return cb();
+    leaveCb = cb;
+    el.ask.innerHTML = '<div class="cad-askbox"><b>' + esc(doc.saved ? T('Salvar as alterações em') + ' "' + doc.name + '"?' : T('Este desenho ainda não foi salvo. Salvar agora?')) + '</b><div class="cad-pbtn">' + btn('askno', 'Cancelar') + btn('lvdrop', 'Não salvar', 'danger') + btn('lvsave', 'Salvar', 'primary') + '</div></div>';
+    el.ask.classList.remove('hidden');
+  }
+  /* cópia na nuvem (só dentro do app do Claude: banco privado de cada pessoa) */
+  var cloud = null;
+  function dbBody(id) { var d = clone(store.docs[id]); delete d.bg; delete d.snap; d.chat = (d.chat || []).slice(-10).map(function (m) { return { r: m.r, t: typeof m.t === 'string' ? m.t.slice(0, 2000) : '' }; }); var j = JSON.stringify(d); if (j.length > 240000) { d.chat = []; } return { v: 1, id: id, doc: JSON.stringify(d) }; }
+  var dbQ = Promise.resolve();
+  function dbRun(f) { if (!cloud) return; dbQ = dbQ.then(f).catch(function (e) { if (e && e.code === 'quota_exceeded') toast(T('A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.')); }); }
+  function dbPut(id) { if (!cloud || !store.docs[id] || !store.docs[id].saved) return; var b = dbBody(id); dbRun(function () { return cloud.col.doc('cad-' + id).set(b); }); }
+  function dbDel(id) { dbRun(function () { return cloud.col.doc('cad-' + id).delete(); }); }
+  function syncMeta() { dbRun(function () { return cloud.col.doc('cadmeta').set({ folders: (store.folders || []).slice() }); }); }
+  function cloudInit() {
+    if (!root.claude || typeof root.claude.use !== 'function') return;
+    Promise.all([root.claude.use('db'), root.claude.use('user')]).then(function (r) {
+      var db = r[0], us = r[1]; if (!db || !us) return null;
+      return us.id().then(function (uidv) {
+        if (!uidv) return;
+        cloud = { col: db.collection('data/users/' + uidv) };
+        return cloud.col.get().then(function (snap) {
+          var ch = false;
+          snap.docs.forEach(function (ds) {
+            var b = ds.data(); if (!b) return;
+            if (ds.id === 'cadmeta') { (b.folders || []).forEach(function (f) { store.folders = store.folders || []; if (store.folders.indexOf(f) < 0) { store.folders.push(f); ch = true; } }); return; }
+            if (!b.id || !b.doc) return;
+            var d; try { d = JSON.parse(b.doc); } catch (e) { return; }
+            var mine = store.docs[b.id];
+            if (!mine || (mine.savedAt || 0) < (d.savedAt || 0)) { if (mine && mine.bg) d.bg = mine.bg; d.snap = JSON.stringify(d); store.docs[b.id] = d; ch = true; if (b.id === store.cur) { doc = d; el.name.textContent = doc.name; draw(); } }
+          });
+          // desenhos salvos só aqui (de antes) vão para a nuvem também
+          var have = {}; snap.docs.forEach(function (ds) { have[ds.id] = 1; });
+          Object.keys(store.docs).forEach(function (id) { if (store.docs[id].saved && !have['cad-' + id]) dbPut(id); });
+          if (ch) { save(true); updSaveBtn(); }
+        });
+      });
+    }).catch(function () {});
   }
   // perguntas dentro do app (a página do Claude não deixa usar prompt/confirm do navegador)
   var askCb = null;
@@ -2061,7 +2133,7 @@
   /* ---------- entrada ---------- */
   function show() {
     if (!built && !build()) return;
-    if (!store) { store = loadAll(); doc = store.docs[store.cur]; el.name.textContent = doc.name; updBtns(); el.host.querySelector('[data-tool=select]').classList.add('on'); }
+    if (!store) { store = loadAll(); doc = store.docs[store.cur]; el.name.textContent = doc.name; updBtns(); el.host.querySelector('[data-tool=select]').classList.add('on'); updSaveBtn(); cloudInit(); }
     requestAnimationFrame(resize);
   }
   // API para testes

@@ -404,3 +404,15 @@ label.ui-btn { cursor: pointer; text-align: center; }
 .cad-dirh b { flex: 1; } .cad-dirh small { opacity: .7; }
 .cad-dirb { padding: 0 8px 8px; }
 .cad-sub { margin: 12px 2px 4px; font-size: .85em; opacity: .7; }
+/* salvar desenho */
+.cad-save { position: relative; }
+.cad-save.dirty::after { content: ''; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--ui-accent, #f59e0b); box-shadow: 0 0 0 2px var(--ui-bg, #111); }
+.cad-drow { display: flex; gap: 6px; align-items: stretch; }
+.cad-drow .cad-li { flex: 1; min-width: 0; }
+.cad-ddel { flex: none; align-self: center; color: #e5484d; }
+.cad-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.cad-chips .ui-btn { width: auto; flex: none; }
+.cad-svb .ui-btn { flex: 1; }
+#cadSvName { width: 100%; box-sizing: border-box; }
+.cad-fl { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; color: var(--ui-mut); font-size: 13px; }
+.cad-fl input { background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 10px; padding: 11px 12px; font: inherit; font-size: 16px; }
