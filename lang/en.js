@@ -532,5 +532,18 @@ I18N.add({
   "Desenhado por (folha A4)": "Drawn by (A4 sheet)",
   "Aprovado por (folha A4)": "Approved by (A4 sheet)",
   "a partir de": "from",
-  "rebaixo": "counterbore"
+  "rebaixo": "counterbore",
+  "Desenho salvo": "Drawing saved",
+  "Nome da pasta": "Folder name",
+  "Movido para": "Moved to",
+  "Sem pasta": "No folder",
+  "Novo nome da pasta": "New folder name",
+  "Apagar a pasta? Os desenhos dela vão para \"Sem pasta\".": "Delete the folder? Its drawings go to \"No folder\".",
+  "+ Nova pasta": "+ New folder",
+  "Desenho aberto": "Open drawing",
+  "Mover para pasta": "Move to folder",
+  "Pasta vazia. Abra um desenho e toque em \"Mover para pasta\".": "Empty folder. Open a drawing and tap \"Move to folder\".",
+  "Renomear pasta": "Rename folder",
+  "Apagar pasta": "Delete folder",
+  "Desenhos salvos": "Saved drawings"
 });

@@ -532,5 +532,18 @@ I18N.add({
   "Desenhado por (folha A4)": "Dessiné par (feuille A4)",
   "Aprovado por (folha A4)": "Approuvé par (feuille A4)",
   "a partir de": "à partir de",
-  "rebaixo": "lamage"
+  "rebaixo": "lamage",
+  "Desenho salvo": "Dessin enregistré",
+  "Nome da pasta": "Nom du dossier",
+  "Movido para": "Déplacé vers",
+  "Sem pasta": "Sans dossier",
+  "Novo nome da pasta": "Nouveau nom du dossier",
+  "Apagar a pasta? Os desenhos dela vão para \"Sem pasta\".": "Supprimer le dossier? Ses dessins vont dans « Sans dossier ».",
+  "+ Nova pasta": "+ Nouveau dossier",
+  "Desenho aberto": "Dessin ouvert",
+  "Mover para pasta": "Déplacer vers un dossier",
+  "Pasta vazia. Abra um desenho e toque em \"Mover para pasta\".": "Dossier vide. Ouvrez un dessin et touchez « Déplacer vers un dossier ».",
+  "Renomear pasta": "Renommer le dossier",
+  "Apagar pasta": "Supprimer le dossier",
+  "Desenhos salvos": "Dessins enregistrés"
 });

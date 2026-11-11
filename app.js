@@ -1377,6 +1377,7 @@
     bindLibRows($('#libList'));
   }
   $$('#libTabs button').forEach(function (b) { b.addEventListener('click', function () { libTab = b.dataset.t; renderLib(); }); });
+  $('#btnCadFiles').addEventListener('click', function () { show('desenho'); setTimeout(function () { if (window.Cad && Cad.openFiles) Cad.openFiles(); }, 150); });
   $('#btnLibSearch').addEventListener('click', function () { var i = $('#libSearch'); i.classList.toggle('hidden'); if (!i.classList.contains('hidden')) i.focus(); else { i.value = ''; renderLib(); } });
   $('#btnBackup').addEventListener('click', function () {
     openSheet('Backup dos programas',
