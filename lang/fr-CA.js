@@ -486,5 +486,8 @@ I18N.add({
   "Ângulo do 1º canto (0 = direita)": "Angle du 1er coin (0 = droite)",
   "Ângulo final (anti-horário)": "Angle de fin (antihoraire)",
   "Ângulo inicial (0 = direita)": "Angle de départ (0 = droite)",
-  "Enviar": "Envoyer"
+  "Enviar": "Envoyer",
+  "Confirmar": "Confirmer",
+  "OK": "OK",
+  "Cancelar": "Annuler"
 });

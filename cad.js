@@ -396,13 +396,13 @@
       '<div class="cad-panel hidden" id="cadPanel"></div>' +
       '<div class="cad-tools">' + TOOLS.map(function (t) { return '<button type="button" data-tool="' + t[0] + '">' + ic(t[2]) + '<span>' + t[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="cad-modal hidden" id="cadModal"><div class="cad-mbox"><div class="cad-mhead"><h2 id="cadMTitle"></h2><button type="button" class="cad-b" data-a="mclose" aria-label="Fechar">✕</button></div><div id="cadMBody"></div></div></div>' +
-      '<div class="cad-full hidden" id="cadFull"></div>' +
+      '<div class="cad-full hidden" id="cadFull"></div><div class="cad-ask hidden" id="cadAsk"></div>' +
       '<input type="file" id="cadImg" accept="image/*" class="hidden"><input type="file" id="cadBgImg" accept="image/*" class="hidden">';
     el.host = host; el.cv = host.querySelector('#cadCv'); ctx = el.cv.getContext('2d');
     el.xy = host.querySelector('#cadXY'); el.panel = host.querySelector('#cadPanel'); el.name = host.querySelector('#cadName');
     el.undo = host.querySelector('[data-a=undo]'); el.redo = host.querySelector('[data-a=redo]');
     el.modal = host.querySelector('#cadModal'); el.mt = host.querySelector('#cadMTitle'); el.mb = host.querySelector('#cadMBody'); el.toast = host.querySelector('#cadToast');
-    el.full = host.querySelector('#cadFull');
+    el.full = host.querySelector('#cadFull'); el.ask = host.querySelector('#cadAsk');
     host.addEventListener('click', onClick);
     host.addEventListener('change', onChange);
     host.addEventListener('input', function (e) { if (e.target.dataset && e.target.dataset.bgop && doc.bg) { doc.bg.op = +e.target.value; draw(); } });
@@ -439,20 +439,23 @@
     g65: function () { g65For(editing); },
     origin0: function () { pushUndo(); doc.origin = { x: 0, y: 0 }; save(); toast(T('Origem voltou para o ponto inicial.')); draw(); },
     autodim: function () { closeModal(); autoDim(); },
-    fnew: function () { var nm = prompt(T('Nome do desenho'), T('Desenho') + ' ' + (Object.keys(store.docs).length + 1)); if (nm == null) return; var id = uid(); store.docs[id] = newDoc(nm.trim() || T('Desenho')); switchDoc(id); closeModal(); },
+    fnew: function () { askText(T('Nome do desenho'), T('Desenho') + ' ' + (Object.keys(store.docs).length + 1), function (nm) { var id = uid(); store.docs[id] = newDoc(nm.trim() || T('Desenho')); switchDoc(id); closeModal(); }); },
     fopen: function (a) { switchDoc(a.dataset.id); closeModal(); },
-    fren: function () { var n2 = prompt(T('Novo nome'), doc.name); if (n2 == null) return; doc.name = n2.trim() || doc.name; save(); el.name.textContent = doc.name; openFiles(); },
+    fren: function () { askText(T('Novo nome'), doc.name, function (n2) { doc.name = n2.trim() || doc.name; save(); el.name.textContent = doc.name; openFiles(); }); },
     fdel: function () {
-      if (!confirm(T('Apagar este desenho? Não dá para desfazer.'))) return;
-      delete store.docs[store.cur]; var ks = Object.keys(store.docs);
-      if (!ks.length) { var nid = uid(); store.docs[nid] = newDoc(T('Desenho') + ' 1'); ks = [nid]; }
-      switchDoc(ks[0]); closeModal();
+      askOk(T('Apagar este desenho? Não dá para desfazer.'), function () {
+        delete store.docs[store.cur]; var ks = Object.keys(store.docs);
+        if (!ks.length) { var nid = uid(); store.docs[nid] = newDoc(T('Desenho') + ' 1'); ks = [nid]; }
+        switchDoc(ks[0]); closeModal();
+      });
     },
     fdup: function () { var c = clone(doc); c.name = doc.name + ' (' + T('cópia') + ')'; c.chat = []; var id = uid(); store.docs[id] = c; switchDoc(id); closeModal(); },
     lsel: function (a) { var en = byId(a.dataset.id); closeModal(); if (en) { selectEnt(en); fitTo([en]); draw(); } },
     list: function () { openList(); }, layers: function () { openLayers(); },
     lay: function (a) { doc.hide = doc.hide || {}; doc.hide[a.dataset.l] = !doc.hide[a.dataset.l]; save(); openLayers(); draw(); },
-    clear: function () { if (!doc.ents.length) return; if (!confirm(T('Apagar tudo do desenho?'))) return; pushUndo(); doc.ents = []; save(); closeModal(); setTool('select'); },
+    clear: function () { if (!doc.ents.length) return; askOk(T('Apagar tudo do desenho?'), function () { pushUndo(); doc.ents = []; save(); closeModal(); setTool('select'); }); },
+    askok: function () { var f = askCb, i = el.ask.querySelector('input'), v = i ? i.value : true; closeAsk(); if (f) f(v); },
+    askno: function () { closeAsk(); },
     v3d: function () { closeModal(); open3D(); },
     exp: function () { openExport(); },
     xdxf: function () { exportDXF(); }, xpdf: function () { exportPDF(); }, xpng: function () { exportPNG(); }, xjson: function () { exportJSON(); },
@@ -906,9 +909,12 @@
     if (mode2 === 'calib') {
       p = pickPoint(sx, sy, true); picks.push([p.x, p.y]); draw();
       if (picks.length === 2) {
-        var d0 = Math.hypot(picks[1][0] - picks[0][0], picks[1][1] - picks[0][1]), real = num(prompt(T('Distância real entre os dois pontos (mm)'), fmt(d0, 2)));
-        if (real > 0 && d0 > 0) { pushUndo(); var k = real / d0, b = doc.bg, p0 = picks[0]; b.x = p0[0] + (b.x - p0[0]) * k; b.y = p0[1] + (b.y - p0[1]) * k; b.w *= k; save(); toast(T('Foto calibrada.')); setMode2(null); fit(); return; }
+        var d0 = Math.hypot(picks[1][0] - picks[0][0], picks[1][1] - picks[0][1]), p0 = picks[0];
         setMode2(null);
+        askText(T('Distância real entre os dois pontos (mm)'), fmt(d0, 2), function (v) {
+          var real = num(v); if (!(real > 0 && d0 > 0)) return toast(T('Confira os valores.'));
+          pushUndo(); var k = real / d0, b = doc.bg; b.x = p0[0] + (b.x - p0[0]) * k; b.y = p0[1] + (b.y - p0[1]) * k; b.w *= k; save(); toast(T('Foto calibrada.')); fit();
+        }, true);
       }
       return;
     }
@@ -1178,6 +1184,21 @@
     });
     openModal(T('Meus desenhos'), h + '</div>');
   }
+  // perguntas dentro do app (a página do Claude não deixa usar prompt/confirm do navegador)
+  var askCb = null;
+  function askText(title, def, cb, numeric) {
+    askCb = cb;
+    el.ask.innerHTML = '<div class="cad-askbox"><b>' + esc(title) + '</b><input type="text"' + (numeric ? ' inputmode="decimal"' : '') + ' value="' + esc(def) + '"><div class="cad-pbtn">' + btn('askno', 'Cancelar') + btn('askok', 'OK', 'primary') + '</div></div>';
+    el.ask.classList.remove('hidden');
+    var i = el.ask.querySelector('input'); i.focus(); i.select();
+    i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); ACTIONS.askok(); } else if (e.key === 'Escape') closeAsk(); });
+  }
+  function askOk(msg, cb) {
+    askCb = cb;
+    el.ask.innerHTML = '<div class="cad-askbox"><b>' + esc(msg) + '</b><div class="cad-pbtn">' + btn('askno', 'Cancelar') + btn('askok', 'Confirmar', 'danger') + '</div></div>';
+    el.ask.classList.remove('hidden');
+  }
+  function closeAsk() { askCb = null; el.ask.classList.add('hidden'); el.ask.innerHTML = ''; }
   var tt = 0;
   function toast(m) { if (!el.toast) return; el.toast.textContent = m; el.toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function () { el.toast.classList.remove('show'); }, 2600); }
 
