@@ -1444,39 +1444,38 @@
     var nx = st.nx, ny = st.ny, cell = st.cell, x0 = st.x0, y0 = st.y0, esp = st.top - st.bottom;
     var bx0 = st.ob[0], by0 = st.ob[1], bx1 = st.ob[2], by1 = st.ob[3];
     var pcx = (bx0 + bx1) / 2, pcy = (by0 + by1) / 2, pw = bx1 - bx0, ph = by1 - by0;
-    // regiões
+    // vistas agrupadas como no desenho técnico: [vista de cima | 3D] em cima, [corte A-A | corte B-B] embaixo,
+    // todas na mesma escala e alinhadas (o corte A-A fica embaixo da vista de cima, o B-B ao lado do A-A)
     var tbH = 110 * k, inner = { x: m, y: m, w: PW - 2 * m, h: PH - 2 * m - tbH };
-    var topR = { x: inner.x + 10 * k, y: inner.y + inner.h * 0.33, w: inner.w * 0.58, h: inner.h * 0.38 };
-    var isoR = { x: inner.x + inner.w * 0.42, y: inner.y + 10 * k, w: inner.w * 0.57, h: inner.h * 0.34 };
-    var secA = { x: topR.x, y: inner.y + inner.h * 0.71, w: inner.w * 0.56, h: inner.h * 0.28 };
-    var secB = { x: inner.x + inner.w * 0.58, y: secA.y, w: inner.w * 0.41, h: secA.h };
-    // vista de cima: mesmo desenho da tela, com cotas, numa escala comum
-    var sv = { ctx: ctx, W: W, H: H, dpr: dpr, view: view, COL: COL, pxk: pxk, sel: sel, ghost: ghost, hover: hover, snapHit: snapHit }, topView;
-    var tc = document.createElement('canvas'); tc.width = Math.round(topR.w); tc.height = Math.round(topR.h);
+    var gx = 110 * k, gy = 140 * k, padW = 130 * k, padH = 200 * k, isoMin = inner.w * 0.32;
+    var S = Math.min((inner.w - padW - gx) / (pw + ph), (inner.h - padH - gy) / (ph + esp));
+    if (ph * S < isoMin) S = Math.min((inner.w - padW - gx - isoMin) / pw, (inner.h - padH - gy) / (ph + esp));
+    var c2w = Math.max(ph * S, isoMin), Gw = pw * S + gx + c2w, Gh = ph * S + gy + esp * S;
+    var gx0 = inner.x + (inner.w - Gw) / 2 + 30 * k, gy0 = inner.y + (inner.h - Gh) / 2;
+    var planC = [gx0 + pw * S / 2, gy0 + ph * S / 2], baseA = gy0 + ph * S + gy + esp * S;
+    // vista de cima: mesmo desenho da tela, com cotas
+    var sv = { ctx: ctx, W: W, H: H, dpr: dpr, view: view, COL: COL, pxk: pxk, sel: sel, ghost: ghost, hover: hover, snapHit: snapHit };
+    var pad = 160 * k, tc = document.createElement('canvas'); tc.width = Math.round(pw * S + 2 * pad); tc.height = Math.round(ph * S + 2 * pad);
     try {
       ctx = tc.getContext('2d'); W = tc.width; H = tc.height; dpr = 1; COL = COL_PRINT; printMode = true; pxk = PW / 1150; sel = null; ghost = null; hover = null; snapHit = null;
-      view = { cx: 0, cy: 0, s: 1 }; fitTo(doc.ents.filter(vis), 40 * k);
-      var sMax = Math.min((secA.w - 90 * k) / pw, (secA.h - 110 * k) / Math.max(esp, 1), (secB.w - 90 * k) / ph);
-      if (view.s > sMax) view.s = sMax;
-      paint(); topView = { s: view.s, cx: view.cx, cy: view.cy };
+      view = { cx: pcx, cy: pcy, s: S };
+      paint();
     } finally {
       ctx = sv.ctx; W = sv.W; H = sv.H; dpr = sv.dpr; view = sv.view; COL = sv.COL; pxk = sv.pxk; sel = sv.sel; ghost = sv.ghost; hover = sv.hover; snapHit = sv.snapHit; printMode = false;
     }
-    g.drawImage(tc, topR.x, topR.y);
-    var S = topView.s;
-    function tx(x) { return topR.x + topR.w / 2 + (x - topView.cx) * S; }
-    function ty(y) { return topR.y + topR.h / 2 - (y - topView.cy) * S; }
+    g.drawImage(tc, planC[0] - tc.width / 2, planC[1] - tc.height / 2);
+    function tx(x) { return planC[0] + (x - pcx) * S; }
+    function ty(y) { return planC[1] - (y - pcy) * S; }
     // linhas de corte
     g.save(); g.strokeStyle = '#c0392b'; g.lineWidth = 1.6 * k; g.setLineDash([22 * k, 6 * k, 4 * k, 6 * k]);
     g.beginPath(); g.moveTo(tx(bx0) - 24 * k, ty(pcy)); g.lineTo(tx(bx1) + 24 * k, ty(pcy)); g.moveTo(tx(pcx), ty(by1) - 24 * k); g.lineTo(tx(pcx), ty(by0) + 24 * k); g.stroke(); g.restore();
     g.fillStyle = '#111'; g.font = '700 ' + (16 * k) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('A', tx(bx0) - 34 * k, ty(pcy)); g.fillText('A', tx(bx1) + 34 * k, ty(pcy));
     g.fillText('B', tx(pcx), ty(by1) - 34 * k); g.fillText('B', tx(pcx), ty(by0) + 34 * k);
-    // corte: perfil do mapa de alturas ao longo de uma linha
-    function section(R, along, title) {
+    // corte: perfil do mapa de alturas ao longo de uma linha (xl = borda esquerda da peça, base = linha do fundo)
+    function section(xl, base, along, title) {
       var n = along === 'x' ? nx : ny, fix = along === 'x' ? Math.round((pcy - y0) / cell) : Math.round((pcx - x0) / cell);
-      var a0 = along === 'x' ? bx0 : by0, len = along === 'x' ? pw : ph;
-      var ox = R.x + R.w / 2 - len / 2 * S, base = R.y + R.h - 50 * k;
+      var a0 = along === 'x' ? bx0 : by0, len = along === 'x' ? pw : ph, ox = xl;
       function hz(t) { var kk = along === 'x' ? fix * nx + t : t * nx + fix; return st.inside[kk] ? st.h[kk] : null; }
       function X(t) { return ox + Math.max(0, Math.min(len, (along === 'x' ? x0 : y0) + t * cell - a0)) * S; }
       function Z(z) { return base - (z - st.bottom) * S; }
@@ -1485,22 +1484,25 @@
       runs.forEach(function (r) {
         g.beginPath(); g.moveTo(r[0][0], Z(st.bottom)); r.forEach(function (p) { g.lineTo(p[0], p[1]); }); g.lineTo(r[r.length - 1][0], Z(st.bottom)); g.closePath();
         g.save(); g.clip(); g.strokeStyle = '#555'; g.lineWidth = 1 * k;
-        for (var hh = -R.h; hh < R.w + R.h; hh += 9 * k) { g.beginPath(); g.moveTo(R.x + hh, base + 10 * k); g.lineTo(R.x + hh + R.h, base + 10 * k - R.h); g.stroke(); }
+        var hgt = esp * S + 20 * k;
+        for (var hh = -hgt; hh < len * S + hgt; hh += 9 * k) { g.beginPath(); g.moveTo(ox + hh, base + 10 * k); g.lineTo(ox + hh + hgt + 20 * k, base - hgt - 10 * k); g.stroke(); }
         g.restore();
         g.strokeStyle = '#111'; g.lineWidth = 2 * k; g.beginPath(); g.moveTo(r[0][0], Z(st.bottom)); r.forEach(function (p) { g.lineTo(p[0], p[1]); }); g.lineTo(r[r.length - 1][0], Z(st.bottom)); g.closePath(); g.stroke();
       });
       // cotas: altura e comprimento
       g.strokeStyle = '#1f5fbf'; g.fillStyle = '#1f5fbf'; g.lineWidth = 1.2 * k; g.font = '600 ' + (14 * k) + 'px system-ui, sans-serif';
-      var xl = ox - 26 * k, zt = Z(st.top), zb = Z(st.bottom);
-      g.beginPath(); g.moveTo(xl, zt); g.lineTo(xl, zb); g.moveTo(xl - 6 * k, zt); g.lineTo(ox - 4 * k, zt); g.moveTo(xl - 6 * k, zb); g.lineTo(ox - 4 * k, zb); g.stroke();
-      g.save(); g.translate(xl - 12 * k, (zt + zb) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(fmt(esp), 0, 0); g.restore();
+      var xd = ox - 26 * k, zt = Z(st.top), zb = Z(st.bottom);
+      g.beginPath(); g.moveTo(xd, zt); g.lineTo(xd, zb); g.moveTo(xd - 6 * k, zt); g.lineTo(ox - 4 * k, zt); g.moveTo(xd - 6 * k, zb); g.lineTo(ox - 4 * k, zb); g.stroke();
+      g.save(); g.translate(xd - 12 * k, (zt + zb) / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(fmt(esp), 0, 0); g.restore();
       var yl = base + 26 * k, xa = ox, xb = ox + len * S;
       g.beginPath(); g.moveTo(xa, yl); g.lineTo(xb, yl); g.moveTo(xa, base + 4 * k); g.lineTo(xa, yl + 6 * k); g.moveTo(xb, base + 4 * k); g.lineTo(xb, yl + 6 * k); g.stroke();
       g.textAlign = 'center'; g.fillText(fmt(len), (xa + xb) / 2, yl + 14 * k);
-      g.fillStyle = '#111'; g.font = '700 ' + (17 * k) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(title, R.x, Z(st.top) - 26 * k);
+      g.fillStyle = '#111'; g.font = '700 ' + (17 * k) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(title, ox, Z(st.top) - 30 * k);
     }
-    section(secA, 'x', T('CORTE') + ' A-A'); section(secB, 'y', T('CORTE') + ' B-B');
-    // peça em 3D (isométrica)
+    section(gx0, baseA, 'x', T('CORTE') + ' A-A'); section(gx0 + pw * S + gx, baseA, 'y', T('CORTE') + ' B-B');
+    // peça em 3D (isométrica), ao lado da vista de cima
+    var isoR = { x: gx0 + pw * S + gx * 0.4, y: inner.y + 20 * k, w: 0, h: 0 };
+    isoR.w = Math.min(inner.x + inner.w - 10 * k, gx0 + Gw + 40 * k) - isoR.x; isoR.h = gy0 + ph * S + 40 * k - isoR.y;
     var ic = document.createElement('canvas'); ic.width = Math.round(isoR.w); ic.height = Math.round(isoR.h);
     if (root.Stock3D) { var st2 = build3D(); root.Stock3D.render(ic, st2, { az: -35, el: 32, zoom: 0.95, panX: 0, panY: 0, print: true, W: ic.width, H: ic.height }, false); g.drawImage(ic, isoR.x, isoR.y); }
     // moldura e legenda
