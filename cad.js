@@ -141,9 +141,16 @@
     return prims(e).map(function (p) {
       var n = p.k === 'l' ? { t: 'line', x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2 } : { t: 'arc', x: p.x, y: p.y, r: p.r, a0: p.a0, a1: p.a1 };
       if (e.prof != null) n.prof = e.prof;
+      if (e.ls) n.ls = e.ls;
       n.id = uid(); return n;
     });
   }
+  /* tipo de linha: cheia (padrão), tracejada, pontilhada, traço-ponto */
+  var LS = [['cont', '━━ Cheia'], ['trac', '╍╍ Tracejada'], ['pont', '┈┈ Pontilhada'], ['tp', '─·─ Traço-ponto']];
+  var LS_OK = { circle: 1, rect: 1, line: 1, arc: 1, poly: 1 };
+  var curLs = 'cont';
+  function isRef(e) { return e.ls === 'pont' || e.ls === 'tp'; }   // linhas de referência: não viram peça no 3D
+  function lsDash(ls, k) { return ls === 'trac' ? [9 * k, 5 * k] : ls === 'pont' ? [0.1 * k, 4.5 * k] : ls === 'tp' ? [16 * k, 4 * k, 2.5 * k, 4 * k] : []; }
   function layerOf(e) { return e.t === 'dim' ? 'cotas' : e.t === 'holes' ? 'furos' : 'peca'; }
   function vis(e) { return !(doc.hide || {})[layerOf(e)]; }
 
@@ -448,6 +455,12 @@
     origin0: function () { pushUndo(); doc.origin = { x: 0, y: 0 }; save(); toast(T('Origem voltou para o ponto inicial.')); draw(); },
     autodim: function () { closeModal(); autoDim(); },
     fsavebox: function () { openSave(); },
+    ls: function (a) {
+      var v = a.dataset.v; readPanel();
+      if (editing && LS_OK[editing.t]) { pushUndo(); if (v === 'cont') delete editing.ls; else editing.ls = v; save(); toast(T('Tipo de linha') + ': ' + T(LS.filter(function (o) { return o[0] === v; })[0][1]).replace(/^\S+\s/, '')); }
+      else curLs = v;
+      renderPanel(); preview(); draw();
+    },
     fnew: function () { leaveDoc(function () { askText(T('Nome do desenho'), T('Desenho') + ' ' + (Object.keys(store.docs).length + 1), function (nm) { var id = uid(); store.docs[id] = newDoc(nm.trim() || T('Desenho')); switchDoc(id); closeModal(); }); }); },
     fopen: function (a) { var id = a.dataset.id; if (id === store.cur) return closeModal(); leaveDoc(function () { switchDoc(id); closeModal(); }); },
     fsave: function () { doSave(false); },
@@ -528,6 +541,7 @@
     return f;
   }
   function formKey() { return vals._t === 'xf' ? 'xf' : editing ? (editing.t === 'dim' ? 'dimedit' : editing.cor ? 'filedit' : editing.t) : tool; }
+  function lsRow(v) { return '<p class="cad-sub">' + esc(T('Tipo de linha')) + '</p><div class="cad-seg cad-ls">' + LS.map(function (o) { return '<button type="button" data-a="ls" data-v="' + o[0] + '" class="' + (v === o[0] ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>'; }
   function renderPanel() {
     var t = formKey(), F = FORMS[t], ed = editing && t !== 'xf';
     var h = '<div class="cad-ph"><b>' + esc(T(F.title)) + (ed ? ' · ' + esc(T('editar')) : '') + '</b><button type="button" class="cad-b" data-a="close" aria-label="Fechar">✕</button></div>';
@@ -540,6 +554,7 @@
       if (t === 'xf' && s[0] === 'alvo' && !editing) return;
       h += '<div class="cad-seg">' + s[1].map(function (o) { return '<button type="button" data-seg="' + s[0] + '" data-v="' + o[0] + '" class="' + (vals[s[0]] === o[0] ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>';
     });
+    if (LS_OK[t] && !editing) h += lsRow(curLs);
     if (ORG_TOOLS[t] && !(t === 'holes' && vals.mode === 'lista')) h += orgChooser(t);
     var ff = fieldsOf(t);
     if (ff.length) {
@@ -550,6 +565,7 @@
       });
       h += '</div>';
     }
+    if (ed && LS_OK[editing.t]) h += lsRow(editing.ls || 'cont');
     h += '<div class="cad-pbtn">';
     if (t === 'origin') h += '<button type="button" class="ui-btn" data-a="origin0">' + esc(T('Voltar ao início')) + '</button><button type="button" class="ui-btn primary" data-a="ok">' + esc(T('Mover origem')) + '</button>';
     else if (t === 'xf') h += '<button type="button" class="ui-btn primary wide" data-a="ok">' + esc(T('Aplicar')) + '</button>';
@@ -672,7 +688,7 @@
   function preview() {
     ghost = null;
     var t = formKey();
-    if (['circle', 'rect', 'line', 'arc', 'poly', 'holes'].indexOf(t) >= 0 && (t !== 'arc' || vals.modo !== 'p3' || editing)) { var r = entFromVals(t); if (r.e) ghost = r.e; }
+    if (['circle', 'rect', 'line', 'arc', 'poly', 'holes'].indexOf(t) >= 0 && (t !== 'arc' || vals.modo !== 'p3' || editing)) { var r = entFromVals(t); if (r.e) { ghost = r.e; var gl = editing ? editing.ls : curLs; if (gl && gl !== 'cont' && LS_OK[t]) ghost.ls = gl; } }
     if (t === 'line' && !editing && !picks.length && vals.modo !== 'la') ghost = null;
     draw();
   }
@@ -701,7 +717,7 @@
       if (om2) vals = valsFromEnt(r.e);
       renderPanel(); preview(); return;
     }
-    r.e.id = uid(); doc.ents.push(r.e);
+    r.e.id = uid(); if (curLs !== 'cont' && LS_OK[r.e.t]) r.e.ls = curLs; doc.ents.push(r.e);
     var om = moveOrigin(r.e); save();
     toast((t === 'holes' ? holePts(r.e).length + ' ' + T('furo(s) adicionado(s).') : T('Adicionado.')) + (om ? ' ' + om : ''));
     if (om) { refreshPos(r.e); renderPanel(); }
@@ -1234,10 +1250,12 @@
       ctx.beginPath();
       if (p.cl) { if (!showCl) return; ctx.save(); ctx.setLineDash([10 * pxk, 3 * pxk, 2 * pxk, 3 * pxk]); ctx.strokeStyle = col || COL.cl; ctx.lineWidth = 1 * pxk; var c = toS(p.x, p.y); ctx.arc(c[0], c[1], p.r * view.s, 0, 7); ctx.stroke(); ctx.restore(); return; }
       ctx.strokeStyle = col || (p.hole ? COL.hole : COL.ent); ctx.lineWidth = (col === COL.sel ? 2.4 : 1.6) * pxk;
+      var dsh = e.ls && e.ls !== 'cont';
+      if (dsh) { ctx.save(); ctx.setLineDash(lsDash(e.ls, pxk)); ctx.lineCap = e.ls === 'pont' ? 'round' : 'butt'; if (e.ls === 'pont') ctx.lineWidth *= 1.35; }
       if (p.k === 'l') { var a = toS(p.x1, p.y1), b = toS(p.x2, p.y2); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
       else if (p.k === 'c') { var cc = toS(p.x, p.y); ctx.arc(cc[0], cc[1], Math.max(p.r * view.s, 0.5), 0, 7); }
       else { var ca = toS(p.x, p.y); ctx.arc(ca[0], ca[1], p.r * view.s, -p.a0 * D2R, -p.a1 * D2R, true); }
-      ctx.stroke();
+      ctx.stroke(); if (dsh) ctx.restore();
       if (p.k === 'c' && showCl) {
         var q = toS(p.x, p.y), L = Math.min(Math.max(p.r * view.s + 4 * pxk, 5 * pxk), 14 * pxk);
         ctx.save(); ctx.strokeStyle = col || COL.cl; ctx.lineWidth = 1 * pxk; ctx.beginPath(); ctx.moveTo(q[0] - L, q[1]); ctx.lineTo(q[0] + L, q[1]); ctx.moveTo(q[0], q[1] - L); ctx.lineTo(q[0], q[1] + L); ctx.stroke(); ctx.restore();
@@ -1482,16 +1500,20 @@
     function X(x) { return fmt(x - o.x, 4); } function Y(y) { return fmt(y - o.y, 4); }
     var LAY = { peca: 7, furos: 5, cotas: 2, centro: 1 };
     g(0, 'SECTION'); g(2, 'HEADER'); g(9, '$ACADVER'); g(1, 'AC1009'); g(0, 'ENDSEC');
-    g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'LTYPE'); g(70, 2);
+    g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'LTYPE'); g(70, 4);
     g(0, 'LTYPE'); g(2, 'CONTINUOUS'); g(70, 0); g(3, 'Solid'); g(72, 65); g(73, 0); g(40, 0);
     g(0, 'LTYPE'); g(2, 'CENTER'); g(70, 0); g(3, 'Center'); g(72, 65); g(73, 4); g(40, 20); g(49, 12); g(49, -3); g(49, 2); g(49, -3);
+    g(0, 'LTYPE'); g(2, 'HIDDEN'); g(70, 0); g(3, 'Hidden'); g(72, 65); g(73, 2); g(40, 9); g(49, 6); g(49, -3);
+    g(0, 'LTYPE'); g(2, 'DOT'); g(70, 0); g(3, 'Dot'); g(72, 65); g(73, 2); g(40, 3); g(49, 0); g(49, -3);
     g(0, 'ENDTAB'); g(0, 'TABLE'); g(2, 'LAYER'); g(70, 4);
     Object.keys(LAY).forEach(function (n) { g(0, 'LAYER'); g(2, n.toUpperCase()); g(70, 0); g(62, LAY[n]); g(6, n === 'centro' ? 'CENTER' : 'CONTINUOUS'); });
     g(0, 'ENDTAB'); g(0, 'ENDSEC');
     g(0, 'SECTION'); g(2, 'ENTITIES');
-    function line(l, a, b, c, d) { g(0, 'LINE'); g(8, l); g(10, X(a)); g(20, Y(b)); g(30, 0); g(11, X(c)); g(21, Y(d)); g(31, 0); }
-    function circ(l, x, y, r) { g(0, 'CIRCLE'); g(8, l); g(10, X(x)); g(20, Y(y)); g(30, 0); g(40, fmt(r, 4)); }
-    function arc(l, x, y, r, a0, a1) { g(0, 'ARC'); g(8, l); g(10, X(x)); g(20, Y(y)); g(30, 0); g(40, fmt(r, 4)); g(50, fmt(nang(a0), 4)); g(51, fmt(nang(a1), 4)); }
+    var LT = null, LTN = { trac: 'HIDDEN', pont: 'DOT', tp: 'CENTER' };
+    function lt() { if (LT) g(6, LT); }
+    function line(l, a, b, c, d) { g(0, 'LINE'); g(8, l); lt(); g(10, X(a)); g(20, Y(b)); g(30, 0); g(11, X(c)); g(21, Y(d)); g(31, 0); }
+    function circ(l, x, y, r) { g(0, 'CIRCLE'); g(8, l); lt(); g(10, X(x)); g(20, Y(y)); g(30, 0); g(40, fmt(r, 4)); }
+    function arc(l, x, y, r, a0, a1) { g(0, 'ARC'); g(8, l); lt(); g(10, X(x)); g(20, Y(y)); g(30, 0); g(40, fmt(r, 4)); g(50, fmt(nang(a0), 4)); g(51, fmt(nang(a1), 4)); }
     var b = bounds(doc.ents.filter(function (e) { return e.t !== 'dim'; })), k = isFinite(b.x0) ? Math.max(0.2, Math.max(b.x1 - b.x0, b.y1 - b.y0) / 1000) : 0.25;
     doc.ents.forEach(function (e) {
       if (e.t === 'dim') {
@@ -1504,9 +1526,11 @@
       }
       var L = e.t === 'holes' ? 'FUROS' : 'PECA';
       prims(e).forEach(function (p) {
+        LT = p.cl ? null : LTN[e.ls] || null;
         if (p.k === 'l') line(L, p.x1, p.y1, p.x2, p.y2);
-        else if (p.k === 'c') { circ(p.cl ? 'CENTRO' : L, p.x, p.y, p.r); if (!p.cl) { var c = Math.min(p.r * 1.25, p.r + 3); line('CENTRO', p.x - c, p.y, p.x + c, p.y); line('CENTRO', p.x, p.y - c, p.x, p.y + c); } }
+        else if (p.k === 'c') { circ(p.cl ? 'CENTRO' : L, p.x, p.y, p.r); LT = null; if (!p.cl) { var c = Math.min(p.r * 1.25, p.r + 3); line('CENTRO', p.x - c, p.y, p.x + c, p.y); line('CENTRO', p.x, p.y - c, p.x, p.y + c); } }
         else arc(L, p.x, p.y, p.r, p.a0, p.a1);
+        LT = null;
       });
     });
     g(0, 'ENDSEC'); g(0, 'EOF');
@@ -1782,8 +1806,9 @@
   }
   function build3D() {
     var top = 0, esp = doc.esp || 20, bottom = -esp, shapes = [];
-    doc.ents.forEach(function (e) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0) shapes.push({ pts: shapePoly(e), ent: e }); });
-    loopsOf(doc.ents).forEach(function (l) { shapes.push(l); });
+    var real = doc.ents.filter(function (e) { return !isRef(e); });
+    real.forEach(function (e) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0) shapes.push({ pts: shapePoly(e), ent: e }); });
+    loopsOf(real).forEach(function (l) { shapes.push(l); });
     if (!shapes.length) return null;
     shapes.forEach(function (s) { s.area = polyArea(s.pts); });
     shapes.sort(function (a, b) { return b.area - a.area; });

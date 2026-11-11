@@ -558,5 +558,10 @@ I18N.add({
   "Não salvar": "Ne pas enregistrer",
   "Nenhum desenho salvo ainda. Faça o desenho e toque no botão Salvar (disquete) lá em cima.": "Aucun dessin enregistré. Faites le dessin et touchez le bouton Enregistrer (disquette) en haut.",
   "Pasta vazia. Para guardar aqui, escolha esta pasta ao salvar.": "Dossier vide. Pour y ranger un dessin, choisissez ce dossier en enregistrant.",
-  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Le stockage de Claude est plein. Le dessin est enregistré seulement sur cet appareil."
+  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Le stockage de Claude est plein. Le dessin est enregistré seulement sur cet appareil.",
+  "Tipo de linha": "Type de ligne",
+  "━━ Cheia": "━━ Continue",
+  "╍╍ Tracejada": "╍╍ Tiretée",
+  "┈┈ Pontilhada": "┈┈ Pointillée",
+  "─·─ Traço-ponto": "─·─ Trait-point"
 });

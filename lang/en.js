@@ -558,5 +558,10 @@ I18N.add({
   "Não salvar": "Don't save",
   "Nenhum desenho salvo ainda. Faça o desenho e toque no botão Salvar (disquete) lá em cima.": "No saved drawings yet. Make the drawing and tap the Save button (floppy disk) at the top.",
   "Pasta vazia. Para guardar aqui, escolha esta pasta ao salvar.": "Empty folder. To keep a drawing here, pick this folder when saving.",
-  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Claude's cloud storage is full. The drawing was saved on this device only."
+  "A nuvem do Claude está cheia. O desenho ficou salvo só neste aparelho.": "Claude's cloud storage is full. The drawing was saved on this device only.",
+  "Tipo de linha": "Line type",
+  "━━ Cheia": "━━ Solid",
+  "╍╍ Tracejada": "╍╍ Dashed",
+  "┈┈ Pontilhada": "┈┈ Dotted",
+  "─·─ Traço-ponto": "─·─ Dash-dot"
 });
