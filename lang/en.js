@@ -530,5 +530,7 @@ I18N.add({
   "largura": "width",
   "altura": "height",
   "Desenhado por (folha A4)": "Drawn by (A4 sheet)",
-  "Aprovado por (folha A4)": "Approved by (A4 sheet)"
+  "Aprovado por (folha A4)": "Approved by (A4 sheet)",
+  "a partir de": "from",
+  "rebaixo": "counterbore"
 });

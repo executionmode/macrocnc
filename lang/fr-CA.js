@@ -530,5 +530,7 @@ I18N.add({
   "largura": "largeur",
   "altura": "hauteur",
   "Desenhado por (folha A4)": "Dessiné par (feuille A4)",
-  "Aprovado por (folha A4)": "Approuvé par (feuille A4)"
+  "Aprovado por (folha A4)": "Approuvé par (feuille A4)",
+  "a partir de": "à partir de",
+  "rebaixo": "lamage"
 });

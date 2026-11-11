@@ -1500,6 +1500,81 @@
       g.fillStyle = '#111'; g.font = '700 ' + (17 * k) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText(title, ox, Z(st.top) - 30 * k);
     }
     section(gx0, baseA, 'x', T('CORTE') + ' A-A'); section(gx0 + pw * S + gx, baseA, 'y', T('CORTE') + ' B-B');
+    // ---- cotas de fabricação: furos, rebaixo (spot face) e chanfro ----
+    var DIM = '#1f5fbf';
+    function arrow(x1, y1, x2, y2) {   // seta em (x2, y2)
+      var a = Math.atan2(y2 - y1, x2 - x1), L = 11 * k;
+      g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - L * Math.cos(a - 0.35), y2 - L * Math.sin(a - 0.35)); g.lineTo(x2 - L * Math.cos(a + 0.35), y2 - L * Math.sin(a + 0.35)); g.closePath(); g.fill();
+    }
+    function vdim(x, za, zb, txt, side) {   // cota vertical entre za e zb (em px) na coluna x
+      g.strokeStyle = DIM; g.fillStyle = DIM; g.lineWidth = 1.2 * k;
+      g.beginPath(); g.moveTo(x, za); g.lineTo(x, zb); g.stroke(); arrow(x, (za + zb) / 2, x, za); arrow(x, (za + zb) / 2, x, zb);
+      g.font = '600 ' + (13 * k) + 'px system-ui, sans-serif'; g.textAlign = side < 0 ? 'right' : 'left'; g.textBaseline = 'middle';
+      g.fillText(txt, x + side * 8 * k, (za + zb) / 2);
+    }
+    var ents = doc.ents, top3 = st.top;
+    // furos: grupos com os mesmos centros viram uma chamada só (passante + rebaixo)
+    var hg = [];
+    ents.forEach(function (e) {
+      if (e.t !== 'holes') return;
+      var pts = holePts(e), key = pts.map(function (q) { return q[0].toFixed(2) + ',' + q[1].toFixed(2); }).join(';'), gr = null;
+      hg.forEach(function (h) { if (h.key === key) gr = h; });
+      if (!gr) { gr = { key: key, pts: pts, list: [] }; hg.push(gr); }
+      gr.list.push(e);
+    });
+    var notes = [];
+    hg.forEach(function (gr) {
+      var n = gr.pts.length, pre = n > 1 ? n + 'x ' : '', thru = null, cb = [];
+      gr.list.forEach(function (e) { if (e.prof > 0 && e.prof < esp) cb.push(e); else thru = e; });
+      cb.sort(function (a, b) { return b.d - a.d; });
+      var lines = [];
+      if (thru) lines.push(pre + 'Ø' + fmt(thru.d) + ' ' + T('passante'));
+      cb.forEach(function (e, i) { lines.push((thru || i ? T('rebaixo') + ' ' : pre) + 'Ø' + fmt(e.d) + ' ' + T('prof.') + ' ' + fmt(e.prof)); });
+      var big = gr.list.reduce(function (a, e) { return e.d > a.d ? e : a; }, gr.list[0]), p0 = gr.pts[0];
+      notes.push({ lines: lines, at: [p0[0] + big.d / 2 * Math.cos(Math.PI * 0.75), p0[1] + big.d / 2 * Math.sin(Math.PI * 0.75)] });
+    });
+    ents.forEach(function (e) {
+      if (e.t !== 'circle' || !(e.cham > 0)) return;
+      var w = (pw / 2) - e.d / 2, hz = w * Math.tan(e.cham * Math.PI / 180);
+      notes.push({ lines: [T('Chanfro') + ' ' + fmt(e.cham) + '° ' + T('a partir de') + ' Ø' + fmt(e.d), T('altura') + ' ' + fmt(Math.round(hz * 100) / 100)], at: [e.x + e.d / 2 * Math.cos(Math.PI * 0.8), e.y + e.d / 2 * Math.sin(Math.PI * 0.8)] });
+    });
+    // chamadas em cima e à esquerda da vista de cima, com linha de chamada até o elemento
+    var ny0 = ty(by1) - 80 * k - (notes.length - 1) * 0, lh = 20 * k;
+    var tot = 0; notes.forEach(function (nt) { tot += nt.lines.length * lh + 14 * k; });
+    var yy = Math.max(inner.y + 30 * k, ty(by1) - 70 * k - tot), xN = Math.max(inner.x + 16 * k, tx(bx0) - 40 * k);
+    notes.forEach(function (nt) {
+      g.font = '600 ' + (14 * k) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = DIM;
+      var wmax = 0; nt.lines.forEach(function (l, i) { g.fillText(l, xN, yy + i * lh); wmax = Math.max(wmax, g.measureText(l).width); });
+      var ex = xN + wmax + 8 * k, ey = yy, px = tx(nt.at[0]), py = ty(nt.at[1]);
+      g.strokeStyle = DIM; g.lineWidth = 1.2 * k; g.beginPath(); g.moveTo(xN, ey + 10 * k); g.lineTo(ex, ey + 10 * k); g.lineTo(px, py); g.stroke(); arrow(ex, ey + 10 * k, px, py);
+      yy += nt.lines.length * lh + 14 * k;
+    });
+    // nos cortes: profundidade do rebaixo e altura/ângulo do chanfro
+    function secDims(xl, along, cham) {
+      var a0 = along === 'x' ? bx0 : by0, c0 = along === 'x' ? pcy : pcx, used = {};
+      function X(v) { return xl + (v - a0) * S; }
+      function Z(z) { return baseA - (z - st.bottom) * S; }
+      ents.forEach(function (e) {
+        if (!(e.prof > 0 && e.prof < esp)) return;
+        var cs = e.t === 'holes' ? holePts(e) : e.t === 'circle' ? [[e.x, e.y]] : [], r = e.d / 2;
+        for (var i = 0; i < cs.length; i++) {
+          var cc = along === 'x' ? cs[i][1] : cs[i][0], ca = along === 'x' ? cs[i][0] : cs[i][1], off = Math.abs(cc - c0);
+          if (off >= r * 0.98) continue;
+          var half = Math.sqrt(r * r - off * off), xe = X(ca + half), kk = Math.round(xe);
+          if (used[kk]) continue; used[kk] = 1;
+          vdim(xe - 14 * k, Z(top3), Z(top3 - e.prof), fmt(e.prof), -1);
+          break;
+        }
+      });
+      ents.forEach(function (e) {
+        if (!cham || e.t !== 'circle' || !(e.cham > 0)) return;
+        var lenA = along === 'x' ? pw : ph, w = lenA / 2 - e.d / 2, hz = w * Math.tan(e.cham * Math.PI / 180), xr = X(a0 + lenA);
+        vdim(xr + 24 * k, Z(top3), Z(top3 - hz), fmt(Math.round(hz * 100) / 100), 1);
+        g.fillStyle = DIM; g.font = '700 ' + (14 * k) + 'px system-ui, sans-serif'; g.textAlign = 'right'; g.textBaseline = 'bottom';
+        g.fillText(fmt(e.cham) + '°', xr - w * S * 0.3, Z(top3) - 6 * k);
+      });
+    }
+    secDims(gx0, 'x', true); secDims(gx0 + pw * S + gx, 'y', false);
     // peça em 3D (isométrica), ao lado da vista de cima
     var isoR = { x: gx0 + pw * S + gx * 0.4, y: inner.y + 20 * k, w: 0, h: 0 };
     isoR.w = Math.min(inner.x + inner.w - 10 * k, gx0 + Gw + 40 * k) - isoR.x; isoR.h = gy0 + ph * S + 40 * k - isoR.y;
