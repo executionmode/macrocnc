@@ -66,9 +66,9 @@
   }
 
   /* ---------- navegação ---------- */
-  var VIEWS = ['home', 'programas', 'exemplos', 'paramintro', 'treinamento', 'capitulo', 'prog', 'pedir', 'editor', 'meus', 'favoritos', 'perfil', 'config', 'sim'];
+  var VIEWS = ['home', 'programas', 'exemplos', 'paramintro', 'treinamento', 'capitulo', 'prog', 'pedir', 'editor', 'meus', 'favoritos', 'perfil', 'config', 'sim', 'desenho'];
   var TAB_OF = { home: 'home', programas: 'home', exemplos: 'home', paramintro: 'home', treinamento: 'home', capitulo: 'home', prog: 'home', pedir: 'home', editor: 'home',
-    meus: 'meus', favoritos: 'favoritos', perfil: 'perfil', config: 'perfil', sim: null };
+    meus: 'meus', favoritos: 'favoritos', perfil: 'perfil', config: 'perfil', sim: null, desenho: 'desenho' };
   var curView = 'home';
   function show(v, noHash) {
     if (v === 'regras') v = 'treinamento';
@@ -77,6 +77,7 @@
     if (v === 'prog' && !cur.p) v = 'programas';
     if (v === 'sim' && !(simView && simView.sim)) v = 'home';
     document.body.classList.toggle('simfull', v === 'sim');
+    document.body.classList.toggle('cadmode', v === 'desenho');
     if (v !== 'sim' && simView) simView.stop();
     $$('.view').forEach(function (el) { el.classList.toggle('active', el.id === 'view-' + v); });
     var tab = TAB_OF[v];
@@ -91,6 +92,7 @@
     if (v === 'favoritos') renderFavs();
     if (v === 'pedir') { checkChatSetup(); scrollChat(); }
     if (v === 'editor') updateGutter();
+    if (v === 'desenho' && window.Cad) Cad.show();
     window.scrollTo(0, 0);
   }
   var lastListView = 'home';

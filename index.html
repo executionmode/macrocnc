@@ -46,11 +46,15 @@
           <button type="button" class="menu-item" data-go="treinamento"><span class="mi-ico" data-icon="cap"></span><span class="mi-txt"><b>Treinamento</b><small>Macros do zero, passo a passo</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="meus"><span class="mi-ico" data-icon="box"></span><span class="mi-txt"><b>Meus Programas</b><small>Biblioteca pessoal</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="editor"><span class="mi-ico" data-icon="edit"></span><span class="mi-txt"><b>Editor de Programa</b><small>Escrever, conferir e simular</small></span><span class="mi-chev" data-icon="chev"></span></button>
+          <button type="button" class="menu-item" data-go="desenho"><span class="mi-ico" data-icon="draw"></span><span class="mi-txt"><b>Desenho</b><small>Desenhar a peça com medidas e furos</small></span><span class="mi-chev" data-icon="chev"></span></button>
           <button type="button" class="menu-item" data-go="pedir"><span class="mi-ico" data-icon="chat"></span><span class="mi-txt"><b>Pedir Programa</b><small>O assistente monta no seu padrão</small></span><span class="mi-chev" data-icon="chev"></span></button>
         </div>
         <button type="button" class="ui-btn primary wide" data-go="exemplos"><span data-icon="play"></span> Começar a explorar</button>
       </div>
     </section>
+
+    <!-- DESENHO -->
+    <section id="view-desenho" class="view"><div id="cad" class="cad"></div></section>
 
     <!-- PROGRAMAS -->
     <section id="view-programas" class="view">
@@ -276,6 +280,7 @@
 
   <nav class="tabbar">
     <button type="button" data-view="home" class="on"><span data-icon="home"></span>Início</button>
+    <button type="button" data-view="desenho"><span data-icon="draw"></span>Desenho</button>
     <button type="button" data-view="meus"><span data-icon="folder"></span>Projetos</button>
     <button type="button" data-view="favoritos"><span data-icon="star"></span>Favoritos</button>
     <button type="button" data-view="perfil"><span data-icon="user"></span>Perfil</button>
@@ -303,6 +308,7 @@
   <script src="stock3d.js"></script>
   <script src="art.js"></script>
   <script src="assistant.js"></script>
+  <script src="cad.js"></script>
   <script>I18N.start()</script>
   <script src="app.js"></script>
 </body>

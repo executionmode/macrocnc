@@ -96,6 +96,7 @@
     cap: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5 2.5 9Z"/><path d="M6.5 11v4.5c1.5 1.6 3.4 2.4 5.5 2.4s4-.8 5.5-2.4V11M21.5 9v5.5"/>',
     play: '<path d="M8 5v14l11-7L8 5Z" fill="currentColor"/>',
     home: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4v-9Z"/>',
+    draw: '<path d="M4 20 15.5 8.5"/><path d="m14 7 3-3 3 3-3 3z"/><path d="M4 20l1-4 3 3z"/><path d="M3 13h4M3 9h7"/>',
     folder: '<path d="M3.5 7.5h17v12h-17zM3.5 7.5V5h6l2 2.5"/><path d="M9 12.5h6"/>',
     star: '<path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.8L12 3.5Z"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c1.2-4 4.4-6 8-6s6.8 2 8 6"/>',

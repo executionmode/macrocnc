@@ -283,3 +283,48 @@ details.ans[open] { background: rgba(60,207,142,.06); border-radius: 10px; paddi
 .tr-vcard-h { display: flex; align-items: center; gap: 10px; }
 .tr-vcard-h .tr-num { flex: none; }
 .tr-vcard video { width: 100%; max-height: 70vh; border-radius: 12px; background: #000; aspect-ratio: 9 / 16; object-fit: contain; }
+
+/* ---------- aba Desenho (cad.js) ---------- */
+body.cadmode { overflow: hidden; overscroll-behavior: none; }
+.cad { position: fixed; left: 0; right: 0; top: 0; bottom: calc(60px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; background: #050b16; z-index: 5; }
+.cad-top { display: flex; align-items: center; gap: 4px; padding: calc(6px + env(safe-area-inset-top)) 8px 6px; background: #07101d; border-bottom: 1px solid var(--ui-line2); }
+.cad-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; color: var(--ui-text); font: inherit; font-weight: 600; font-size: 15px; padding: 6px; cursor: pointer; text-align: left; }
+.cad-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cad-b { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--ui-text); font-size: 18px; cursor: pointer; padding: 0; }
+.cad-b:disabled { opacity: .3; }
+.cad-b:active { background: rgba(120,170,255,.12); }
+.cad-ic { width: 22px; height: 22px; }
+.cad-stage { position: relative; flex: 1; min-height: 0; }
+.cad-stage canvas { position: absolute; inset: 0; display: block; }
+.cad-xy { position: absolute; left: 8px; top: 8px; font: 600 12.5px ui-monospace, Menlo, monospace; color: #cfe0f7; background: rgba(5,11,22,.8); border: 1px solid var(--ui-line2); border-radius: 8px; padding: 4px 8px; pointer-events: none; }
+.cad-toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .2s; background: #13243f; border: 1px solid var(--ui-line); color: var(--ui-text); padding: 8px 14px; border-radius: 10px; font-size: 13.5px; pointer-events: none; max-width: 90%; text-align: center; }
+.cad-toast.show { opacity: 1; transform: translateX(-50%); }
+.cad-tools { display: flex; background: #07101d; border-top: 1px solid var(--ui-line2); overflow-x: auto; }
+.cad-tools button { flex: 1 0 58px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 2px 6px; background: transparent; border: 0; color: #8fa3bd; font: inherit; font-size: 11px; cursor: pointer; }
+.cad-tools button.on { color: #4aa0ff; background: rgba(47,134,255,.1); }
+.cad-panel { max-height: 46%; overflow-y: auto; background: #0b1526; border-top: 1px solid var(--ui-line); padding: 8px 12px 10px; }
+.cad-ph { display: flex; align-items: center; justify-content: space-between; }
+.cad-ph b { font-size: 15px; }
+.cad-ph .cad-b { width: 32px; height: 32px; font-size: 15px; }
+.cad-hint { color: var(--ui-mut); font-size: 12.5px; margin: 2px 0 8px; line-height: 1.4; }
+.cad-seg { display: flex; gap: 4px; margin-bottom: 8px; overflow-x: auto; }
+.cad-seg button { flex: 1 0 auto; border: 1px solid var(--ui-line2); background: #0c1626; color: #c8d4e4; border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.cad-seg button.on { background: var(--ui-blue2); border-color: var(--ui-blue); color: #fff; }
+.cad-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.cad-f { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--ui-mut); }
+.cad-f input { width: 100%; background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 9px; padding: 9px 10px; font: 600 15px ui-monospace, Menlo, monospace; }
+.cad-f input:focus { outline: 2px solid var(--ui-blue); outline-offset: -1px; }
+.cad-pbtn { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cad-pbtn .ui-btn { flex: 1; min-height: 42px; padding: 8px 12px; }
+.cad-modal { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.cad-mbox { width: 100%; max-width: 640px; max-height: 80vh; overflow-y: auto; background: #0b1526; border: 1px solid var(--ui-line); border-radius: 18px 18px 0 0; padding: 12px 14px calc(16px + env(safe-area-inset-bottom)); }
+.cad-mhead { display: flex; align-items: center; justify-content: space-between; }
+.cad-mhead h2 { font-size: 17px; margin: 0; }
+.cad-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cad-li { text-align: left; border: 1px solid var(--ui-line2); background: #0e1a2e; color: var(--ui-text); border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.cad-li.on { border-color: var(--ui-blue); }
+.cad-li small { color: var(--ui-mut); }
+.cad-tb { border-collapse: collapse; font: 12.5px ui-monospace, Menlo, monospace; color: #cfe0f7; margin-top: 4px; }
+.cad-tb th, .cad-tb td { padding: 2px 10px 2px 0; text-align: right; }
+.cad-tb th { color: var(--ui-mut); font-weight: 600; }
+@media (min-width: 900px) { .cad-fields { grid-template-columns: repeat(3, 1fr); } }
