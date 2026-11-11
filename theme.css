@@ -386,3 +386,8 @@ label.ui-btn { cursor: pointer; text-align: center; }
 /* seletor de foto por cima do botão */
 .cad-pickw { position: relative; overflow: hidden; }
 .cad-over { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+
+/* profundidades na vista 3D */
+.cad-dl { display: grid; gap: 6px; max-height: 28vh; overflow: auto; margin: 8px 0; }
+.cad-dl > b { font-size: .9em; }
+.cad-dli { display: grid; grid-template-columns: 1fr 110px; align-items: center; gap: 8px; }

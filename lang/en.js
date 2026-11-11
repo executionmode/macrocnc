@@ -514,5 +514,7 @@ I18N.add({
   "meio direito": "right middle",
   "canto esquerdo em cima": "top left corner",
   "meio em cima": "top middle",
-  "canto direito em cima": "top right corner"
+  "canto direito em cima": "top right corner",
+  "Profundidade de cada elemento (vazio = passante)": "Depth of each element (empty = through)",
+  "passante": "through"
 });

@@ -477,6 +477,7 @@
     if (e.target.id === 'cadImg' && e.target.files[0]) { readImage(e.target.files[0], 1568, function (src) { agentAttach(src); }); e.target.value = ''; }
     if (e.target.id === 'cadBgImg' && e.target.files[0]) { readImage(e.target.files[0], 1600, function (src) { setBg(src); }); e.target.value = ''; }
     if (e.target.dataset && e.target.dataset.bgop && doc.bg) { doc.bg.op = +e.target.value; save(); draw(); }
+    if (e.target.dataset && e.target.dataset.prof3d != null) { var en = doc.ents[+e.target.dataset.prof3d], pv = num(e.target.value); if (en) { if (pv > 0) en.prof = pv; else delete en.prof; save(); draw(); render3D(true); } }
     if (e.target.dataset && e.target.dataset.esp != null) { var v = num(e.target.value); if (v > 0) { doc.esp = v; save(); render3D(true); } }
   }
 
@@ -1521,9 +1522,24 @@
     openFull('<div class="cad-fh"><b>' + esc(T('Vista 3D')) + '</b><button type="button" class="cad-b" data-a="full_close" aria-label="Fechar">✕</button></div>' +
       '<div class="cad-3d"><canvas id="cad3d"></canvas></div>' +
       '<div class="cad-3dbar"><label class="cad-f"><span>' + esc(T('Espessura da peça (mm)')) + '</span><input type="text" inputmode="decimal" data-esp="1" value="' + fmt(doc.esp || 20) + '"></label>' +
+      depthList() +
       '<p class="cad-hint">' + esc(T('O maior contorno é a peça. Furos e contornos de dentro sem profundidade são passantes; com profundidade viram rebaixo. Para mudar a profundidade, selecione o elemento.')) + '</p></div>');
     v3 = { st: st, view: { az: -35, el: 38, zoom: 1, panX: 0, panY: 0 }, cv: el.full.querySelector('#cad3d') };
     bind3D(); render3D();
+  }
+  /* lista dos elementos de dentro com a profundidade de cada um (vazio = passante), direto na vista 3D */
+  function depthList() {
+    var cand = [], big = null, bigA = -1;
+    doc.ents.forEach(function (e, i) {
+      if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0) { var a = Math.abs(polyArea(shapePoly(e))); if (a > bigA) { bigA = a; big = i; } }
+    });
+    doc.ents.forEach(function (e, i) { if ((['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && i !== big) || e.t === 'holes') cand.push(i); });
+    if (!cand.length) return '';
+    return '<div class="cad-dl"><b>' + esc(T('Profundidade de cada elemento (vazio = passante)')) + '</b>' + cand.map(function (i) {
+      var e = doc.ents[i], n = e.t === 'holes' ? holePts(e).length : 1;
+      var nm = e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados');
+      return '<label class="cad-f cad-dli"><span>' + esc(nm) + '</span><input type="text" inputmode="decimal" data-prof3d="' + i + '" placeholder="' + esc(T('passante')) + '" value="' + (e.prof > 0 ? fmt(e.prof) : '') + '"></label>';
+    }).join('') + '</div>';
   }
   function render3D(rebuild) {
     if (!v3) return;

@@ -514,5 +514,7 @@ I18N.add({
   "meio direito": "milieu droit",
   "canto esquerdo em cima": "coin en haut à gauche",
   "meio em cima": "milieu en haut",
-  "canto direito em cima": "coin en haut à droite"
+  "canto direito em cima": "coin en haut à droite",
+  "Profundidade de cada elemento (vazio = passante)": "Profondeur de chaque élément (vide = débouchant)",
+  "passante": "débouchant"
 });
