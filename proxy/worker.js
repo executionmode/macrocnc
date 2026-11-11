@@ -13,6 +13,7 @@ const MODELS = ['claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5'];
 const MAX_MESSAGES = 40;
 const MAX_CHARS = 120000;      // conversa
 const MAX_SYSTEM = 120000;     // regras + biblioteca
+const MAX_IMAGE = 6000000;     // fotos da aba Desenho (base64)
 
 export default {
   async fetch(request, env) {
@@ -38,13 +39,19 @@ export default {
 
     const messages = Array.isArray(body.messages) ? body.messages.slice(-MAX_MESSAGES) : null;
     if (!messages || !messages.length) return json(400, { error: { message: 'Sem mensagens.' } });
-    let chars = 0;
+    let chars = 0, imgBytes = 0;
     for (const m of messages) {
-      if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.content !== 'string') {
-        return json(400, { error: { message: 'Formato de mensagem inválido.' } });
+      if (!m || (m.role !== 'user' && m.role !== 'assistant')) return json(400, { error: { message: 'Formato de mensagem inválido.' } });
+      if (typeof m.content === 'string') { chars += m.content.length; continue; }
+      // mensagem com foto (aba Desenho): só blocos de texto e imagem base64 JPEG/PNG
+      if (!Array.isArray(m.content) || m.role !== 'user' || m.content.length > 6) return json(400, { error: { message: 'Formato de mensagem inválido.' } });
+      for (const b of m.content) {
+        if (b && b.type === 'text' && typeof b.text === 'string') chars += b.text.length;
+        else if (b && b.type === 'image' && b.source && b.source.type === 'base64' && /^image\/(jpeg|png)$/.test(b.source.media_type) && typeof b.source.data === 'string') imgBytes += b.source.data.length;
+        else return json(400, { error: { message: 'Formato de mensagem inválido.' } });
       }
-      chars += m.content.length;
     }
+    if (imgBytes > MAX_IMAGE) return json(413, { error: { message: 'Foto grande demais.' } });
     if (chars > MAX_CHARS) return json(413, { error: { message: 'Conversa grande demais. Comece uma nova conversa.' } });
     while (messages.length && messages[0].role !== 'user') messages.shift();
 

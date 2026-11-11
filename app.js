@@ -1557,4 +1557,14 @@
   /* ---------- início ---------- */
   renderList();
   show(location.hash.slice(1) || 'home', true);
+
+  /* ponte com a aba Desenho */
+  window.App = {
+    openProgCall: function (id, call) {
+      var p = PROGRAMS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
+      openProg(id); renderProgForm(savedVals(id), call.replace(/^G65 P\d+\s*/, '')); window.scrollTo(0, 0);
+      toast(T('Chamada montada pelo desenho. Confira T, Z, K, R e F antes de gerar.'));
+    },
+    openEditor: function (text, name) { setEditor(text, name); show('editor'); }
+  };
 })();

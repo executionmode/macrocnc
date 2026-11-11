@@ -296,7 +296,7 @@
       var p = S(cl.x, cl.y, cl.z); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(p[0], p[1], 6, 0, 7); c.fill();
     });
     c.fillStyle = '#94a3b3'; c.font = '11px system-ui';
-    c.fillText((window.T || String)('1 dedo gira · 2 dedos zoom e move · fresa ' + (Math.round(st.D * 100) / 100) + ' mm · bruto no topo Z' + st.top), 10, H - 8);
+    c.fillText(st.label != null ? st.label : (window.T || String)('1 dedo gira · 2 dedos zoom e move · fresa ' + (Math.round(st.D * 100) / 100) + ' mm · bruto no topo Z' + st.top), 10, H - 8);
   }
 
   root.Stock3D = { build: build, advance: advance, render: render };

@@ -163,5 +163,54 @@
     return full;
   }
 
-  root.Assistant = { send: send, loadCfg: loadCfg, saveCfg: saveCfg, isReady: isReady, setSample: setSample, buildSystem: buildSystem };
+  /* pedido livre (aba Desenho): system próprio, mensagens podem ter foto */
+  async function sendRaw(systemText, messages, onText, signal, maxTokens) {
+    var c = loadCfg();
+    if (!cfgReady(c)) {
+      if (!sampleFn) throw new Error('Assistente não configurado.');
+      var msgs = messages.map(function (m) { return { role: m.role, content: m.content }; });
+      var first = msgs[0], pre = 'INSTRUCOES DO APP (siga sempre, em todas as respostas):\n' + systemText + '\n\n---\n';
+      if (typeof first.content === 'string') first.content = pre + first.content;
+      else first.content = [{ type: 'text', text: pre }].concat(first.content);
+      try {
+        var r = await sampleFn(msgs, { onText: function (o) { if (o && typeof o.text === 'string') onText(o.text); }, signal: signal, cache: false, modelTier: 'complex' });
+        return r.text || '';
+      } catch (e) {
+        if (signal && signal.aborted) { var ab = new Error('abort'); ab.name = 'AbortError'; throw ab; }
+        throw new Error((e && e.message) || 'Erro no assistente.');
+      }
+    }
+    var body = { model: c.model, max_tokens: maxTokens || 6000, system: [{ type: 'text', text: systemText }], messages: messages, stream: true };
+    return stream(c, body, onText, signal);
+  }
+  async function stream(c, body, onText, signal) {
+    var url, headers = { 'content-type': 'application/json' };
+    if (c.mode === 'key') {
+      url = 'https://api.anthropic.com/v1/messages';
+      headers['x-api-key'] = c.apiKey; headers['anthropic-version'] = '2023-06-01'; headers['anthropic-dangerous-direct-browser-access'] = 'true';
+    } else url = c.proxyUrl.replace(/\/+$/, '');
+    var res;
+    try { res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: signal }); }
+    catch (e) { if (e.name === 'AbortError') throw e; throw new Error('Sem conexão com o assistente. Verifique a internet' + (c.mode === 'proxy' ? ' e o endereço do proxy.' : '.')); }
+    if (!res.ok) throw new Error(friendlyError(res.status, await res.text()));
+    var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
+    while (true) {
+      var r = await reader.read();
+      if (r.done) break;
+      buf += dec.decode(r.value, { stream: true }).replace(/\r\n/g, '\n');
+      var idx;
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        var chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        chunk.split('\n').forEach(function (line) {
+          if (line.indexOf('data:') !== 0) return;
+          var ev; try { ev = JSON.parse(line.slice(5).trim()); } catch (e) { return; }
+          if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') { full += ev.delta.text; onText(full); }
+          else if (ev.type === 'error') throw new Error((ev.error && ev.error.message) || 'Erro no streaming.');
+        });
+      }
+    }
+    return full;
+  }
+
+  root.Assistant = { send: send, sendRaw: sendRaw, loadCfg: loadCfg, saveCfg: saveCfg, isReady: isReady, setSample: setSample, buildSystem: buildSystem };
 })(this);
