@@ -323,6 +323,11 @@
       seg: [['tipo', [['r', 'Raio'], ['c', 'Chanfro']]]],
       fields: function (v) { return v.tipo === 'c' ? [['v', 'Chanfro na 1ª linha', 2], ['v2', 'Chanfro na 2ª linha (vazio = igual)', '', 'o']] : [['v', 'Raio (0 = canto vivo)', 5]]; }
     },
+    rot: {
+      title: 'Girar', hint: '',
+      seg: [['ralvo', [['tudo', 'Desenho todo'], ['sel', 'Escolher na tela']]], ['rfuro', [['grupo', 'Furos: grupo todo'], ['um', 'Furos: só o tocado']]], ['rcen', [['org', 'Giro em X0 Y0'], ['sel', 'No centro dela'], ['pt', 'Outro ponto']]], ['copia', [['nao', 'Girar o original'], ['sim', 'Fazer cópia']]]],
+      fields: function (v) { var f = [['a', 'Ângulo (+ anti-horário, − horário)', 90]]; if (v.rcen === 'pt') f.push(['cx', 'X do centro do giro', 0], ['cy', 'Y do centro do giro', 0]); return f; }
+    },
     dim: {
       title: 'Cota', hint: '',
       seg: [['dk', [['lin', 'Linear'], ['dia', 'Diâmetro'], ['rad', 'Raio'], ['ang', 'Ângulo'], ['ord', 'Coordenada']]], ['o', [['h', 'Horizontal'], ['v', 'Vertical'], ['a', 'Alinhada']]]],
@@ -344,7 +349,7 @@
       }
     }
   };
-  var SEG_DEF = { forma: 'ret', ref: 'canto', modo: 'pts', mode: 'um', med: 'faces', tipo: 'r', dk: 'lin', o: 'h', op: 'mov', alvo: 'este', copia: 'nao', mirax: 'v' };
+  var SEG_DEF = { forma: 'ret', ref: 'canto', modo: 'pts', mode: 'um', med: 'faces', tipo: 'r', dk: 'lin', o: 'h', op: 'mov', alvo: 'este', copia: 'nao', mirax: 'v', ralvo: 'sel', rfuro: 'grupo', rcen: 'org' };
   var DIM_HINT = {
     lin: 'Toque no 1º ponto, no 2º ponto e depois onde a cota vai ficar.',
     dia: 'Toque num círculo, furo ou arco.', rad: 'Toque num círculo, furo ou arco.',
@@ -370,7 +375,7 @@
 
   /* ---------- montagem ---------- */
   var TOOLS = [['select', 'Selecionar', 'sel'], ['origin', 'Origem', 'org'], ['circle', 'Círculo', 'cir'], ['rect', 'Retângulo', 'rec'], ['line', 'Linha', 'lin'],
-    ['arc', 'Arco', 'arc'], ['poly', 'Polígono', 'pol'], ['holes', 'Furos', 'fur'], ['fillet', 'Raio/Chanfro', 'fil'], ['dim', 'Cota', 'dim']];
+    ['arc', 'Arco', 'arc'], ['poly', 'Polígono', 'pol'], ['holes', 'Furos', 'fur'], ['fillet', 'Raio/Chanfro', 'fil'], ['rot', 'Girar', 'rot'], ['dim', 'Cota', 'dim']];
   var IC = {
     sel: '<path d="M6 3l12 9-5.5 1.2L16 20l-2.6 1.2-3-6.5L6 18.5z"/>',
     org: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>',
@@ -380,6 +385,7 @@
     arc: '<path d="M4 18A10 10 0 0 1 20 8"/><circle cx="4" cy="18" r="1.6"/><circle cx="20" cy="8" r="1.6"/>',
     pol: '<path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/>',
     fur: '<circle cx="12" cy="12" r="8" stroke-dasharray="2.5 2.5"/><circle cx="12" cy="4" r="2"/><circle cx="19" cy="15" r="2"/><circle cx="5" cy="15" r="2"/>',
+    rot: '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/><path d="M12 12l4-2.5" /><circle cx="12" cy="12" r="1.2"/>',
     fil: '<path d="M4 20V11a7 7 0 0 1 7-7h9"/><path d="M4 7l3-3" stroke-dasharray="2 2"/>',
     dim: '<path d="M3 8v8M21 8v8M3 12h18"/><path d="M6 10l-3 2 3 2M18 10l3 2-3 2"/>',
     undo: '<path d="M9 7H4v5"/><path d="M4.5 11.5A8 8 0 1 1 7 18"/>',
@@ -455,6 +461,9 @@
     origin0: function () { pushUndo(); doc.origin = { x: 0, y: 0 }; save(); toast(T('Origem voltou para o ponto inicial.')); draw(); },
     autodim: function () { closeModal(); autoDim(); },
     fsavebox: function () { openSave(); },
+    rang: function (a) { readPanel(); vals.a = a.dataset.v; renderPanel(); draw(); },
+    rclr: function () { rotSel = []; readPanel(); renderPanel(); draw(); },
+    rpickc: function () { readPanel(); mode2 = 'rotc'; renderPanel(); toast(T('Toque no ponto que será o centro do giro.')); },
     ls: function (a) {
       var v = a.dataset.v; readPanel();
       if (editing && LS_OK[editing.t]) { pushUndo(); if (v === 'cont') delete editing.ls; else editing.ls = v; save(); toast(T('Tipo de linha') + ': ' + T(LS.filter(function (o) { return o[0] === v; })[0][1]).replace(/^\S+\s/, '')); }
@@ -526,7 +535,7 @@
 
   /* ---------- painel ---------- */
   function setTool(t) {
-    tool = t; editing = null; sel = null; picks = []; mode2 = null;
+    tool = t; editing = null; sel = null; picks = []; mode2 = null; if (t === 'rot') rotSel = [];
     el.host.querySelectorAll('[data-tool]').forEach(function (b) { b.classList.toggle('on', b.dataset.tool === t); });
     if (t === 'select') { vals = {}; closePanel(true); ghost = null; draw(); return; }
     var keep = vals._t === t ? vals : null;
@@ -552,10 +561,13 @@
       if (t === 'dim' && s[0] === 'o' && vals.dk !== 'lin') return;
       if (t === 'xf' && s[0] === 'mirax' && vals.op !== 'mir') return;
       if (t === 'xf' && s[0] === 'alvo' && !editing) return;
+      if (t === 'rot' && s[0] === 'rfuro' && vals.ralvo !== 'sel') return;
+      if (t === 'rot' && s[0] === 'rcen' && vals.ralvo !== 'sel' && vals.rcen === 'sel') vals.rcen = 'org';
       h += '<div class="cad-seg">' + s[1].map(function (o) { return '<button type="button" data-seg="' + s[0] + '" data-v="' + o[0] + '" class="' + (vals[s[0]] === o[0] ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>';
     });
     if (LS_OK[t] && !editing) h += lsRow(curLs);
     if (ORG_TOOLS[t] && !(t === 'holes' && vals.mode === 'lista')) h += orgChooser(t);
+    if (t === 'rot') h += rotInfo();
     var ff = fieldsOf(t);
     if (ff.length) {
       h += '<div class="cad-fields">';
@@ -575,6 +587,7 @@
       if (g65Kind(editing)) h += '<button type="button" class="ui-btn" data-a="g65">' + esc(g65Kind(editing) === 'g81' ? T('Programa G81') : 'G65') + '</button>';
       if (ff.length) h += '<button type="button" class="ui-btn primary" data-a="ok">' + esc(T('Salvar')) + '</button>';
     }
+    else if (t === 'rot') h += (vals.rcen === 'pt' ? '<button type="button" class="ui-btn" data-a="rpickc">' + esc(T('Tocar no centro')) + '</button>' : '') + (vals.ralvo === 'sel' && rotSel.length ? '<button type="button" class="ui-btn" data-a="rclr">' + esc(T('Limpar escolha')) + '</button>' : '') + '<button type="button" class="ui-btn primary wide" data-a="ok">' + esc(T('Girar')) + '</button>';
     else if (t === 'dim') h += '<button type="button" class="ui-btn wide" data-a="autodim">' + esc(T('Cotar automático')) + '</button>';
     else if (t !== 'fillet') h += '<button type="button" class="ui-btn primary wide" data-a="ok">' + esc(T(t === 'holes' ? 'Adicionar furos' : 'Adicionar')) + '</button>';
     h += '</div>';
@@ -695,6 +708,7 @@
   function apply() {
     readPanel();
     var t = formKey();
+    if (t === 'rot') return applyRot();
     if (t === 'origin') {
       var dx = num(vals.dx), dy = num(vals.dy);
       if (isNaN(dx) || isNaN(dy)) return toast(T('Confira os valores.'));
@@ -768,6 +782,86 @@
       if (e.k === 'lin' && rot && e.o !== 'a') { var r9 = nang(rot); if (Math.abs(r9 - 90) < 1e-6 || Math.abs(r9 - 270) < 1e-6) e.o = e.o === 'h' ? 'v' : 'h'; else if (Math.abs(r9 - 180) > 1e-6) e.o = 'a'; }
     }
     return [e];
+  }
+  /* ---------- ferramenta Girar: desenho todo, ou elementos/furos escolhidos na tela ---------- */
+  var rotSel = [];   // [{id, hi}] hi = índice do furo dentro do grupo (-1 = elemento inteiro)
+  function rotInfo() {
+    var a = [15, 30, 45, 90, 180, -90];
+    var h = '<div class="cad-chips cad-rang">' + a.map(function (v) { return '<button type="button" class="ui-btn' + (num(vals.a) === v ? ' primary' : '') + '" data-a="rang" data-v="' + v + '">' + v + '°</button>'; }).join('') + '</div>';
+    if (vals.ralvo === 'sel') h += '<p class="cad-hint">' + esc(rotSel.length ? rotSel.length + ' ' + T('escolhido(s). Toque de novo para tirar.') : T('Toque nos elementos que quer girar: um furo, as linhas do rasgo de chaveta, etc.')) + '</p>';
+    if (mode2 === 'rotc') h += '<p class="cad-hint">' + esc(T('Toque no ponto que será o centro do giro.')) + '</p>';
+    return h;
+  }
+  function holeAt(e, w) { var pts = holePts(e), bi = -1, bd = Infinity; pts.forEach(function (q, i) { var d = Math.hypot(q[0] - w[0], q[1] - w[1]); if (d < bd) { bd = d; bi = i; } }); return bi; }
+  function rotTap(sx, sy) {
+    if (mode2 === 'rotc') { var p = pickPoint(sx, sy); setField('cx', p.x - doc.origin.x); setField('cy', p.y - doc.origin.y); mode2 = null; renderPanel(); draw(); return; }
+    if (vals.ralvo !== 'sel') return toast(T('Para girar só uma parte, escolha "Escolher na tela".'));
+    var w0 = toW(sx, sy), e = null, tl = 12 / view.s;
+    doc.ents.forEach(function (h) { if (e || h.t !== 'holes' || !vis(h)) return; holePts(h).forEach(function (q) { if (Math.hypot(q[0] - w0[0], q[1] - w0[1]) <= h.d / 2 + tl) e = h; }); });   // tocar dentro do furo também vale
+    e = e || hitEnt(sx, sy); if (!e) return toast(T('Toque em cima de um elemento.'));
+    if (e.t === 'dim') return;
+    var hi = e.t === 'holes' && vals.rfuro === 'um' && holePts(e).length > 1 ? holeAt(e, toW(sx, sy)) : -1;
+    var k = -1; rotSel.forEach(function (r, i) { if (r.id === e.id && (r.hi === hi || r.hi === -1 || hi === -1)) k = i; });
+    if (k >= 0) rotSel.splice(k, 1); else rotSel.push({ id: e.id, hi: hi });
+    readPanel(); renderPanel(); draw();
+  }
+  function rotCenter(V) {
+    var o = doc.origin;
+    if (vals.rcen === 'pt') return [o.x + V.cx, o.y + V.cy];
+    if (vals.rcen === 'sel' && vals.ralvo === 'sel' && rotSel.length) {
+      if (rotSel.length === 1) { var e = byId(rotSel[0].id); if (e && e.t === 'holes' && e.mode === 'pcd') return [e.x, e.y]; }
+      var b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+      rotSel.forEach(function (r) { var e = byId(r.id); if (!e) return; var pts = r.hi >= 0 ? [holePts(e)[r.hi]] : null; if (pts) pts.forEach(function (q) { b.x0 = Math.min(b.x0, q[0]); b.x1 = Math.max(b.x1, q[0]); b.y0 = Math.min(b.y0, q[1]); b.y1 = Math.max(b.y1, q[1]); }); else { var bb = bounds([e]); b.x0 = Math.min(b.x0, bb.x0); b.x1 = Math.max(b.x1, bb.x1); b.y0 = Math.min(b.y0, bb.y0); b.y1 = Math.max(b.y1, bb.y1); } });
+      if (isFinite(b.x0)) return [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2];
+    }
+    return [o.x, o.y];
+  }
+  function rotTargets(cut) {   // devolve entidades a girar; com cut, separa os furos escolhidos do grupo
+    if (vals.ralvo !== 'sel') return doc.ents.slice();
+    var out = [], byE = {};
+    rotSel.forEach(function (r) { (byE[r.id] = byE[r.id] || []).push(r.hi); });
+    Object.keys(byE).forEach(function (id) {
+      var e = byId(id); if (!e) return;
+      var his = byE[id];
+      if (his.indexOf(-1) >= 0 || e.t !== 'holes') { out.push(e); return; }
+      var pts = holePts(e), pick = pts.filter(function (q, i) { return his.indexOf(i) >= 0; });
+      if (pick.length === pts.length) { out.push(e); return; }
+      var n = clone(e); ['pcd', 'n', 'a0', 'dist', 'ang', 'nx', 'ny', 'dx', 'dy'].forEach(function (k) { delete n[k]; });
+      if (pick.length === 1) { n.mode = 'um'; n.x = pick[0][0]; n.y = pick[0][1]; delete n.pts; } else { n.mode = 'lista'; n.pts = pick; n.x = pick[0][0]; n.y = pick[0][1]; }
+      if (cut) {
+        n.id = uid();
+        var rest = pts.filter(function (q, i) { return his.indexOf(i) < 0; });
+        ['pcd', 'n', 'a0', 'dist', 'ang', 'nx', 'ny', 'dx', 'dy'].forEach(function (k) { delete e[k]; });
+        if (vals.copia !== 'sim') { if (rest.length === 1) { e.mode = 'um'; e.x = rest[0][0]; e.y = rest[0][1]; delete e.pts; } else { e.mode = 'lista'; e.pts = rest; e.x = rest[0][0]; e.y = rest[0][1]; } }
+        else { e.mode = 'lista'; e.pts = pts; e.x = pts[0][0]; e.y = pts[0][1]; }
+        doc.ents.push(n); n._new = 1;
+      }
+      out.push(n);
+    });
+    return out;
+  }
+  function rotFn(V) { var c0 = rotCenter(V), c = Math.cos(V.a * D2R), sn = Math.sin(V.a * D2R); return function (x, y) { var dx = x - c0[0], dy = y - c0[1]; return [c0[0] + dx * c - dy * sn, c0[1] + dx * sn + dy * c]; }; }
+  function rotGhosts() {
+    if (tool !== 'rot') return [];
+    var rv = readVals('rot'); if (rv.err || !rv.V.a) return [];
+    var f = rotFn(rv.V), out = [];
+    rotTargets(false).forEach(function (e) { if (e.t === 'dim') return; xfEnt(clone(e), f, rv.V.a, null).forEach(function (n) { out.push(n); }); });
+    return out;
+  }
+  function applyRot() {
+    var rv = readVals('rot'); if (rv.err) return toast(rv.err);
+    if (!rv.V.a) return toast(T('Digite o ângulo.'));
+    if (vals.ralvo === 'sel' && !rotSel.length) return toast(T('Toque nos elementos que quer girar.'));
+    pushUndo();
+    var f = rotFn(rv.V), copy = vals.copia === 'sim', tg = rotTargets(true);
+    tg.forEach(function (e) {
+      var src = copy && !e._new ? clone(e) : e; delete e._new;
+      if (src !== e) src.id = uid();
+      var res = xfEnt(src, f, rv.V.a, null);
+      if (src !== e) res.forEach(function (n) { if (!n.id) n.id = uid(); doc.ents.push(n); });
+      else if (!(res.length === 1 && res[0] === e)) { var i = doc.ents.indexOf(e); doc.ents.splice.apply(doc.ents, [i, 1].concat(res)); }
+    });
+    rotSel = []; save(); toast(T('Girado') + ' ' + fmt(rv.V.a) + '°.'); renderPanel(); draw();
   }
   function applyXf() {
     var rv = readVals('xf'); if (rv.err) return toast(rv.err);
@@ -1051,6 +1145,7 @@
       return;
     }
     if (t === 'dim') { dimTap(sx, sy); return; }
+    if (t === 'rot') { rotTap(sx, sy); return; }
     p = pickPoint(sx, sy); flashPick(p);
     if (t === 'origin') { pushUndo(); doc.origin = { x: p.x, y: p.y }; save(); toast(T('Origem posta') + (p.nm ? ' (' + T(p.nm) + ')' : '') + '.'); draw(); return; }
     if (t === 'line') {
@@ -1216,6 +1311,15 @@
       var op = orgPoint(ghost, vals.org);
       if (op) { var q = toS(op[0], op[1]); ctx.strokeStyle = COL.pick; ctx.fillStyle = COL.pick; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(q[0], q[1], 8, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.arc(q[0], q[1], 8, -Math.PI / 2, 0); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.arc(q[0], q[1], 8, Math.PI / 2, Math.PI); ctx.closePath(); ctx.fill(); ctx.font = '600 11px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(T('nova origem'), q[0] + 11, q[1] - 10); }
     }
+    if (!printMode && tool === 'rot') {
+      if (vals.ralvo === 'sel') rotSel.forEach(function (r) {
+        var e = byId(r.id); if (!e) return;
+        if (r.hi >= 0) { var q = holePts(e)[r.hi]; if (q) drawEnt({ t: 'holes', mode: 'um', x: q[0], y: q[1], d: e.d }, COL.sel); }
+        else drawEnt(e, COL.sel);
+      });
+      ctx.save(); ctx.setLineDash([6, 4]); rotGhosts().forEach(function (g) { drawEnt(g, COL.ghost); }); ctx.restore();
+      var rr = readVals('rot'); if (!rr.err) { var cc = toS.apply(null, rotCenter(rr.V)); ctx.strokeStyle = COL.pick; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cc[0], cc[1], 6, 0, 7); ctx.moveTo(cc[0] - 10, cc[1]); ctx.lineTo(cc[0] + 10, cc[1]); ctx.moveTo(cc[0], cc[1] - 10); ctx.lineTo(cc[0], cc[1] + 10); ctx.stroke(); }
+    }
     if (!printMode) drawPicks();
     // símbolo da origem
     var rO = 7 * pxk;
@@ -1227,7 +1331,7 @@
     if (flash && !(tool === 'dim' && vals.dk === 'lin')) drawHl(flash);
     if (snapHit) { var sp = toS(snapHit.x, snapHit.y); ctx.strokeStyle = COL.snap; ctx.lineWidth = 2; ctx.strokeRect(sp[0] - 6, sp[1] - 6, 12, 12); }
     else if (hover && (tool !== 'select' || mode2)) { var hp = toS(hover.x, hover.y); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hp[0] - 8, hp[1]); ctx.lineTo(hp[0] + 8, hp[1]); ctx.moveTo(hp[0], hp[1] - 8); ctx.lineTo(hp[0], hp[1] + 8); ctx.stroke(); }
-    if (mode2) { ctx.fillStyle = 'rgba(255,122,69,.95)'; ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(T(mode2 === 'calib' ? 'Calibrar: toque em 2 pontos' : 'Toque no zero da peça na foto'), W / 2, H - 14); }
+    if (mode2) { ctx.fillStyle = 'rgba(255,122,69,.95)'; ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(T(mode2 === 'calib' ? 'Calibrar: toque em 2 pontos' : mode2 === 'rotc' ? 'Toque no centro do giro' : 'Toque no zero da peça na foto'), W / 2, H - 14); }
     if (!hover) el.xy.textContent = T('grade') + ' ' + fmt(gridStep()) + ' mm';
   }
   function drawPicks() {

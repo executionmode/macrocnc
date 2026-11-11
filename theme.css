@@ -418,3 +418,5 @@ label.ui-btn { cursor: pointer; text-align: center; }
 .cad-fl input { background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 10px; padding: 11px 12px; font: inherit; font-size: 16px; }
 .cad-ls { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cad-ls button { white-space: nowrap; }
+.cad-rang { flex-wrap: nowrap; }
+.cad-rang .ui-btn { flex: 1 1 0; min-width: 0; padding-left: 2px; padding-right: 2px; }
