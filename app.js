@@ -750,8 +750,19 @@
     function hasVid(i) { return !!videoFor(vids[trSplit(TR.chapters[i].t).n]); }
     function rng(a, b) { var r = []; for (var i = a; i < Math.min(b, n); i++) r.push(i); return r; }
     var tab = store.get('trTab') === 'vid' ? 'vid' : 'cap', withVid = rng(0, n).filter(hasVid);
-    var h = '<div class="seg tr-tabs"><button type="button" data-trtab="cap" class="' + (tab === 'cap' ? 'on' : '') + '">' + esc(T('Capítulos')) + '</button><button type="button" data-trtab="vid" class="' + (tab === 'vid' ? 'on' : '') + '">▶ ' + esc(T('Vídeos')) + ' (' + withVid.length + ')</button></div>';
+    var h = '<div class="seg tr-tabs"><button type="button" data-trtab="cap" class="' + (tab === 'cap' ? 'on' : '') + '">' + esc(T('Capítulos')) + '</button><button type="button" data-trtab="vid" class="' + (tab === 'vid' ? 'on' : '') + '">▶ ' + esc(T('Vídeos')) + ' (' + (courseList().length || withVid.length) + ')</button></div>';
     if (tab === 'vid') {
+      var crs = courseList();
+      if (crs.length) {
+        var cur = Math.min(store.get('crs.cur', 0) || 0, crs.length - 1), done = store.get('crs.done', []) || [], lastM = '';
+        h += '<div class="tr-course"><div class="tr-course-h"><span data-icon="play"></span><b>' + esc(T('Curso em vídeo')) + '</b><small>' + done.filter(function (k) { return k < crs.length; }).length + ' / ' + crs.length + '</small></div>' +
+          '<video id="crsVid" controls playsinline preload="metadata"></video><div class="tr-course-now" id="crsNow"></div><div class="tr-course-list">';
+        crs.forEach(function (c, k) {
+          if (c.m !== lastM) { lastM = c.m; h += '<div class="tr-group">' + esc(T(c.m)) + '</div>'; }
+          h += '<button type="button" class="tr-item tr-crs' + (done.indexOf(k) >= 0 ? ' done' : '') + (k === cur ? ' on' : '') + '" data-crs="' + k + '"><span class="tr-num">' + (done.indexOf(k) >= 0 ? '✓' : (k + 1)) + '</span><span class="tr-t">' + esc(T(c.t)) + '</span></button>';
+        });
+        h += '</div></div><div class="tr-group">' + esc(T('Vídeos por capítulo')) + '</div>';
+      }
       h += '<div class="tr-vids">' + (withVid.length ? withVid.map(function (i) {
         var sp = trSplit(TR.chapters[i].t), url = videoFor(vids[sp.n]);
         return '<div class="tr-vcard"><div class="tr-vcard-h"><span class="tr-num">' + esc(sp.n) + '</span><b>' + esc(sp.t) + '</b></div>' +
@@ -759,9 +770,9 @@
           '<button type="button" class="ui-btn ghost" data-cap="' + i + '">' + esc(T('Abrir o capítulo')) + '</button></div>';
       }).join('') : '<p class="hint">' + esc(T('Ainda não há vídeos neste idioma.')) + '</p>') + '</div>';
       $('#trList').innerHTML = h;
-      bindTrList(); return;
+      bindTrList(); if (crs.length) bindCourse(crs, cur); return;
     }
-    var groups = [['Comece aqui', rng(0, 1)], ['Base: a linguagem', rng(1, 7)], ['As macros, uma por uma', rng(7, 17)], ['Na máquina', rng(17, 19)], ['Pratique', rng(19, 22)], ['Consulta', rng(22, n)]];
+    var groups = [['Comece aqui', rng(0, 1)], ['Base: a linguagem', rng(1, 7)], ['As macros, uma por uma', rng(7, 16)], ['Na máquina', rng(16, 18)], ['Pratique', rng(18, 21)], ['Consulta', rng(21, n)]];
     groups.forEach(function (g) {
       if (!g[1].length) return;
       h += '<div class="tr-group">' + esc(T(g[0])) + '</div><div class="tr-list">';
@@ -774,6 +785,30 @@
     });
     $('#trList').innerHTML = h;
     bindTrList();
+  }
+  // curso em vídeo: lista plana dos vídeos que existem no idioma atual
+  function courseList() {
+    var cfg = window.APP_CONFIG || {}, out = [];
+    (cfg.course || []).forEach(function (m) { (m.items || []).forEach(function (it) {
+      var url = it.v ? videoFor(it.v) : videoFor((cfg.videos || {})[it.cap]);
+      if (url && /\.mp4$/i.test(url)) out.push({ m: m.m, t: it.t, url: url });
+    }); });
+    return out;
+  }
+  function bindCourse(crs, cur) {
+    var v = $('#crsVid'); if (!v) return;
+    function load(k, play) {
+      cur = k; store.set('crs.cur', k);
+      v.src = crs[k].url; v.poster = crs[k].url.replace(/\.mp4$/i, '.jpg');
+      $('#crsNow').textContent = (k + 1) + ' / ' + crs.length + ' · ' + T(crs[k].t);
+      $$('#trList [data-crs]').forEach(function (b) { b.classList.toggle('on', +b.dataset.crs === k); });
+      if (play) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
+    }
+    function mark(k) { var d = store.get('crs.done', []) || []; if (d.indexOf(k) < 0) { d.push(k); store.set('crs.done', d); }
+      var b = $('#trList [data-crs="' + k + '"]'); if (b) { b.classList.add('done'); b.querySelector('.tr-num').textContent = '✓'; } }
+    v.addEventListener('ended', function () { mark(cur); if (cur + 1 < crs.length) load(cur + 1, true); });
+    $$('#trList [data-crs]').forEach(function (b) { b.addEventListener('click', function () { load(+b.dataset.crs, true); v.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+    load(cur, false);
   }
   function bindTrList() {
     $$('#trList [data-cap]').forEach(function (b) { b.addEventListener('click', function () { openCap(+b.dataset.cap); }); });

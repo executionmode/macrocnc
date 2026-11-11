@@ -372,3 +372,13 @@ label.ui-btn { cursor: pointer; text-align: center; }
 .cad-org-grid button { width: 30px; height: 24px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; padding: 0; }
 .cad-org-grid i { width: 8px; height: 8px; border-radius: 50%; background: #3d5272; }
 .cad-org-grid button.on i { width: 13px; height: 13px; background: #ff7a45; box-shadow: 0 0 0 3px rgba(255,122,69,.3); }
+
+/* curso em vídeo (playlist) */
+.tr-course { background: var(--card, #0d141c); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.tr-course-h { display: flex; align-items: center; gap: 8px; }
+.tr-course-h small { margin-left: auto; opacity: .7; }
+.tr-course video { width: 100%; max-height: 70vh; border-radius: 12px; background: #000; aspect-ratio: 9 / 16; object-fit: contain; }
+.tr-course-now { font-weight: 700; font-size: .95em; }
+.tr-course-list { display: flex; flex-direction: column; gap: 6px; }
+.tr-course-list .tr-group { margin-top: 6px; }
+.tr-crs.on { border-color: var(--accent, #2f86ff); box-shadow: 0 0 0 1px var(--accent, #2f86ff) inset; }
