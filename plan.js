@@ -306,24 +306,24 @@
     var bz = (A.bosses || []).filter(function (b) { return b.t === 'circle'; });
     bz.forEach(function (b, i) {
       var rb = b.d / 2, R = b.rb || 0, bk = 'bos' + A.bosses.indexOf(b), fk = 'rbs' + A.bosses.indexOf(b), zt = base + b.ress, zf = base + R;
-      add('s-top' + i, T('Face de cima') + ' Ø' + fmt(b.d), [faceK], [ring(b.cx, b.cy, rb, zt)].concat(prof(b.cx, b.cy, [[0, zt], [rb, zt]])),
+      add('s-top' + i, T('Face de cima') + ' Ø' + fmt(b.d), [faceK], [ring(b.cx, b.cy, rb, zt)],
         function (q, r) { return r <= rb + 0.5 ? Math.abs(q[2] - zt) : Infinity; });
-      add('s-bw' + i, T('Parede do ressalto') + ' Ø' + fmt(b.d), [bk], [ring(b.cx, b.cy, rb, (zt + zf) / 2)].concat(prof(b.cx, b.cy, [[rb, zt], [rb, zf]])),
+      add('s-bw' + i, T('Parede do ressalto') + ' Ø' + fmt(b.d), [bk], prof(b.cx, b.cy, [[rb, zt], [rb, zf]]),
         function (q, r) { return q[2] >= zf - 0.5 && q[2] <= zt + 0.5 ? Math.abs(r - rb) : Infinity; });
       if (R > 0) {
         var arc = []; for (var k = 0; k <= 18; k++) { var th = k * 5 * Math.PI / 180; arc.push([rb + R - R * Math.cos(th), base + R - R * Math.sin(th)]); }
         var m = arc[9];
-        add('s-r' + i, T('Raio') + ' R' + fmt(R), [fk], [ring(b.cx, b.cy, m[0], m[1])].concat(prof(b.cx, b.cy, arc)),
+        add('s-r' + i, T('Raio') + ' R' + fmt(R), [fk], prof(b.cx, b.cy, arc),
           function (q, r) { return r >= rb - 1 && r <= rb + R + 1 && q[2] >= base - 1 && q[2] <= zf + 1 ? Math.abs(Math.hypot(r - rb - R, q[2] - zf) - R) : Infinity; });
       }
       var rOut = O.t === 'circle' ? O.d / 2 - Math.hypot(O.cx - b.cx, O.cy - b.cy) : Math.min(O.w || 1e9, O.h || 1e9) / 2;
-      if (rOut > rb + R + 0.5) add('s-bf' + i, T('Face de baixo'), [bk], [ring(b.cx, b.cy, (rb + R + rOut) / 2, base)].concat(prof(b.cx, b.cy, [[rb + R, base], [rOut, base]])),
+      if (rOut > rb + R + 0.5) add('s-bf' + i, T('Face de baixo'), [bk], prof(b.cx, b.cy, [[rb + R, base], [rOut, base]]),
         function (q, r) { return r >= rb + R - 0.5 ? Math.abs(q[2] - base) : Infinity; });
     });
     if (!bz.length && faceK) add('s-top', T('Face de cima'), [faceK], [abs(outline(O.t === 'outro' ? { t: 'rect', cx: O.cx, cy: O.cy, w: O.w, h: O.h } : O, 0))],
       function (q) { return Math.abs(q[2]); });
     if (contK) {
-      var zm = (base - esp) / 2, L = [abs(outline(O, zm))];
+      var L = [];   // só as linhas de lado (perfil), nada por dentro
       if (O.t === 'circle') L = L.concat(prof(O.cx, O.cy, [[O.d / 2, base], [O.d / 2, -esp]]));
       else if (O.t === 'rect') [[1, 1], [-1, 1], [-1, -1], [1, -1]].forEach(function (s2) { L.push(abs([[O.cx + s2[0] * O.w / 2, O.cy + s2[1] * O.h / 2, base], [O.cx + s2[0] * O.w / 2, O.cy + s2[1] * O.h / 2, -esp]])); });
       add('s-ow', T('Contorno de fora') + (O.t === 'circle' ? ' Ø' + fmt(O.d) : O.t === 'rect' ? ' ' + fmt(O.w) + ' × ' + fmt(O.h) : ''), [contK], L,
@@ -331,7 +331,7 @@
     }
     pl.ops.forEach(function (op) {   // furos e alojamentos
       if (op.kind === 'hel') { var g = op.g, zf2 = op.p.W, zb2 = Math.max(op.p.Z, -esp);
-        add('s-' + op.key, op.title + ' Ø' + fmt(g.d), [op.key], [ring(g.cx, g.cy, g.d / 2, zf2)].concat(prof(g.cx, g.cy, [[g.d / 2, zf2], [g.d / 2, zb2]])),
+        add('s-' + op.key, op.title + ' Ø' + fmt(g.d), [op.key], [ring(g.cx, g.cy, g.d / 2, zf2)],
           function (q) { return Math.abs(Math.hypot(q[0] - g.cx, q[1] - g.cy) - g.d / 2); }); }
       else if (op.pts) add('s-' + op.key, op.title + ' ' + op.what.split(' — ')[0], [op.key], op.pts.map(function (pt) { return ring(pt[0], pt[1], (op.d || op.p.T) / 2, op.p.W); }),
         function (q) { var d = Infinity; op.pts.forEach(function (pt) { d = Math.min(d, Math.max(0, Math.hypot(q[0] - pt[0], q[1] - pt[1]) - (op.d || op.p.T) / 2 - 0.5)); }); return d; });
