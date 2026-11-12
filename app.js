@@ -1327,7 +1327,7 @@
   function libRow(p) {
     var fav = isFav('u:' + p.id), st = p.status === 'testado';
     return '<div class="frow' + (st ? ' tested' : '') + '" data-id="' + p.id + '"><span class="fico" data-icon="doc"></span>' +
-      '<span class="frow-t"><b>' + esc(p.name) + '</b><small>' + when(p.updated) + ' • ' + kb(p.text) + (st ? ' • testado' : '') + '</small></span>' +
+      '<span class="frow-t"><b>' + esc(p.name) + '</b><small>' + (p.draw ? '📐 ' + esc(p.drawName || '') + ' • ' : '') + when(p.updated) + ' • ' + kb(p.text) + (st ? ' • testado' : '') + '</small></span>' +
       '<button type="button" class="fstar' + (fav ? ' on' : '') + '" data-star="' + p.id + '" aria-label="Favorito"><span data-icon="star"></span></button>' +
       '<span class="mi-chev" data-icon="chev"></span></div>';
   }
@@ -1365,18 +1365,62 @@
       s.addEventListener('click', function () { var on = toggleFav('u:' + s.dataset.star); s.classList.toggle('on', on); if (curView === 'favoritos') renderFavs(); });
     });
   }
+  /* desenhos salvos dentro de Meus Programas */
+  var libDrawId = null;   // filtro: só os programas de um desenho
+  function drawRows(q) {
+    if (!cadReady()) return '';
+    var L = Cad.savedList().filter(function (d) { return !q || d.name.toLowerCase().indexOf(q) >= 0; }), lib = getLib();
+    return L.map(function (d) {
+      var n = lib.filter(function (p) { return p.draw === d.id; }).length, im = drawThumb(d.id, 96, 72);
+      return '<div class="frow drw" data-draw="' + d.id + '">' + (im ? '<img class="dthumb" src="' + im + '" alt="">' : '<span class="fico" data-icon="draw"></span>') +
+        '<span class="frow-t"><b class="notr">' + esc(d.name) + '</b><small>' + T('Desenho') + (d.folder ? ' • 📁 ' + esc(d.folder) : '') + ' • ' + when(d.savedAt) + (n ? ' • ' + n + ' ' + T('programas') : '') + '</small></span><span class="mi-chev" data-icon="chev"></span></div>';
+    }).join('');
+  }
+  function drawActions(id) {
+    var d = Cad.savedList().filter(function (x) { return x.id === id; })[0]; if (!d) return;
+    var n = getLib().filter(function (p) { return p.draw === id; }).length, im = drawThumb(id, 320, 240);
+    openSheet(d.name, (im ? '<img class="dsheet-img" src="' + im + '" alt="">' : '') +
+      '<div class="sheet-acts">' +
+      '<button type="button" class="ui-btn primary" data-da="gen"><span data-icon="spark"></span> ' + T('Gerar programas deste desenho') + '</button>' +
+      (n ? '<button type="button" class="ui-btn" data-da="progs"><span data-icon="doc"></span> ' + T('Ver os programas') + ' (' + n + ')</button>' : '') +
+      '<button type="button" class="ui-btn" data-da="open"><span data-icon="edit"></span> ' + T('Abrir no Desenho') + '</button></div>');
+    $$('#sheetBody [data-da]').forEach(function (b) {
+      b.onclick = function () {
+        closeSheet();
+        if (b.dataset.da === 'gen') { show('pedir'); loadPlan(id); window.scrollTo(0, 0); }
+        else if (b.dataset.da === 'progs') { libDrawId = id; libTab = 'todos'; renderLib(); }
+        else { show('desenho'); setTimeout(function () { Cad.openDoc(id); }, 150); }
+      };
+    });
+  }
   function renderLib() {
     $$('#libTabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === libTab); });
     var q = $('#libSearch').value.trim().toLowerCase();
+    if (libTab === 'des') {
+      var dr = drawRows(q);
+      $('#libList').innerHTML = dr ? '<div class="flist">' + dr + '</div>' : '<div class="empty">' + T('Nenhum desenho salvo ainda. Faça o desenho na aba Desenho e toque no disquete para salvar.') + '</div>';
+      paintArt($('#libList'));
+      $$('#libList [data-draw]').forEach(function (r) { r.onclick = function () { drawActions(r.dataset.draw); }; });
+      return;
+    }
     var lib = getLib().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0 || p.text.toLowerCase().indexOf(q) >= 0; });
     if (libTab === 'fav') lib = lib.filter(function (p) { return isFav('u:' + p.id); });
     if (libTab === 'rec') lib = lib.filter(function (p) { return p.updated > Date.now() - 30 * 864e5; }).sort(function (a, b) { return b.updated - a.updated; });
     if (libTab === 'todos') lib = lib.slice().sort(function (a, b) { return b.updated - a.updated; });
-    $('#libList').innerHTML = lib.length ? lib.map(libRow).join('') :
-      '<div class="empty">' + (libTab === 'fav' ? 'Nenhum favorito ainda. Toque na estrela de um programa.' : 'Nada salvo ainda. Gere um programa ou peça um novo ao assistente e toque em "Salvar em Meus".') + '</div>';
+    var head = '';
+    if (libDrawId) {
+      var dn = (Cad.savedList().filter(function (x) { return x.id === libDrawId; })[0] || {}).name || '';
+      lib = lib.filter(function (p) { return p.draw === libDrawId; }).sort(function (a, b) { return (a.opN || 0) - (b.opN || 0); });
+      head = '<div class="libfilter">📐 <b class="notr">' + esc(dn) + '</b><button type="button" class="ui-chip" id="libUnf">' + T('Ver todos') + '</button></div>';
+    }
+    var dr = libTab === 'todos' && !libDrawId ? drawRows(q) : '';
+    $('#libList').innerHTML = head + (dr ? '<h3 class="sec">' + T('Desenhos') + '</h3>' + dr + (lib.length ? '<h3 class="sec">' + T('Programas') + '</h3>' : '') : '') + (lib.length ? lib.map(libRow).join('') : dr ? '' :
+      '<div class="empty">' + (libTab === 'fav' ? 'Nenhum favorito ainda. Toque na estrela de um programa.' : 'Nada salvo ainda. Gere um programa ou peça um novo ao assistente e toque em "Salvar em Meus".') + '</div>');
     bindLibRows($('#libList'));
+    $$('#libList [data-draw]').forEach(function (r) { r.onclick = function () { drawActions(r.dataset.draw); }; });
+    var uf = $('#libUnf'); if (uf) uf.onclick = function () { libDrawId = null; renderLib(); };
   }
-  $$('#libTabs button').forEach(function (b) { b.addEventListener('click', function () { libTab = b.dataset.t; renderLib(); }); });
+  $$('#libTabs button').forEach(function (b) { b.addEventListener('click', function () { libTab = b.dataset.t; libDrawId = null; renderLib(); }); });
   $('#btnCadFiles').addEventListener('click', function () { show('desenho'); setTimeout(function () { if (window.Cad && Cad.openFiles) Cad.openFiles(); }, 150); });
   $('#btnLibSearch').addEventListener('click', function () { var i = $('#libSearch'); i.classList.toggle('hidden'); if (!i.classList.contains('hidden')) i.focus(); else { i.value = ''; renderLib(); } });
   $('#btnBackup').addEventListener('click', function () {
@@ -1536,6 +1580,117 @@
     store.set('chat', chat.slice(-40)); renderChat(); scrollChat();
   }
   renderChat();
+
+  /* ---------- DESENHO -> PROGRAMAS (importar desenho no Pedir Programa) ---------- */
+  var planCur = null;   // { id, pl, out }
+  var PLAN_F = { T: 'Ø fresa/broca', N: 'T nº', S: 'S rpm', F: 'F mm/min', W: 'W (Z inicial)', Z: 'Z final', K: 'K desce/volta', Q: 'Q', A: 'A entrada', R: 'R seg.' };
+  var PLAN_KEYS = { face: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'Q'], ret: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], poli: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], circ: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'],
+    hel: ['T', 'N', 'S', 'F', 'Z', 'K'], reb: ['T', 'N', 'S', 'F', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'Z', 'Q'] };
+  var PLAN_LIB = { face: 'O1611', ret: 'O1616', poli: 'O1617', circ: T('parametrizado'), hel: 'O1613', reb: 'O1613', pcd: 'O1612', g83: 'G83' };
+  function cadReady() { return window.Cad && Cad.ensure && Cad.ensure(); }
+  function drawThumb(id, w, h) { try { return Cad.thumb(id, w || 120, h || 90); } catch (e) { return null; } }
+  function pickDrawing(cb, title) {
+    if (!cadReady()) return toast('Abra a aba Desenho uma vez e tente de novo.');
+    var L = Cad.savedList();
+    if (!L.length) { openSheet(title || 'Importar desenho', '<p class="hint">Nenhum desenho salvo ainda. Faça o desenho na aba Desenho e toque no disquete para salvar.</p><div class="sheet-acts"><button type="button" class="ui-btn primary" id="pdGo"><span data-icon="edit"></span> Ir para o Desenho</button></div>'); $('#pdGo').onclick = function () { closeSheet(); show('desenho'); }; return; }
+    openSheet(title || 'Importar desenho', '<div class="dlist">' + L.map(function (d) {
+      var im = drawThumb(d.id, 120, 90);
+      return '<button type="button" class="drow" data-id="' + d.id + '">' + (im ? '<img src="' + im + '" alt="">' : '<span class="dph" data-icon="folder"></span>') +
+        '<span class="frow-t"><b class="notr">' + esc(d.name) + '</b><small>' + (d.folder ? '📁 ' + esc(d.folder) + ' · ' : '') + when(d.savedAt) + ' · ' + d.n + ' ' + T('elementos') + '</small></span></button>';
+    }).join('') + '</div>');
+    $$('#sheetBody .drow').forEach(function (b) { b.onclick = function () { closeSheet(); cb(b.dataset.id); }; });
+  }
+  function planOverrides(id) { return store.get('planp.' + id, {}); }
+  function loadPlan(id) {
+    if (!cadReady()) return;
+    var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
+    var pl = Plan.plan(A), ov = planOverrides(id);
+    pl.ops.forEach(function (op) { var o = ov[op.key]; if (o) { Object.keys(o.p || {}).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); if (o.on === false) op.on = false; } });
+    planCur = { id: id, pl: pl, out: null };
+    store.set('plan.cur', id);
+    renderPlan();
+  }
+  function readPlanForm() {
+    if (!planCur) return;
+    var ov = {};
+    planCur.pl.ops.forEach(function (op) {
+      var box = $('#drawPlan [data-op="' + op.key + '"]'); if (!box) return;
+      op.on = box.querySelector('input[type=checkbox]').checked;
+      box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) op.p[i.dataset.k] = v; });
+      ov[op.key] = { on: op.on, p: op.p };
+    });
+    store.set('planp.' + planCur.id, ov);
+  }
+  function renderPlan() {
+    var host = $('#drawPlan'); if (!planCur) { host.innerHTML = ''; return; }
+    var pl = planCur.pl, im = drawThumb(planCur.id, 240, 180);
+    var h = '<div class="card dplan"><div class="dp-head">' + (im ? '<img src="' + im + '" alt="">' : '') + '<div><div class="gtitle">' + esc(T('Desenho importado')) + '</div><h2 class="notr">' + esc(pl.name) + '</h2>' +
+      '<p class="hint dp-desc">' + esc(Plan.describe(pl.A)).replace(/\n/g, '<br>') + '</p></div><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>';
+    h += '<div class="gtitle">' + esc(T('Operações (um programa para cada)')) + '</div>';
+    pl.ops.forEach(function (op, i) {
+      h += '<div class="dp-op' + (op.on ? '' : ' off') + '" data-op="' + op.key + '"><label class="dp-opt"><input type="checkbox"' + (op.on ? ' checked' : '') + '><b>' + (i + 1) + '. ' + esc(op.title) + '</b><span class="dp-lib">' + esc(PLAN_LIB[op.kind] || '') + '</span></label>' +
+        '<div class="hint">' + esc(op.what) + '</div>' + (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
+        '<details><summary>' + esc(T('Ferramenta e dados de corte')) + ' — Ø' + Plan.gv(op.p.T).replace(/\.$/, '') + ' · T' + op.p.N + ' · S' + op.p.S + ' · F' + op.p.F + '</summary><div class="dp-grid">' +
+        (PLAN_KEYS[op.kind] || []).map(function (k) { return '<label><span>' + esc(T(PLAN_F[k])) + '</span><input class="input" data-k="' + k + '" value="' + String(op.p[k]).replace('.', ',') + '" inputmode="decimal"></label>'; }).join('') + '</div></details></div>';
+    });
+    if (pl.notes.length) h += pl.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('');
+    h += '<p class="hint">' + esc(T('Valores de partida para aço com ferramenta comum: confira ferramenta, rotação, avanço e Z antes de rodar. Zero-peça = X0 Y0 do desenho, Z0 = face de cima acabada.')) + '</p>';
+    h += '<div class="row wrap"><button type="button" class="ui-btn primary" id="dpGen"><span data-icon="save"></span> ' + esc(T('Gerar e salvar em Meus Programas')) + '</button>' +
+      '<button type="button" class="ui-btn" id="dpAsk"><span data-icon="chat"></span> ' + esc(T('Perguntar ao assistente')) + '</button></div>';
+    if (planCur.out) {
+      h += '<div class="gtitle" style="margin-top:14px">' + esc(T('Programas gerados e salvos')) + '</div>' + planCur.out.map(function (f, i) {
+        return '<div class="dp-res"><b>' + esc(f.O) + '</b> <span class="notr">' + esc(f.title) + '</span><div class="row wrap">' +
+          '<button type="button" class="btn" data-r="sim" data-i="' + i + '">' + esc(T('Simular')) + '</button><button type="button" class="btn" data-r="ed" data-i="' + i + '">' + esc(T('Editor')) + '</button>' +
+          '<button type="button" class="btn" data-r="dl" data-i="' + i + '">' + esc(T('Baixar')) + '</button></div></div>';
+      }).join('') + '<button type="button" class="ui-btn wide" id="dpLib"><span data-icon="folder"></span> ' + esc(T('Abrir Meus Programas')) + '</button>';
+    }
+    h += '</div>';
+    host.innerHTML = h; paintArt(host);
+    $('#dpClose').onclick = function () { planCur = null; store.set('plan.cur', null); renderPlan(); };
+    host.querySelectorAll('.dp-op input').forEach(function (i) { i.addEventListener('change', function () { readPlanForm(); if (i.type === 'checkbox') i.closest('.dp-op').classList.toggle('off', !i.checked); }); });
+    $('#dpGen').onclick = genPlan;
+    $('#dpAsk').onclick = askPlan;
+    host.querySelectorAll('[data-r]').forEach(function (b) {
+      b.onclick = function () {
+        var f = planCur.out[+b.dataset.i];
+        if (b.dataset.r === 'sim') { setEditor(f.text, f.name); openSim(f.text, libraryMatch(f.text), f.name); }
+        else if (b.dataset.r === 'ed') { setEditor(f.text, f.name); show('editor'); }
+        else download(f.O + '.txt', f.text);
+      };
+    });
+    var lb = $('#dpLib'); if (lb) lb.onclick = function () { libTab = 'todos'; show('meus'); };
+  }
+  function genPlan() {
+    readPlanForm();
+    var pl = planCur.pl, on = pl.ops.filter(function (op) { return op.on; });
+    if (!on.length) return toast('Marque pelo menos uma operação.');
+    // números dos programas: cada desenho ganha uma dezena só dele (O0101..O0109, O0111..O0119, ...)
+    var nums = store.get('plan.num', {}), lib = getLib();
+    if (!nums[planCur.id]) { var used = Object.keys(nums).map(function (k) { return nums[k]; }); var b0 = 100; while (used.indexOf(b0) >= 0) b0 += 10; nums[planCur.id] = b0; store.set('plan.num', nums); }
+    var base = nums[planCur.id], now = Date.now();
+    var out = [];
+    on.forEach(function (op, i) {
+      op.idx = i + 1;
+      var r = Plan.build(pl, op, base + i + 1), name = pl.name + ' · Op ' + (i + 1) + ' ' + op.title + ' (' + r.O + ')';
+      var ex = lib.filter(function (p) { return p.draw === planCur.id && p.opKey === op.key; })[0];
+      if (ex) { ex.text = r.text; ex.name = name; ex.updated = now - i; ex.opN = i + 1; ex.drawName = pl.name; }
+      else lib.unshift({ id: uid(), name: name, text: r.text, status: 'novo', created: now, updated: now - i, draw: planCur.id, drawName: pl.name, opKey: op.key, opN: i + 1 });
+      out.push({ O: r.O, title: 'Op ' + (i + 1) + ' · ' + op.title, name: name, text: r.text });
+    });
+    if (store.set('lib', lib)) toast(out.length + ' ' + T('programas salvos em Meus Programas.'));
+    planCur.out = out; renderPlan();
+  }
+  function askPlan() {
+    readPlanForm();
+    var pl = planCur.pl, desc = Plan.describe(pl.A);
+    var ops = pl.ops.filter(function (o) { return o.on; }).map(function (o, i) { return (i + 1) + '. ' + o.title + ' — ' + o.what + ' (Ø' + o.p.T + ', T' + o.p.N + ')'; }).join('\n');
+    var text = T('Peça do desenho (importada da aba Desenho):') + '\n' + desc + '\n\n' + T('Operações que separei:') + '\n' + ops + '\n\n' + T('Monte um programa para cada operação, no padrão da biblioteca, usando as macros aprovadas quando servirem.');
+    ta.value = text; ta.dispatchEvent(new Event('input'));
+    if (!Assistant.isReady()) { checkChatSetup(); toast('O assistente precisa da chave da API. Sem ela, use "Gerar e salvar".'); }
+    else { ta.focus(); toast('Pedido montado. Confira e toque em Enviar.'); }
+  }
+  $('#btnImpDraw').addEventListener('click', function () { pickDrawing(loadPlan); });
+  setTimeout(function () { var pid = store.get('plan.cur', null); if (pid && window.Cad && window.Plan) { try { if (Cad.ensure() && Cad.savedList().some(function (d) { return d.id === pid; })) loadPlan(pid); } catch (e) {} } }, 0);
 
   /* ---------- CONFIG ---------- */
   function loadCfgUi() {

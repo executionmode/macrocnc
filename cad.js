@@ -2488,6 +2488,67 @@
   }
 
   /* ---------- entrada ---------- */
+  function ensure() {   // prepara o Desenho sem abrir a aba (para Meus Programas e Pedir Programa)
+    if (!built && !build()) return false;
+    if (!store) { store = loadAll(); doc = store.docs[store.cur]; el.name.textContent = doc.name; updBtns(); el.host.querySelector('[data-tool=select]').classList.add('on'); updSaveBtn(); cloudInit(); }
+    return true;
+  }
+  function withDoc(id, fn) { if (!ensure()) return null; var d = store.docs[id]; if (!d) return null; var keep = doc; doc = d; try { return fn(d); } finally { doc = keep; } }
+  function savedList() {
+    if (!ensure()) return [];
+    return Object.keys(store.docs).filter(function (id) { return store.docs[id].saved; }).map(function (id) { var d = store.docs[id]; return { id: id, name: d.name, folder: d.folder || '', savedAt: d.savedAt || d.upd, n: d.ents.length, esp: d.esp || 20 }; })
+      .sort(function (a, b) { return b.savedAt - a.savedAt; });
+  }
+  /* leitura da peça para montar as operações: tudo em relação à origem X0 Y0 do desenho */
+  function analyze(id) {
+    return withDoc(id, function (d) {
+      var o = d.origin || { x: 0, y: 0 }, R = function (v) { return Math.round(v * 1000) / 1000; };
+      var real = d.ents.filter(function (e) { return e.t !== 'dim' && !isRef(e); });
+      if (!real.length) return null;
+      var bb = bounds(real.filter(function (e) { return e.t !== 'holes'; }).length ? real.filter(function (e) { return e.t !== 'holes'; }) : real);
+      var A = { id: id, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
+      var W = bb.x1 - bb.x0, H = bb.y1 - bb.y0;
+      function isOuter(e) { var b = bounds([e]); return Math.abs(b.x1 - b.x0 - W) < 0.01 && Math.abs(b.y1 - b.y0 - H) < 0.01; }
+      real.forEach(function (e) {
+        if (e.t === 'holes') { var pts = holePts(e).map(function (q) { return [R(q[0] - o.x), R(q[1] - o.y)]; }); A.holes.push({ pts: pts, d: e.d, prof: e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0, mode: e.mode, pcd: e.pcd, n: e.n, a0: e.a0, cx: e.mode === 'pcd' ? R(e.x - o.x) : null, cy: e.mode === 'pcd' ? R(e.y - o.y) : null }); return; }
+        var prof = e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0;
+        if (e.t === 'circle') {
+          var c = { cx: R(e.x - o.x), cy: R(e.y - o.y), d: e.d, prof: prof };
+          if (e.cham > 0) { c.cham = e.cham; A.chams.push(c); }
+          else if (!A.outer && isOuter(e)) A.outer = { t: 'circle', cx: c.cx, cy: c.cy, d: e.d };
+          else A.circles.push(c);
+        } else if (e.t === 'rect') {
+          var r = { cx: R(e.x + e.w / 2 - o.x), cy: R(e.y + e.h / 2 - o.y), w: e.w, h: e.h, r: e.r || 0, prof: prof };
+          if (!A.outer && isOuter(e)) { r.t = 'rect'; A.outer = r; } else A.rects.push(r);
+        } else if (e.t === 'poly') {
+          var pl = { cx: R(e.x - o.x), cy: R(e.y - o.y), n: e.n, dc: R(polyR(e) * 2), ang: e.ang || 0, med: e.med, v: e.v, prof: prof };
+          if (!A.outer && isOuter(e)) { pl.t = 'poly'; A.outer = pl; } else A.polys.push(pl);
+        } else A.other++;
+      });
+      if (!A.outer) A.outer = { t: 'outro', cx: R((bb.x0 + bb.x1) / 2 - o.x), cy: R((bb.y0 + bb.y1) / 2 - o.y), w: R(W), h: R(H) };
+      return A;
+    });
+  }
+  function thumb(id, w, h) {
+    return withDoc(id, function (d) {
+      var real = d.ents.filter(function (e) { return e.t !== 'dim'; }); if (!real.length) return null;
+      var b = bounds(real), tc = document.createElement('canvas'); tc.width = w; tc.height = h;
+      var sv = { ctx: ctx, W: W, H: H, dpr: dpr, view: view, COL: COL, pxk: pxk, sel: sel, ghost: ghost, hover: hover, snapHit: snapHit };
+      try {
+        ctx = tc.getContext('2d'); W = w; H = h; dpr = 1; COL = COL_PRINT; printMode = true; pxk = w / 260; sel = null; ghost = null; hover = null; snapHit = null;
+        var sc = Math.min((w - 12) / Math.max(1, b.x1 - b.x0), (h - 12) / Math.max(1, b.y1 - b.y0));
+        view = { cx: (b.x0 + b.x1) / 2, cy: (b.y0 + b.y1) / 2, s: sc };
+        var hideDims = d.hide, keepE = d.ents; d.ents = real;
+        try { paint(); } finally { d.ents = keepE; d.hide = hideDims; }
+      } finally { ctx = sv.ctx; W = sv.W; H = sv.H; dpr = sv.dpr; view = sv.view; COL = sv.COL; pxk = sv.pxk; sel = sv.sel; ghost = sv.ghost; hover = sv.hover; snapHit = sv.snapHit; printMode = false; }
+      return tc.toDataURL('image/png');
+    });
+  }
+  function openDoc(id) {
+    if (!ensure() || !store.docs[id]) return;
+    if (id === store.cur) return;
+    leaveDoc(function () { switchDoc(id); });
+  }
   function show() {
     if (!built && !build()) return;
     if (!store) { store = loadAll(); doc = store.docs[store.cur]; el.name.textContent = doc.name; updBtns(); el.host.querySelector('[data-tool=select]').classList.add('on'); updSaveBtn(); cloudInit(); }
@@ -2495,7 +2556,7 @@
   }
   // API para testes
   root.Cad = {
-    show: show, openFiles: function () { openFiles(); },
+    show: show, openFiles: function () { openFiles(); }, ensure: ensure, savedList: savedList, analyze: analyze, thumb: thumb, openDoc: openDoc,
     get doc() { return doc; },
     add: function (e) { pushUndo(); e.id = uid(); doc.ents.push(e); save(); draw(); return e; },
     prims: prims, holePts: holePts, describe: describe, num: num, dimText: dimText, runActions: runActions, autoDim: autoDim,

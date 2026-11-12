@@ -156,6 +156,7 @@
           <p>O assistente ainda não está ligado. Abra <b>Configurações</b> e informe o endereço do servidor (proxy) ou uma chave da API Anthropic.</p>
           <button type="button" class="ui-btn primary" id="btnGoConfig">Abrir configurações</button>
         </div>
+        <div id="drawPlan"></div>
         <div id="chatLog" class="chat-log"></div>
       </div>
       <div class="chat-input">
@@ -166,6 +167,7 @@
             <option value="macro">Tipo: macro G65 (O16xx)</option>
           </select>
           <label class="ctx"><input type="checkbox" id="chatCtx"> enviar o programa do editor</label>
+          <button type="button" class="ui-chip" id="btnImpDraw"><span data-icon="folder"></span> Importar desenho</button>
         </div>
         <div class="chat-row">
           <textarea id="chatText" rows="2" placeholder="Descreva: peça, medidas, ferramenta, profundidade…"></textarea>
@@ -210,8 +212,9 @@
           <button type="button" data-t="todos" class="on">Todos</button>
           <button type="button" data-t="fav">Favoritos</button>
           <button type="button" data-t="rec">Recentes</button>
+          <button type="button" data-t="des">Desenhos</button>
         </div>
-        <button type="button" class="ui-btn wide" id="btnCadFiles"><span data-icon="folder"></span> Desenhos salvos</button>
+        <button type="button" class="ui-btn wide hidden" id="btnCadFiles"><span data-icon="folder"></span> Desenhos salvos</button>
         <div id="libList" class="flist"></div>
         <button type="button" class="ui-btn primary wide" id="btnBackup"><span data-icon="cloud"></span> Backup dos programas</button>
         <button type="button" class="hidden" id="btnLibExport"></button>
@@ -310,6 +313,7 @@
   <script src="art.js"></script>
   <script src="assistant.js"></script>
   <script src="cad.js"></script>
+  <script src="plan.js"></script>
   <script>I18N.start()</script>
   <script src="app.js"></script>
 </body>

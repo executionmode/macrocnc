@@ -420,3 +420,33 @@ label.ui-btn { cursor: pointer; text-align: center; }
 .cad-ls button { white-space: nowrap; }
 .cad-rang { flex-wrap: nowrap; }
 .cad-rang .ui-btn { flex: 1 1 0; min-width: 0; padding-left: 2px; padding-right: 2px; }
+/* desenhos em Meus Programas e no Pedir Programa */
+.frow.drw { grid-template-columns: 64px 1fr 20px; }
+.dthumb { width: 64px; height: 48px; object-fit: contain; background: #fff; border-radius: 8px; }
+.dlist { display: flex; flex-direction: column; gap: 8px; }
+.drow { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; text-align: left; padding: 8px; border-radius: 14px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; cursor: pointer; }
+.drow img { width: 96px; height: 72px; object-fit: contain; background: #fff; border-radius: 8px; }
+.dph { width: 96px; height: 72px; display: grid; place-items: center; }
+.dsheet-img { width: 100%; max-height: 240px; object-fit: contain; background: #fff; border-radius: 12px; margin-bottom: 10px; }
+.libfilter { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; color: var(--ui-mut); }
+.libfilter .ui-chip { margin-left: auto; }
+.dplan { margin-bottom: 14px; }
+.dp-head { display: grid; grid-template-columns: 110px 1fr 36px; gap: 12px; align-items: start; margin-bottom: 10px; }
+.dp-head img { width: 110px; height: 82px; object-fit: contain; background: #fff; border-radius: 10px; }
+.dp-head h2 { margin: 2px 0 4px; font-size: 18px; }
+.dp-desc { font-size: 12.5px; margin: 0; }
+.dp-op { border: 1px solid var(--ui-line2); border-radius: 12px; padding: 10px 12px; margin: 8px 0; background: var(--ui-card); }
+.dp-op.off { opacity: .5; }
+.dp-opt { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.dp-opt input { width: 18px; height: 18px; accent-color: var(--ui-blue); }
+.dp-lib { margin-left: auto; font-size: 12px; color: var(--ui-cyan); font-family: ui-monospace, monospace; }
+.dp-op details { margin-top: 6px; }
+.dp-op summary { cursor: pointer; color: var(--ui-mut); font-size: 12.5px; }
+.dp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.dp-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--ui-mut); }
+.dp-grid .input { padding: 8px; font-size: 15px; }
+.dp-res { border-top: 1px solid var(--ui-line2); padding: 8px 0; }
+.dp-res .row { margin-top: 6px; }
+#btnImpDraw { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+#btnImpDraw .ic { width: 16px; height: 16px; }
+#libTabs { flex-wrap: nowrap; overflow-x: auto; }
