@@ -517,15 +517,10 @@
     if (e.target.id === 'cadImg' && e.target.files[0]) { readImage(e.target.files[0], 1568, function (src) { agentAttach(src); }); e.target.value = ''; }
     if (e.target.id === 'cadBgImg' && e.target.files[0]) { readImage(e.target.files[0], 1600, function (src) { setBg(src); }); e.target.value = ''; }
     if (e.target.dataset && e.target.dataset.bgop && doc.bg) { doc.bg.op = +e.target.value; save(); draw(); }
-    if (e.target.dataset && (e.target.dataset.kind3d != null || e.target.dataset.val3d != null)) {
-      var ix = +(e.target.dataset.kind3d != null ? e.target.dataset.kind3d : e.target.dataset.val3d), en = doc.ents[ix];
-      var row = e.target.closest('.cad-dli'), kd = row.querySelector('select').value, pv = num(row.querySelector('input').value);
-      if (en) {
-        delete en.prof; delete en.cham;
-        if (kd === 'prof') { if (!(pv > 0)) pv = 5; en.prof = pv; }
-        if (kd === 'cham') { if (!(pv > 0 && pv < 90)) pv = 30; en.cham = pv; }
-        save(); draw(); render3D(true); refreshDepth();
-      }
+    if (e.target.dataset && (e.target.dataset.kind3d != null || e.target.dataset.val3d != null || e.target.dataset.rb3d != null)) {
+      var ix = +(e.target.dataset.kind3d != null ? e.target.dataset.kind3d : e.target.dataset.val3d != null ? e.target.dataset.val3d : e.target.dataset.rb3d), en = doc.ents[ix];
+      var row = e.target.closest('.cad-dli'), kd = row.querySelector('select').value, pv = num(row.querySelector('input[data-val3d]').value), rbi = row.querySelector('input[data-rb3d]');
+      if (en) { setKind(en, kd, pv, rbi ? num(rbi.value) : en.rb); save(); draw(); render3D(true); refreshDepth(); }
     }
     if (e.target.dataset && e.target.dataset.docf) { doc[e.target.dataset.docf] = e.target.value.trim(); save(); }
     if (e.target.dataset && e.target.dataset.sheet) { var au = sheetAuthors(); au[e.target.dataset.sheet] = e.target.value.trim(); try { localStorage.setItem(SHEET_KEY, JSON.stringify(au)); } catch (er) {} }
@@ -1969,8 +1964,25 @@
         vdim(xr + mm(6), Z(top3), Z(top3 - hz), fmt(Math.round(hz * 100) / 100), xr, 1);
         g.fillStyle = DIM; font(3.2, 700); g.textAlign = 'center'; g.textBaseline = 'bottom'; g.fillText(fmt(e.cham) + '°', X(flip ? a1 - (pw / 2 - e.d / 2) * 0.35 : a0 + (pw / 2 - e.d / 2) * 0.35) + 0, Z(top3) - mm(1.2));
       });
+      // 5b) ressalto redondo cortado no meio: diâmetro, altura e raio da base
+      var xL = Math.min(X(a0), X(a1)), xR = Math.max(X(a0), X(a1)), bossRow = 0;
+      ents.forEach(function (e) {
+        if (e.t !== 'circle' || !(e.ress > 0)) return;
+        var cu = axis === 'h' ? e.x : e.y, off = axis === 'h' ? e.y - v : e.x - v;
+        if (Math.abs(off) > 0.6) return;
+        var hb = Math.min(e.ress, esp - 0.1), zb = top3 - hb, xa = X(cu - e.d / 2), xb = X(cu + e.d / 2), xl2 = Math.min(xa, xb), xr2 = Math.max(xa, xb);
+        hdim(xl2, xr2, dimRow - mm(bossRow * 8), 'Ø' + fmt(e.d), Z(top3), Z(top3)); bossRow++;
+        vdim(xR + mm(7), Z(top3), Z(zb), fmt(hb), null, 1);
+        g.strokeStyle = DIM; g.lineWidth = mm(0.25); g.beginPath(); g.moveTo(xr2 + mm(1), Z(top3)); g.lineTo(xR + mm(8.8), Z(top3)); g.moveTo(xR + mm(1), Z(zb)); g.lineTo(xR + mm(8.8), Z(zb)); g.stroke();
+        if (e.rb > 0) {   // R da base: chamada a 45° no meio do arco
+          var R = Math.min(e.rb, hb), xc = cu + e.d / 2 + R, zc = zb + R, pu = xc - R * Math.cos(Math.PI / 4), pz = zc - R * Math.sin(Math.PI / 4);
+          var px = X(pu), py = Z(pz), sx = X(cu + e.d / 2 + R) > X(cu) ? 1 : -1, tx2 = px + sx * mm(9), ty2 = py - mm(9);
+          g.beginPath(); g.moveTo(tx2 + sx * mm(9), ty2); g.lineTo(tx2, ty2); g.lineTo(px, py); g.stroke(); g.fillStyle = DIM; arrowHead(tx2, ty2, px, py);
+          font(3.2, 600); g.save(); g.translate(tx2 + sx * mm(5), ty2 - mm(2.6)); if (secRot) g.rotate(-secRot * Math.PI / 180);
+          g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('R' + fmt(e.rb), 0, 0); g.restore();
+        }
+      });
       // 6) cotas gerais: espessura e comprimento
-      var xL = Math.min(X(a0), X(a1)), xR = Math.max(X(a0), X(a1));
       vdim(xL - mm(7), Z(top3), Z(bot3), fmt(esp), xL, -1);
       hdim(xL, xR, Z(bot3) + mm(8), fmt(len), Z(bot3), Z(bot3));
       // título
@@ -2145,6 +2157,11 @@
     // chanfro: a partir deste contorno até a borda da peça, caindo no ângulo dado (medido a partir da face)
     var chams = inner.filter(function (s) { return s.ent && s.ent.cham > 0; }).map(function (s) { s.tg = Math.tan(Math.min(s.ent.cham, 89) * Math.PI / 180); return s; });
     inner = inner.filter(function (s) { return !(s.ent && s.ent.cham > 0); });
+    // ressalto: sobe até o topo da peça (Z0); fora dele a face fica mais baixa. rb = raio na base (concordância)
+    var bosses = inner.filter(function (s) { return s.ent && s.ent.ress > 0; });
+    inner = inner.filter(function (s) { return !(s.ent && s.ent.ress > 0); });
+    var hMax = 0; bosses.forEach(function (b) { hMax = Math.max(hMax, Math.min(b.ent.ress, esp - 0.1)); });
+    var base = top - hMax;
     var holes = []; doc.ents.forEach(function (e) { if (e.t === 'holes') holePts(e).forEach(function (q) { holes.push([q[0], q[1], e.d / 2, e.prof]); }); });
     var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
     outer.pts.forEach(function (p) { bx0 = Math.min(bx0, p[0]); by0 = Math.min(by0, p[1]); bx1 = Math.max(bx1, p[0]); by1 = Math.max(by1, p[1]); });
@@ -2152,16 +2169,22 @@
     // altura da peça no ponto (x, y): null = sem material (fora ou furo passante)
     function hAt(x, y) {
       if (!inPoly(x, y, outer.pts)) return null;
-      var hv = top;
+      var hv = base;
+      for (var b2 = 0; b2 < bosses.length; b2++) {
+        var bs = bosses[b2], bh = base + Math.min(bs.ent.ress, esp - 0.1);
+        if (inPoly(x, y, bs.pts)) hv = Math.max(hv, bh);
+        else if (bs.ent.rb > 0) { var dd = distPoly(x, y, bs), R = Math.min(bs.ent.rb, bh - base); if (dd < R) hv = Math.max(hv, base + R - Math.sqrt(Math.max(0, R * R - (R - dd) * (R - dd)))); }
+      }
+      var face = hv;   // face local (topo do ressalto ou face de baixo): rebaixos e furos contam a partir dela
       for (var c2 = 0; c2 < chams.length; c2++) { var ch = chams[c2]; if (!inPoly(x, y, ch.pts)) hv = Math.min(hv, top - distPoly(x, y, ch) * ch.tg); }
-      for (var s = 0; s < inner.length; s++) { var sh = inner[s]; if (inPoly(x, y, sh.pts)) { var pf = sh.ent && sh.ent.prof; if (pf > 0 && pf < esp) hv = Math.min(hv, top - pf); else return null; } }
-      for (var q = 0; q < holes.length; q++) { var ho = holes[q]; if ((x - ho[0]) * (x - ho[0]) + (y - ho[1]) * (y - ho[1]) <= ho[2] * ho[2]) { if (ho[3] > 0 && ho[3] < esp) hv = Math.min(hv, top - ho[3]); else return null; } }
+      for (var s = 0; s < inner.length; s++) { var sh = inner[s]; if (inPoly(x, y, sh.pts)) { var pf = sh.ent && sh.ent.prof; if (pf > 0 && pf < face - bottom) hv = Math.min(hv, face - pf); else return null; } }
+      for (var q = 0; q < holes.length; q++) { var ho = holes[q]; if ((x - ho[0]) * (x - ho[0]) + (y - ho[1]) * (y - ho[1]) <= ho[2] * ho[2]) { if (ho[3] > 0 && ho[3] < face - bottom) hv = Math.min(hv, face - ho[3]); else return null; } }
       return hv;
     }
     var h = new Float32Array(nx * ny), h0 = new Float32Array(nx * ny), ins = new Uint8Array(nx * ny);
     for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
       var k = j * nx + i, hv = hAt(x0 + i * cell, y0 + j * cell);
-      h0[k] = top; h[k] = hv == null ? top : hv; ins[k] = hv == null ? 0 : 1;
+      h[k] = hv == null ? top : hv; h0[k] = h[k]; ins[k] = hv == null ? 0 : 1;
     }
     return { hAt: hAt, ob: [bx0, by0, bx1, by1], exp: null, h0: h0, sim: { zMin: bottom }, D: 0, r: 0, top: top, bottom: bottom, x0: x0, y0: y0, cell: cell, nx: nx, ny: ny, h: h, inside: ins, idx: 0, collisions: [], tool: null, shape: 'rect',
       label: T('1 dedo gira · 2 dedos zoom e move') + ' · ' + T('espessura') + ' ' + fmt(esp) + ' mm' };
@@ -2191,14 +2214,24 @@
     return '<div class="cad-dl"><b>' + esc(T('Profundidade de cada elemento (vazio = passante)')) + '</b>' + cand.map(function (i) {
       var e = doc.ents[i], n = e.t === 'holes' ? holePts(e).length : 1;
       var nm = e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados');
-      var kind = e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val = e.cham > 0 ? fmt(e.cham) : e.prof > 0 ? fmt(e.prof) : '';
+      var kind = e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val = e.ress > 0 ? fmt(e.ress) : e.cham > 0 ? fmt(e.cham) : e.prof > 0 ? fmt(e.prof) : '';
       var opts = [['pas', 'Passante'], ['prof', 'Rebaixo (prof. mm)']];
-      if (e.t !== 'holes') opts.push(['cham', 'Chanfro até a borda (ângulo °)']);
+      if (e.t !== 'holes') opts.push(['ress', 'Ressalto (altura mm)'], ['cham', 'Chanfro até a borda (ângulo °)']);
       var info = '';
       if (kind === 'cham') { var w = chamWidth(e, big); if (w > 0) info = '<small>' + esc(T('largura') + ' ' + fmt(w) + ' · ' + T('altura') + ' ' + fmt(w * Math.tan(e.cham * Math.PI / 180))) + ' mm</small>'; }
       return '<div class="cad-dli"><span>' + esc(nm) + info + '</span><select data-kind3d="' + i + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === kind ? ' selected' : '') + '>' + esc(T(o[1])) + '</option>'; }).join('') + '</select>' +
-        '<input type="text" inputmode="decimal" data-val3d="' + i + '"' + (kind === 'pas' ? ' disabled' : '') + ' value="' + val + '"></div>';
+        '<input type="text" inputmode="decimal" data-val3d="' + i + '"' + (kind === 'pas' ? ' disabled' : '') + ' value="' + val + '">' +
+        (kind === 'ress' ? '<label class="cad-rb">' + esc(T('raio na base')) + ' R <input type="text" inputmode="decimal" data-rb3d="' + i + '" value="' + (e.rb > 0 ? fmt(e.rb) : '') + '" placeholder="0"></label>' : '') + '</div>';
     }).join('') + '</div>';
+  }
+  // o que é cada elemento de dentro: passante, rebaixo (prof), ressalto (altura + raio na base) ou chanfro (ângulo)
+  function setKind(en, kd, pv, rb) {
+    var was = en.ress > 0 ? 'ress' : en.cham > 0 ? 'cham' : en.prof > 0 ? 'prof' : 'pas';
+    if (kd !== was) pv = NaN;   // trocou o tipo: valor padrão do tipo novo
+    delete en.prof; delete en.cham; delete en.ress; delete en.rb;
+    if (kd === 'prof') en.prof = pv > 0 ? pv : 5;
+    if (kd === 'cham') en.cham = pv > 0 && pv < 90 ? pv : 30;
+    if (kd === 'ress') { en.ress = pv > 0 ? pv : Math.round((doc.esp || 20) / 2); if (rb > 0) en.rb = rb; }
   }
   function chamWidth(e, bigIdx) {   // largura do chanfro: do contorno até a borda da peça (círculos concêntricos)
     var o = doc.ents[bigIdx]; if (!o || e.t !== 'circle') return 0;
@@ -2511,20 +2544,25 @@
       function isOuter(e) { var b = bounds([e]); return Math.abs(b.x1 - b.x0 - W) < 0.01 && Math.abs(b.y1 - b.y0 - H) < 0.01; }
       real.forEach(function (e) {
         if (e.t === 'holes') { var pts = holePts(e).map(function (q) { return [R(q[0] - o.x), R(q[1] - o.y)]; }); A.holes.push({ pts: pts, d: e.d, prof: e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0, mode: e.mode, pcd: e.pcd, n: e.n, a0: e.a0, cx: e.mode === 'pcd' ? R(e.x - o.x) : null, cy: e.mode === 'pcd' ? R(e.y - o.y) : null }); return; }
-        var prof = e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0;
+        var prof = e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0, ress = e.ress > 0 ? Math.min(e.ress, (d.esp || 20) - 0.1) : 0;
         if (e.t === 'circle') {
-          var c = { cx: R(e.x - o.x), cy: R(e.y - o.y), d: e.d, prof: prof };
+          var c = { cx: R(e.x - o.x), cy: R(e.y - o.y), d: e.d, prof: prof, ress: ress, rb: ress && e.rb > 0 ? e.rb : 0, eid: e.id };
           if (e.cham > 0) { c.cham = e.cham; A.chams.push(c); }
           else if (!A.outer && isOuter(e)) A.outer = { t: 'circle', cx: c.cx, cy: c.cy, d: e.d };
           else A.circles.push(c);
         } else if (e.t === 'rect') {
-          var r = { cx: R(e.x + e.w / 2 - o.x), cy: R(e.y + e.h / 2 - o.y), w: e.w, h: e.h, r: e.r || 0, prof: prof };
+          var r = { cx: R(e.x + e.w / 2 - o.x), cy: R(e.y + e.h / 2 - o.y), w: e.w, h: e.h, r: e.r || 0, prof: prof, ress: ress, rb: ress && e.rb > 0 ? e.rb : 0, eid: e.id };
           if (!A.outer && isOuter(e)) { r.t = 'rect'; A.outer = r; } else A.rects.push(r);
         } else if (e.t === 'poly') {
-          var pl = { cx: R(e.x - o.x), cy: R(e.y - o.y), n: e.n, dc: R(polyR(e) * 2), ang: e.ang || 0, med: e.med, v: e.v, prof: prof };
+          var pl = { cx: R(e.x - o.x), cy: R(e.y - o.y), n: e.n, dc: R(polyR(e) * 2), ang: e.ang || 0, med: e.med, v: e.v, prof: prof, ress: ress, rb: ress && e.rb > 0 ? e.rb : 0, eid: e.id };
           if (!A.outer && isOuter(e)) { pl.t = 'poly'; A.outer = pl; } else A.polys.push(pl);
         } else A.other++;
       });
+      // ressaltos saem das listas de recortes; a face de baixo fica em Z = -(maior altura de ressalto)
+      A.bosses = [];
+      ['circles', 'rects', 'polys'].forEach(function (k) { A[k] = A[k].filter(function (f) { if (f.ress > 0) { f.t = k === 'circles' ? 'circle' : k === 'rects' ? 'rect' : 'poly'; A.bosses.push(f); return false; } return true; }); });
+      A.base = -A.bosses.reduce(function (m, b) { return Math.max(m, b.ress); }, 0);
+      A.faceAt = function (x, y) { for (var i = 0; i < A.bosses.length; i++) { var b = A.bosses[i]; if (b.t === 'circle' ? Math.hypot(x - b.cx, y - b.cy) <= b.d / 2 + 1e-6 : b.t === 'rect' ? Math.abs(x - b.cx) <= b.w / 2 && Math.abs(y - b.cy) <= b.h / 2 : Math.hypot(x - b.cx, y - b.cy) <= b.dc / 2) return R(A.base + b.ress); } return A.base; };
       if (!A.outer) A.outer = { t: 'outro', cx: R((bb.x0 + bb.x1) / 2 - o.x), cy: R((bb.y0 + bb.y1) / 2 - o.y), w: R(W), h: R(H) };
       return A;
     });
@@ -2544,6 +2582,28 @@
       return tc.toDataURL('image/png');
     });
   }
+  // elementos de dentro de um desenho salvo, para dizer o que é cada um (usado no Pedir Programa)
+  function features(id) {
+    return withDoc(id, function (d) {
+      var cand = [], big = null, bigA = -1;
+      d.ents.forEach(function (e, i) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && !isRef(e)) { var a = Math.abs(polyArea(shapePoly(e))); if (a > bigA) { bigA = a; big = i; } } });
+      d.ents.forEach(function (e, i) {
+        if (isRef(e) || !((['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && i !== big) || e.t === 'holes')) return;
+        var n = e.t === 'holes' ? holePts(e).length : 1;
+        cand.push({ eid: e.id, t: e.t, name: e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados'),
+          kind: e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val: e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : '', rb: e.rb || '' });
+      });
+      return { esp: d.esp || 20, list: cand };
+    });
+  }
+  function setFeature(id, eid, kd, val, rb) {
+    if (!ensure() || !store.docs[id]) return;
+    var d = store.docs[id], en = d.ents.filter(function (e) { return e.id === eid; })[0]; if (!en) return;
+    var keep = doc; doc = d; try { setKind(en, kd, num(val), num(rb)); } finally { doc = keep; }
+    d.upd = Date.now(); if (d.saved) d.savedAt = d.upd;
+    save(true); if (d === doc) { draw(); updSaveBtn(); } dbPut(id);
+  }
+  function setEsp(id, v) { if (!ensure() || !store.docs[id] || !(v > 0)) return; var d = store.docs[id]; d.esp = v; d.upd = Date.now(); if (d.saved) d.savedAt = d.upd; save(true); if (d === doc) draw(); dbPut(id); }
   function openDoc(id) {
     if (!ensure() || !store.docs[id]) return;
     if (id === store.cur) return;
@@ -2556,7 +2616,7 @@
   }
   // API para testes
   root.Cad = {
-    show: show, openFiles: function () { openFiles(); }, ensure: ensure, savedList: savedList, analyze: analyze, thumb: thumb, openDoc: openDoc,
+    show: show, openFiles: function () { openFiles(); }, ensure: ensure, savedList: savedList, analyze: analyze, thumb: thumb, openDoc: openDoc, features: features, setFeature: setFeature, setEsp: setEsp,
     get doc() { return doc; },
     add: function (e) { pushUndo(); e.id = uid(); doc.ents.push(e); save(); draw(); return e; },
     prims: prims, holePts: holePts, describe: describe, num: num, dimText: dimText, runActions: runActions, autoDim: autoDim,

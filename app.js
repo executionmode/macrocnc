@@ -1594,10 +1594,10 @@
 
   /* ---------- DESENHO -> PROGRAMAS (importar desenho no Pedir Programa) ---------- */
   var planCur = null;   // { id, pl, out }
-  var PLAN_F = { T: 'Ø fresa/broca', N: 'T nº', S: 'S rpm', F: 'F mm/min', W: 'W (Z inicial)', Z: 'Z final', K: 'K desce/volta', Q: 'Q', A: 'A entrada', R: 'R seg.' };
+  var PLAN_F = { T: 'Ø fresa/broca', N: 'T nº', S: 'S rpm', F: 'F mm/min', W: 'W (Z inicial)', Z: 'Z final', K: 'K desce/volta', Q: 'Q passo lateral', A: 'A entrada', R: 'R seg.', H: 'H graus/volta' };
   var PLAN_KEYS = { face: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'Q'], ret: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], poli: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], circ: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'],
-    hel: ['T', 'N', 'S', 'F', 'Z', 'K'], reb: ['T', 'N', 'S', 'F', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'Z', 'Q'] };
-  var PLAN_LIB = { face: 'O1611', ret: 'O1616', poli: 'O1617', circ: T('parametrizado'), hel: 'O1613', reb: 'O1613', pcd: 'O1612', g83: 'G83' };
+    hel: ['T', 'N', 'S', 'F', 'Z', 'K'], boss: ['T', 'N', 'S', 'F', 'K', 'Q'], fillet: ['T', 'N', 'S', 'F', 'H'], reb: ['T', 'N', 'S', 'F', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'Z', 'Q'] };
+  var PLAN_LIB = { boss: T('parametrizado'), fillet: T('parametrizado'), face: 'O1611', ret: 'O1616', poli: 'O1617', circ: T('parametrizado'), hel: 'O1613', reb: 'O1613', pcd: 'O1612', g83: 'G83' };
   function cadReady() { return window.Cad && Cad.ensure && Cad.ensure(); }
   function drawThumb(id, w, h) { try { return Cad.thumb(id, w || 120, h || 90); } catch (e) { return null; } }
   function pickDrawing(cb, title) {
@@ -1616,6 +1616,7 @@
     if (!cadReady()) return;
     var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
     var ov = planOverrides(id), pl = Plan.plan(A, ov._sob);
+    pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); });   // valores do desenho (sem as mudanças do operador)
     pl.ops.forEach(function (op) { var o = ov[op.key]; if (o) { Object.keys(o.p || {}).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); if (o.on === false) op.on = false; } });
     planCur = { id: id, pl: pl, out: null };
     store.set('plan.cur', id);
@@ -1628,7 +1629,8 @@
       var box = $('#drawPlan [data-op="' + op.key + '"]'); if (!box) return;
       op.on = box.querySelector('input[type=checkbox]').checked;
       box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) op.p[i.dataset.k] = v; });
-      ov[op.key] = { on: op.on, p: op.p };
+      var pk = {}; (PLAN_KEYS[op.kind] || []).forEach(function (k) { if (!op.def || op.p[k] !== op.def[k]) pk[k] = op.p[k]; });   // só o que o operador mudou; o resto vem do desenho
+      ov[op.key] = { on: op.on, p: pk };
     });
     var sb = $('#dpSob'); if (sb) { var v = parseFloat(String(sb.value).replace(',', '.')); if (isFinite(v) && v >= 0) ov._sob = v; }
     store.set('planp.' + planCur.id, ov);
@@ -1638,10 +1640,20 @@
     var pl = planCur.pl, im = drawThumb(planCur.id, 240, 180);
     var h = '<div class="card dplan"><div class="dp-head">' + (im ? '<img src="' + im + '" alt="">' : '') + '<div><div class="gtitle">' + esc(T('Desenho importado')) + '</div><h2 class="notr">' + esc(pl.name) + '</h2>' +
       '<p class="hint dp-desc">' + esc(Plan.describe(pl.A)).replace(/\n/g, '<br>') + '</p></div><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>';
+    // 1º: o que é cada elemento — só a vista de cima não mostra alturas
+    var fe = Cad.features(planCur.id) || { esp: pl.esp, list: [] }, KOPT = [['pas', 'Furo/recorte passante'], ['prof', 'Rebaixo (prof. mm)'], ['ress', 'Ressalto (altura mm)'], ['cham', 'Chanfro até a borda (ângulo °)']];
+    h += '<div class="dp-feat"><div class="gtitle">' + esc(T('1. Confira a peça')) + '</div><p class="hint">' + esc(T('A vista de cima não mostra as alturas. Diga o que é cada elemento: furo passante, rebaixo, ressalto (com raio na base) ou chanfro.')) + '</p>' +
+      '<label class="dp-fr"><span>' + esc(T('Altura total da peça')) + '</span><input class="input" id="dpEsp" value="' + String(fe.esp).replace('.', ',') + '" inputmode="decimal"> mm</label>' +
+      fe.list.map(function (f) {
+        var opts = f.t === 'holes' ? KOPT.slice(0, 2) : KOPT;
+        return '<div class="dp-fr" data-eid="' + f.eid + '"><span class="notr">' + esc(f.name) + '</span><select class="input">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === f.kind ? ' selected' : '') + '>' + esc(T(o[1])) + '</option>'; }).join('') + '</select>' +
+          (f.kind !== 'pas' ? '<input class="input dp-v" value="' + String(f.val).replace('.', ',') + '" inputmode="decimal">' : '') +
+          (f.kind === 'ress' ? '<label class="dp-rb">' + esc(T('raio na base')) + ' R<input class="input dp-r" value="' + String(f.rb).replace('.', ',') + '" inputmode="decimal" placeholder="0"></label>' : '') + '</div>';
+      }).join('') + '</div>';
     var st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
     h += '<div class="dp-stock"><span>' + esc(T('Bruto')) + ': <b>' + esc(st.shape === 'round' ? T('cilindro') + ' Ø' + Plan.gv(st.d).replace(/\.$/, '') : T('bloco') + ' ' + Plan.gv(st.lx).replace(/\.$/, '') + ' × ' + Plan.gv(st.ly).replace(/\.$/, '')) + ' × ' + Plan.gv(st.top - st.bottom).replace(/\.$/, '') + '</b></span>' +
       '<label>' + esc(T('sobremetal em volta')) + ' <input class="input" id="dpSob" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label></div>';
-    h += '<div class="gtitle">' + esc(T('Operações (um programa para cada)')) + '</div>';
+    h += '<div class="gtitle">' + esc(T('2. Operações (um programa para cada)')) + '</div>';
     pl.ops.forEach(function (op, i) {
       h += '<div class="dp-op' + (op.on ? '' : ' off') + '" data-op="' + op.key + '"><label class="dp-opt"><input type="checkbox"' + (op.on ? ' checked' : '') + '><b>' + (i + 1) + '. ' + esc(op.title) + '</b><span class="dp-lib">' + esc(PLAN_LIB[op.kind] || '') + '</span></label>' +
         '<div class="hint">' + esc(op.what) + '</div>' + (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
@@ -1662,7 +1674,17 @@
     h += '</div>';
     host.innerHTML = h; paintArt(host);
     $('#dpClose').onclick = function () { planCur = null; store.set('plan.cur', null); renderPlan(); };
-    $('#dpSob').addEventListener('change', function () { readPlanForm(); loadPlan(planCur.id); });
+    $('#dpSob').addEventListener('change', function () { var id = planCur.id; readPlanForm(); setTimeout(function () { loadPlan(id); }, 0); });
+    $('#dpEsp').addEventListener('change', function () { var v = parseFloat(String(this.value).replace(',', '.')), id = planCur.id; if (v > 0) { readPlanForm(); Cad.setEsp(id, v); setTimeout(function () { loadPlan(id); }, 0); } });
+    host.querySelectorAll('.dp-fr[data-eid]').forEach(function (r) {
+      function upd() {
+        if (!planCur) return;
+        readPlanForm(); var v = r.querySelector('.dp-v'), rb = r.querySelector('.dp-r'), id = planCur.id;
+        Cad.setFeature(id, r.dataset.eid, r.querySelector('select').value, v ? String(v.value).replace(',', '.') : '', rb ? String(rb.value).replace(',', '.') : '');
+        setTimeout(function () { if (planCur && planCur.id === id) loadPlan(id); }, 0);   // redesenha depois do evento (o campo ainda está em foco)
+      }
+      r.querySelectorAll('select, input').forEach(function (i) { i.addEventListener('change', upd); });
+    });
     host.querySelectorAll('.dp-op input').forEach(function (i) { i.addEventListener('change', function () { readPlanForm(); if (i.type === 'checkbox') i.closest('.dp-op').classList.toggle('off', !i.checked); }); });
     $('#dpGen').onclick = genPlan;
     $('#dpAsk').onclick = askPlan;
