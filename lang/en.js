@@ -689,5 +689,6 @@ I18N.add({
   "Altura total": "Total height",
   "Salvar alturas": "Save heights",
   "Sobremetal em volta": "Stock allowance around",
-  "Contorno fechado": "Closed contour"
+  "Contorno fechado": "Closed contour",
+  "O que usinar aqui?": "What to machine here?"
 });

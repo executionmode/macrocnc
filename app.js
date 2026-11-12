@@ -127,7 +127,7 @@
     $('#sheetTitle').textContent = title; $('#sheetBody').innerHTML = html; paintArt($('#sheetBody'));
     $('#sheet').classList.remove('hidden');
   }
-  function closeSheet() { $('#sheet').classList.add('hidden'); }
+  function closeSheet() { $('#sheet').classList.add('hidden'); if (planCur && planCur.hl) { planCur.hl = null; requestAnimationFrame(draw3D); } }
   $('#sheetClose').addEventListener('click', closeSheet);
   $('#sheet').addEventListener('click', function (e) { if (e.target.id === 'sheet') closeSheet(); });
 
@@ -1529,13 +1529,6 @@
   }
   function renderChat() {
     var log = $('#chatLog'); log.innerHTML = '';
-    if (!chat.length) {
-      var w = document.createElement('div'); w.className = 'msg bot';
-      w.innerHTML = '<p>Descreva o programa e eu monto no padrão da biblioteca (cabeçalho G21 G40 G90 G94, T e M6 separados, Z da face descendo, final G53 H0 Z0).</p>' +
-        '<p>Exemplos:</p><ul><li><i>Sextavado 27 entre faces, fresa 20, de Z0 a Z-12, parametrizado</i></li><li><i>8 furos M10 num PCD 120, ângulo inicial 22,5, broca 8,5 com bicada</i></li><li><i>Bolsão retangular 80 x 50, fresa 16, profundidade 10, macro G65</i></li></ul>' +
-        '<p>Se já existe um programa aprovado que faz isso, eu uso ele.</p>';
-      log.appendChild(w);
-    }
     chat.forEach(function (m) { log.appendChild(msgEl(m)); });
   }
   function scrollChat() { setTimeout(function () { window.scrollTo(0, document.body.scrollHeight); }, 30); }
@@ -1674,7 +1667,8 @@
         c.fillStyle = 'rgba(255,170,40,.28)'; c.beginPath(); pe.lines[0].forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.fill();
         return;
       }
-      c.strokeStyle = on ? '#ffaa28' : 'rgba(110,190,255,.85)'; c.lineWidth = on ? 4 : 2; c.setLineDash(on ? [] : [6, 4]);
+      var hl = planCur.hl && planCur.hl.indexOf(pe.e.key) >= 0;
+      c.strokeStyle = hl ? '#ffffff' : on ? '#ffaa28' : 'rgba(110,190,255,.85)'; c.lineWidth = hl || on ? 4 : 2; c.setLineDash(on || hl ? [] : [6, 4]);
       pe.lines.forEach(function (L) { c.beginPath(); L.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); });
     });
     c.setLineDash([]);
@@ -1703,8 +1697,8 @@
       });
     });
     cands.sort(function (a, b) { return a.d - b.d; });
-    var seen = {};
-    for (var k = 0; k < cands.length; k++) { var c = cands[k]; if (seen[c.e.key]) continue; seen[c.e.key] = 1; if (visible3D(c.p)) return c.e; }   // a linha mais perto que dá para ver
+    var seen = {}, out = [], hidden = [];
+    for (var k = 0; k < cands.length; k++) { var c = cands[k]; if (seen[c.e.key]) continue; seen[c.e.key] = 1; (visible3D(c.p) ? out : hidden).push(c.e); }   // primeiro as linhas que dá para ver
     var best = null;
     (planCur.proj || []).forEach(function (pe) {   // tocou dentro da face de cima = faceamento
       if (!pe.e.face || best) return;
@@ -1712,7 +1706,23 @@
       for (var i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < (P[j][0] - P[i][0]) * (y - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]) ins = !ins;
       if (ins) best = pe.e;
     });
-    return best || (cands[0] && cands[0].e) || null;
+    if (best) out.push(best);
+    return out.length ? out : hidden;
+  }
+  // tocou: pergunta o que usinar ali (só a operação escolhida entra)
+  function pickOp(list) {
+    openSheet(T('O que usinar aqui?'), '<div class="pk-list">' + list.map(function (e) {
+      var on = planCur.sel.indexOf(e.key) >= 0;
+      return '<button type="button" class="pk' + (on ? ' on' : '') + '" data-k="' + e.key + '"><span class="pk-c">' + (on ? '✓' : '+') + '</span>' + esc(e.label) + '</button>';
+    }).join('') + '</div>');
+    $$('#sheetBody .pk').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.dataset.k, i = planCur.sel.indexOf(k);
+        if (i >= 0) planCur.sel.splice(i, 1); else planCur.sel.push(k);
+        planCur.hl = null; saveSel(); planCur.out = null; closeSheet(); renderPlan();
+      };
+    });
+    planCur.hl = list.map(function (e) { return e.key; }); requestAnimationFrame(draw3D);   // as linhas tocadas piscam em branco
   }
   function renderPlan() {
     var host = $('#drawPlan'); $('#chatSetup').classList.toggle('hidden', !!planCur || Assistant.isReady());
@@ -1763,11 +1773,9 @@
     });
     cv.addEventListener('pointerup', function (e) {
       if (!d0) return; var tap = !d0.moved; d0 = null; if (!tap) return;
-      var r = cv.getBoundingClientRect(), hit = hitEdge(e.clientX - r.left, e.clientY - r.top);
-      if (!hit) return toast(T('Toque em cima de uma linha.'));
-      var i = planCur.sel.indexOf(hit.key);
-      if (i >= 0) planCur.sel.splice(i, 1); else { planCur.sel.push(hit.key); toast(hit.label); }
-      saveSel(); planCur.out = null; renderPlan();
+      var r = cv.getBoundingClientRect(), hits = hitEdge(e.clientX - r.left, e.clientY - r.top);
+      if (!hits.length) return toast(T('Toque em cima de uma linha.'));
+      pickOp(hits);
     });
   }
   function editOp(key) {

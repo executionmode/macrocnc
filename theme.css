@@ -494,3 +494,8 @@ label.dp-fr > span { flex: 1 1 auto; }
 .hq-v .input, .hq-esp .input { padding: 9px; font-size: 16px; }
 .hq-esp { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 600; }
 .hq-esp .input { width: 90px; }
+.pk-list { display: flex; flex-direction: column; gap: 8px; }
+.pk { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 15.5px; text-align: left; cursor: pointer; }
+.pk.on { border-color: #ffaa28; }
+.pk-c { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--ui-blue); color: #fff; font-weight: 700; flex: none; }
+.pk.on .pk-c { background: #ffaa28; color: #111; }

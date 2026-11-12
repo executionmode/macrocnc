@@ -689,5 +689,6 @@ I18N.add({
   "Altura total": "Hauteur totale",
   "Salvar alturas": "Enregistrer les hauteurs",
   "Sobremetal em volta": "Surépaisseur autour",
-  "Contorno fechado": "Contour fermé"
+  "Contorno fechado": "Contour fermé",
+  "O que usinar aqui?": "Quoi usiner ici?"
 });
