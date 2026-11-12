@@ -499,3 +499,12 @@ label.dp-fr > span { flex: 1 1 auto; }
 .pk.on { border-color: #ffaa28; }
 .pk-c { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--ui-blue); color: #fff; font-weight: 700; flex: none; }
 .pk.on .pk-c { background: #ffaa28; color: #111; }
+.adj { padding: 12px 0; border-top: 1px solid var(--ui-line2); }
+.adj:first-child { border-top: 0; padding-top: 0; }
+.adj-h { display: flex; align-items: center; gap: 10px; }
+.adj-h .n { width: 24px; height: 24px; border-radius: 50%; background: #ffaa28; color: #111; font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+.adj .hint { margin: 4px 0 8px; font-size: 13px; }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.seg2 button { padding: 10px 4px; border-radius: 10px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 14px; cursor: pointer; }
+.seg2 button.on { background: var(--ui-blue); border-color: var(--ui-blue); color: #fff; }
+.adj-acts { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }

@@ -363,5 +363,32 @@
     var ox = W / 2 - (bx0 + bx1) / 2 * sc + (view.panX || 0), oy = H / 2 - (by0 + by1) / 2 * sc + (view.panY || 0);
     return function (x, y, z) { var q = P(x, y, z); return [ox + q[0] * sc, oy + q[1] * sc, q[2]]; };
   }
-  root.Stock3D = { build: build, advance: advance, render: render, projector: projector };
+  // o contrário: ponto da tela -> ponto da superfície da peça (anda pelo raio até bater no material)
+  function picker(st, view, W, H) {
+    var az = view.az * Math.PI / 180, el = view.el * Math.PI / 180;
+    var ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+    var nx = st.nx, ny = st.ny, cell = st.cell, x0 = st.x0, y0 = st.y0;
+    var midX = x0 + (nx - 1) * cell / 2, midY = y0 + (ny - 1) * cell / 2;
+    function P(x, y, z) { var dx = x - midX, dy = y - midY, xr = dx * ca - dy * sa, yr = dx * sa + dy * ca; return [xr, -(yr * se + z * ce)]; }
+    var corners = [[x0, y0], [x0 + (nx - 1) * cell, y0], [x0, y0 + (ny - 1) * cell], [x0 + (nx - 1) * cell, y0 + (ny - 1) * cell]];
+    var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+    corners.forEach(function (p) { [st.top, st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
+    var sc = Math.min((W - 30) / (bx1 - bx0), (H - 30) / (by1 - by0)) * (view.zoom || 1);
+    var ox = W / 2 - (bx0 + bx1) / 2 * sc + (view.panX || 0), oy = H / 2 - (by0 + by1) / 2 * sc + (view.panY || 0);
+    var L = Math.hypot((nx - 1) * cell, (ny - 1) * cell, st.top - st.bottom) / 2 + 5;
+    function at(s, xr, Aq) { var yr = Aq * se + ce * s, z = Aq * ce - se * s; return [midX + xr * ca + yr * sa, midY - xr * sa + yr * ca, z]; }
+    function inside(p) { if (p[2] < st.bottom - 1e-6) return false; var h = st.hAt ? st.hAt(p[0], p[1]) : null; return h != null && p[2] <= h; }
+    return function (u, v) {
+      var xr = (u - ox) / sc, Aq = -(v - oy) / sc, step = Math.max(0.3, cell * 0.5), prev = -L;
+      for (var s = -L; s <= L; s += step) {
+        if (inside(at(s, xr, Aq))) {   // refina entre o passo anterior e este
+          var a = prev, b = s; for (var i = 0; i < 12; i++) { var m = (a + b) / 2; if (inside(at(m, xr, Aq))) b = m; else a = m; }
+          return at(b, xr, Aq);
+        }
+        prev = s;
+      }
+      return null;
+    };
+  }
+  root.Stock3D = { build: build, advance: advance, render: render, projector: projector, picker: picker };
 })(this);

@@ -1545,8 +1545,13 @@
   $('#btnSend').addEventListener('click', function () { if (busy) busy.abort(); else sendChat(); });
 
   async function sendChat() {
-    var text = ta.value.trim(); if (!text) return;
-    if (!Assistant.isReady()) { checkChatSetup(); toast('Ligue o assistente nas configurações.'); return; }
+    var text = ta.value.trim();
+    if (!text) { if (planCur) { if (selOps().length) openAdjust(); else toast(T('Toque na peça para escolher o que usinar.')); } else toast(T('Escreva o pedido.')); ta.focus(); return; }
+    if (!Assistant.isReady()) {
+      openSheet(T('Assistente desligado'), '<p class="hint">' + esc(T('Para mandar pedidos escritos, o assistente precisa da sua chave da API (com crédito). Os programas do desenho importado não precisam: use Ajustar e gerar.')) + '</p><div class="sheet-acts"><button type="button" class="ui-btn primary" id="asCfg">' + esc(T('Abrir configurações')) + '</button></div>');
+      $('#asCfg').onclick = function () { closeSheet(); show('config'); }; return;
+    }
+    $('#chatLog').classList.remove('hidden');
     var kind = $('#chatKind').value, prefix = kind === 'param' ? '[Tipo pedido: parametrizado simples, sem G65]\n' : kind === 'macro' ? '[Tipo pedido: macro G65, principal O00xx + sub O16xx]\n' : '';
     var content = prefix + text, display = text;
     if ($('#chatCtx').checked && ed.value.trim()) {
@@ -1588,8 +1593,9 @@
   /* ---------- DESENHO -> PROGRAMAS: vista 3D, toque na linha a usinar ---------- */
   var planCur = null;   // { id, pl, st, view, out }
   var PLAN_F = { T: 'Ø fresa/broca', N: 'T nº', S: 'S rpm', F: 'F mm/min', W: 'W (Z inicial)', Z: 'Z final', K: 'K desce/volta', Q: 'Q passo lateral', A: 'A entrada', R: 'R seg.', H: 'H graus/volta' };
-  var PLAN_KEYS = { face: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'Q'], ret: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], poli: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], circ: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'],
-    hel: ['T', 'N', 'S', 'F', 'Z', 'K'], boss: ['T', 'N', 'S', 'F', 'K', 'Q'], fillet: ['T', 'N', 'S', 'F', 'H'], reb: ['T', 'N', 'S', 'F', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'Z', 'Q'] };
+  var PLAN_KEYS = { face: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'Q'], ret: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'A'], poli: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'A'], circ: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'A'],
+    hel: ['T', 'N', 'S', 'F', 'W', 'Z', 'K'], boss: ['T', 'N', 'S', 'F', 'W', 'K', 'Q'], fillet: ['T', 'N', 'S', 'F', 'H'], reb: ['T', 'N', 'S', 'F', 'W', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'W', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'W', 'Z', 'Q'] };
+  var PLAN_F2 = { T: 'Ø ferramenta', N: 'T nº', S: 'Rotação S', F: 'Avanço F', W: 'Z inicial', Z: 'Z final (profundidade)', K: 'Desce por passada', Q: 'Passo lateral / bicada', A: 'Entrada', H: 'Graus por volta' };
   function cadReady() { return window.Cad && Cad.ensure && Cad.ensure(); }
   function drawThumb(id, w, h) { try { return Cad.thumb(id, w || 120, h || 90); } catch (e) { return null; } }
   function pickDrawing(cb, title) {
@@ -1737,7 +1743,7 @@
           (op.warn && op.warn.length ? '<span class="w" title="' + esc(op.warn[0]) + '">!</span>' : '') + '<button type="button" class="x" aria-label="Tirar">✕</button></div>';
       }).join('') : '') + '</div>' +
       '<div class="dp3-act"><button type="button" class="ui-chip" id="dpStock">' + esc(T('Bruto')) + ' ' + esc(stTxt) + '</button>' +
-      '<button type="button" class="ui-btn primary" id="dpGen"' + (ops.length ? '' : ' disabled') + '><span data-icon="save"></span> ' + esc(ops.length ? T('Gerar') + ' ' + ops.length + ' ' + (ops.length > 1 ? T('programas') : T('programa')) : T('Toque numa linha')) + '</button></div>';
+      '<button type="button" class="ui-btn primary" id="dpGen"' + (ops.length ? '' : ' disabled') + '><span data-icon="gear"></span> ' + esc(ops.length ? T('Ajustar e gerar') + ' (' + ops.length + ')' : T('Toque na peça')) + '</button></div>';
     if (planCur.out) h += '<div class="dp3-res">' + planCur.out.map(function (f, i) {
       return '<div class="dp-res"><b>' + esc(f.O) + '</b> <span class="notr">' + esc(f.title) + '</span><span class="row"><button type="button" class="btn" data-r="sim" data-i="' + i + '">' + esc(T('Simular')) + '</button><button type="button" class="btn" data-r="ed" data-i="' + i + '">' + esc(T('Editor')) + '</button></span></div>';
     }).join('') + '</div>';
@@ -1750,7 +1756,7 @@
       openSheet(T('Bruto'), '<label class="hq-esp"><span>' + esc(T('Sobremetal em volta')) + '</span><input class="input" id="sbV" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label><div class="sheet-acts"><button type="button" class="ui-btn primary" id="sbOk">OK</button></div>');
       $('#sbOk').onclick = function () { var v = parseFloat(String($('#sbV').value).replace(',', '.')); if (v >= 0) { var ov = planOv(planCur.id); ov._sob = v; setPlanOv(planCur.id, ov); } closeSheet(); loadPlan(planCur.id, true); };
     };
-    $('#dpGen').onclick = genPlan;
+    $('#dpGen').onclick = openAdjust;
     host.querySelectorAll('.dp3-op').forEach(function (r) {
       r.querySelector('.x').onclick = function (e) { e.stopPropagation(); planCur.sel = planCur.sel.filter(function (k) { return k !== r.dataset.k; }); saveSel(); planCur.out = null; renderPlan(); };
       r.onclick = function () { editOp(r.dataset.k); };
@@ -1773,10 +1779,39 @@
     });
     cv.addEventListener('pointerup', function (e) {
       if (!d0) return; var tap = !d0.moved; d0 = null; if (!tap) return;
-      var r = cv.getBoundingClientRect(), hits = hitEdge(e.clientX - r.left, e.clientY - r.top);
-      if (!hits.length) return toast(T('Toque em cima de uma linha.'));
+      var r = cv.getBoundingClientRect(), u = e.clientX - r.left, vv = e.clientY - r.top, hits = [];
+      var pk = Stock3D.picker(planCur.st, planCur.view, cv.clientWidth, cv.clientHeight)(u, vv);   // ponto da peça debaixo do dedo
+      if (pk) { var o = planCur.pl.A.origin || { x: 0, y: 0 }; hits = Plan.opsAt(planCur.pl, [pk[0] - o.x, pk[1] - o.y, pk[2]]).map(function (op) { return { key: op.key, label: op.title + (op.what ? ' — ' + op.what.split(' — ')[0] : '') }; }); }
+      if (!hits.length) hits = hitEdge(u, vv);
+      if (!hits.length) return toast(T('Toque em cima da peça.'));
       pickOp(hits);
     });
+  }
+  // tela de ajustes: ferramenta, profundidade, externo/interno de cada operação; depois gerar ou gerar e simular
+  function openAdjust() {
+    var ops = selOps(); if (!ops.length) return;
+    var h = ops.map(function (op, i) {
+      var lado = op.kind === 'circ' || op.kind === 'hel';
+      return '<div class="adj" data-k="' + op.key + '"><div class="adj-h"><span class="n">' + (i + 1) + '</span><b>' + esc(op.title) + '</b></div><div class="hint">' + esc(op.what.split(' — ')[0]) + '</div>' +
+        (lado ? '<div class="seg2" data-lado><button type="button" data-l="0" class="' + (op.p.L === 0 ? 'on' : '') + '">' + esc(T('Contorno externo')) + '</button><button type="button" data-l="1" class="' + (op.p.L === 1 ? 'on' : '') + '">' + esc(T('Interno (furo)')) + '</button></div>' : '') +
+        (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
+        '<div class="dp-grid">' + (PLAN_KEYS[op.kind] || []).map(function (k) { return '<label><span>' + esc(T(PLAN_F2[k] || PLAN_F[k])) + '</span><input class="input" data-k="' + k + '" value="' + String(op.p[k]).replace('.', ',') + '" inputmode="decimal"></label>'; }).join('') + '</div></div>';
+    }).join('');
+    openSheet(T('Ajustes da usinagem'), h + '<div class="sheet-acts adj-acts"><button type="button" class="ui-btn" id="adGen"><span data-icon="save"></span> ' + esc(T('Gerar programas')) + '</button><button type="button" class="ui-btn primary" id="adSim"><span data-icon="play"></span> ' + esc(T('Gerar e simular')) + '</button></div>');
+    $$('#sheetBody [data-lado] button').forEach(function (b) { b.onclick = function () { b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); }; });
+    function apply() {
+      var ov = planOv(planCur.id);
+      $$('#sheetBody .adj').forEach(function (box) {
+        var key = box.dataset.k, op = planCur.pl.ops.filter(function (o) { return o.key === key; })[0]; if (!op) return;
+        var pk = (ov[key] && ov[key].p) || {};
+        box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) { op.p[i.dataset.k] = v; if (v !== op.def[i.dataset.k]) pk[i.dataset.k] = v; else delete pk[i.dataset.k]; } });
+        var l = box.querySelector('[data-lado] .on'); if (l) { op.p.L = +l.dataset.l; if (op.p.L !== op.def.L) pk.L = op.p.L; else delete pk.L; }
+        ov[key] = { p: pk };
+      });
+      setPlanOv(planCur.id, ov);
+    }
+    $('#adGen').onclick = function () { apply(); closeSheet(); genPlan(); };
+    $('#adSim').onclick = function () { apply(); closeSheet(); genPlan(); var f = planCur.out && planCur.out[0]; if (f) { setEditor(f.text, f.name); openSim(f.text, libraryMatch(f.text), f.name); } };
   }
   function editOp(key) {
     var op = planCur.pl.ops.filter(function (o) { return o.key === key; })[0]; if (!op) return;

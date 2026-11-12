@@ -74,18 +74,18 @@
     // 3) contorno externo
     var o = A.outer;
     if (o.t === 'rect') ops.push({ key: 'cont', kind: 'ret', title: T('Contorno externo'), what: T('Retângulo') + ' ' + fmt(o.w) + ' × ' + fmt(o.h) + (o.r ? ' R' + fmt(o.r) : ''),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
     else if (o.t === 'poly') ops.push({ key: 'cont', kind: 'poli', title: T('Contorno externo'), what: T('Polígono') + ' ' + o.n + ' ' + T('lados') + ', Ø' + fmt(o.dc) + ' ' + T('entre cantos'),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
     else if (o.t === 'circle') ops.push({ key: 'cont', kind: 'circ', title: T('Contorno externo'), what: T('Diâmetro externo') + ' Ø' + fmt(o.d),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
     else notes.push(T('O contorno de fora não é um retângulo, círculo ou polígono: fica para o assistente ou para o CAM.'));
 
     // 3) furos/alojamentos redondos de dentro: interpolação helicoidal (O1613)
     A.circles.forEach(function (c, i) {
       var fz = A.faceAt ? A.faceAt(c.cx, c.cy) : 0, t = helixTool(c.d), deep = c.prof ? r3(fz - c.prof) : thru;
       var op = { key: 'hel' + i, kind: 'hel', title: c.prof ? T('Alojamento redondo') : T('Furo central'), what: 'Ø' + fmt(c.d) + ' ' + (c.prof ? T('prof.') + ' ' + fmt(c.prof) : T('passante')) + ' — ' + T('interpolação helicoidal'),
-        p: { T: t || Math.max(6, Math.floor(c.d * 0.6)), S: 1200, F: 800, W: fz, Z: deep, K: 1.5, R: 5 }, g: c, warn: [] };
+        p: { T: t || Math.max(6, Math.floor(c.d * 0.6)), S: 1200, F: 800, W: fz, Z: deep, K: 1.5, R: 5, A: 10, L: 1 }, g: c, warn: [] };
       if (!t) op.warn.push(T('Não achei fresa padrão que feche este furo numa volta só (precisa 2·T maior que D). Confira a fresa.'));
       ops.push(op);
     });
@@ -152,13 +152,13 @@
     return subs.filter(function (s) { if (seen[s.num]) return false; var ok = called.indexOf(s.num) >= 0 || need.indexOf(s.num) >= 0; if (ok) seen[s.num] = 1; return ok; });
   }
   function build(pl, op, O) {
-    var p = op.p, t = gi(p.N), nm = upper(pl.name).slice(0, 18), L, call = [], id = null, key = null;
+    var p = op.p, kind = op.kind === 'circ' && p.L === 1 ? 'hel' : op.kind === 'hel' && p.L === 0 ? 'circ' : op.kind, t = gi(p.N), nm = upper(pl.name).slice(0, 18), L, call = [], id = null, key = null;
     var ttl = (nm ? nm + ' - ' : '') + 'OP' + op.idx + ' ' + upper(op.title);
     // bruto e ferramenta no cabeçalho: o operador vê, e a simulação monta o bruto certo (cilindro ou bloco)
     var face = pl.ops.filter(function (x) { return x.kind === 'face' && x.on; })[0];
-    var info = [stockTxt(stockOf(pl.A, pl.sob, face ? face.p.W : 0)), '(' + (op.kind === 'pcd' || op.kind === 'g83' ? 'BROCA' : 'FRESA') + ' D' + gv(p.T) + ') ;'];
+    var info = [stockTxt(stockOf(pl.A, pl.sob, face ? face.p.W : 0)), '(' + (kind === 'pcd' || kind === 'g83' ? 'BROCA' : 'FRESA') + ' D' + gv(p.T) + ') ;'];
     function hd(O2, title, t2, S2, xy) { return header(O2, title, t2, S2, xy, info); }
-    if (op.kind === 'face') {
+    if (kind === 'face') {
       id = 'm-face';
       var centered = Math.abs(op.cx) < 0.01 && Math.abs(op.cy) < 0.01, corner = Math.abs(pl.A.bbox.x0) < 0.01 && Math.abs(pl.A.bbox.y0) < 0.01;
       key = corner && !centered ? '1611-canto' : '1611-centro';
@@ -166,21 +166,21 @@
       if (!centered && !corner) call.push('(ORIGEM DA AREA DESLOCADA COM G52) ;', 'G52 X' + gv(op.cx) + ' Y' + gv(op.cy) + ' ;', g65, 'G52 X0 Y0 ;');
       else call.push(g65);
       L = hd(O, ttl, t, p.S, 'X0 Y0');
-    } else if (op.kind === 'ret') {
+    } else if (kind === 'ret') {
       id = 'm-ret'; var g = op.g;
       call.push('G65 P1616 X' + gv(g.cx) + ' Y' + gv(g.cy) + ' I' + gv(g.w) + ' J' + gv(g.h) + ' C' + gv(g.r || 0) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' A' + gv(p.A) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
       L = hd(O, ttl, t, p.S, 'X' + gv(g.cx) + ' Y' + gv(g.cy));
-    } else if (op.kind === 'poli') {
+    } else if (kind === 'poli') {
       id = 'm-poli'; var gp = op.g;
       call.push('G65 P1617 X' + gv(gp.cx) + ' Y' + gv(gp.cy) + ' B' + gp.n + ' D' + gv(gp.dc) + ' A' + gv(gp.ang || 0) + ' E' + gv(p.A) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
       L = hd(O, ttl, t, p.S, 'X' + gv(gp.cx) + ' Y' + gv(gp.cy));
-    } else if (op.kind === 'circ') {
+    } else if (kind === 'circ') {
       // diâmetro externo: sem macro na biblioteca — programa parametrizado com G2 descendo K por volta
       var gc = op.g, rT = r3(gc.d / 2 + p.T / 2), xs = r3(gc.cx + rT);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(xs + p.A)) + ' Y' + gv(gc.cy));
       L.push('#1 = ' + gv(gc.cx) + ' (X CENTRO) ;', '#2 = ' + gv(gc.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(rT) + ' (RAIO DA TRAJETORIA = D/2 + T/2) ;', '#4 = ' + gv(p.W) + ' (Z INICIAL) ;', '#5 = ' + gv(p.Z) + ' (Z FINAL) ;', '#6 = ' + gv(p.K) + ' (DESCIDA POR VOLTA) ;',
         'G0 Z[#4 + ' + gv(p.R) + '] ;', 'G1 Z#4 F' + gv(p.F) + ' ;', 'G1 X[#1 + #3] Y#2 F' + gv(p.F) + ' ;', 'N10 #4 = #4 - #6 ;', 'IF [#4 LT #5] THEN #4 = #5 ;', 'G2 X[#1 + #3] Y#2 Z#4 I-#3 J0 ;', 'IF [#4 GT #5] GOTO 10 ;', 'G2 X[#1 + #3] Y#2 I-#3 J0 (VOLTA FINAL SEM DESCER) ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] ;');
-    } else if (op.kind === 'boss') {
+    } else if (kind === 'boss') {
       // desbaste em volta de ressalto redondo: voltas G2 de fora para dentro a cada Z; perto da base segue o raio R
       var b = op.g, tr = r3(p.T / 2);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(b.cx + op.rOut + tr + 5)) + ' Y' + gv(b.cy));
@@ -192,7 +192,7 @@
         '#22 = #5 + #6 - #9 ;', 'G0 X[#1 + #5 + #6 + 5] Y#2 ;', 'G1 Z#20 F' + gv(p.F) + ' ;',
         'N20 IF [#22 LT [#21 + #6]] THEN #22 = #21 + #6 ;', 'G1 X[#1 + #22] Y#2 ;', 'G2 X[#1 + #22] Y#2 I-#22 J0 ;', 'IF [#22 LE [#21 + #6]] GOTO 30 ;', '#22 = #22 - #9 ;', 'GOTO 20 ;',
         'N30 G1 X[#1 + #5 + #6 + 5] ;', 'IF [#20 GT #7] GOTO 10 ;', 'G0 Z[#10 + ' + gv(p.R) + '] ;');
-    } else if (op.kind === 'fillet') {
+    } else if (kind === 'fillet') {
       // raio côncavo na base do ressalto: a quina de baixo da fresa segue o arco, uma volta G2 a cada H graus
       var bf = op.g, tf2 = r3(p.T / 2);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(bf.cx + bf.d / 2 + bf.rb + tf2 + 5)) + ' Y' + gv(bf.cy));
@@ -202,15 +202,15 @@
         'N10 IF [#12 GT 90] THEN #12 = 90 ;', '#13 = #3 + #4 - #4 * COS[#12] (RAIO DO PONTO NO ARCO) ;', '#14 = #7 + #4 - #4 * SIN[#12] (Z DO PONTO NO ARCO) ;',
         'G1 X[#1 + #13 + #6] Y#2 Z#14 F' + gv(p.F) + ' ;', 'G2 X[#1 + #13 + #6] Y#2 I-[#13 + #6] J0 ;', 'IF [#12 GE 90] GOTO 20 ;', '#12 = #12 + #11 ;', 'GOTO 10 ;',
         'N20 G1 X[#1 + #3 + #4 + #6 + 5] ;', 'G0 Z[#7 + #4 + ' + gv(p.R) + '] ;');
-    } else if (op.kind === 'hel') {
+    } else if (kind === 'hel') {
       id = 'm-helice'; var gh = op.g;
       call.push('G65 P1613 X' + gv(gh.cx) + ' Y' + gv(gh.cy) + ' D' + gv(gh.d) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
       L = hd(O, ttl, t, p.S, 'X' + gv(gh.cx) + ' Y' + gv(gh.cy));
-    } else if (op.kind === 'reb') {
+    } else if (kind === 'reb') {
       id = 'm-helice';
       op.pts.forEach(function (q) { call.push('G65 P1613 X' + gv(q[0]) + ' Y' + gv(q[1]) + ' D' + gv(op.d) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;'); });
       L = hd(O, ttl, t, p.S, 'X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]));
-    } else if (op.kind === 'pcd') {
+    } else if (kind === 'pcd') {
       id = 'm-pcd'; var c = op.pc;
       call.push('G65 P1612 X' + gv(c.cx) + ' Y' + gv(c.cy) + ' J' + gv(c.J) + ' B' + c.B + ' A' + gv(c.A) + ' H0 W' + gv(p.W) + ' Z' + gv(p.Z) + ' R' + gv(p.R) + ' Q' + gv(p.Q) + ' F' + gv(p.F) + ' ;');
       L = hd(O, ttl, t, p.S, 'X' + gv(c.cx) + ' Y' + gv(c.cy));
@@ -251,5 +251,33 @@
     return E;
   }
 
-  root.Plan = { edges: edges, plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
+  /* ---------- tocou na peça: que operações passam por ali (ponto em relação ao X0 Y0, Z da peça) ---------- */
+  function distRect(x, y, g) { var dx = Math.abs(x - g.cx) - g.w / 2, dy = Math.abs(y - g.cy) - g.h / 2; return dx > 0 || dy > 0 ? Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) : -Math.max(dx, dy); }
+  function opsAt(pl, q) {
+    var A = pl.A, base = A.base || 0, x = q[0], y = q[1], z = q[2], out = [], bb = A.bbox, size = Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0), tol = Math.max(2, size * 0.03);
+    pl.ops.forEach(function (op) {
+      var d = Infinity, g = op.g, r = g ? Math.hypot(x - g.cx, y - g.cy) : 0;
+      if (op.kind === 'face') {
+        var b0 = (A.bosses || [])[0];
+        d = Math.abs(z) + (b0 && b0.t === 'circle' ? Math.max(0, Math.hypot(x - b0.cx, y - b0.cy) - b0.d / 2) : 0);
+      } else if (op.kind === 'boss') {
+        var rb = g.rb || 0, wall = z >= base + rb - 0.5 && z <= 0.5 ? Math.abs(r - g.d / 2) : Infinity, fl = r >= g.d / 2 + rb - 0.5 ? Math.abs(z - base) : Infinity;
+        d = Math.min(wall, fl);
+      } else if (op.kind === 'fillet') {
+        var R = g.rb, cr = g.d / 2 + R, cz = op.base + R;
+        if (r >= g.d / 2 - 1 && r <= cr + 1 && z >= op.base - 1 && z <= cz + 1) d = Math.abs(Math.hypot(r - cr, z - cz) - R);
+      } else if (op.kind === 'ret' || op.kind === 'poli' || op.kind === 'circ') {
+        var w = op.kind === 'circ' ? Math.abs(r - g.d / 2) : op.kind === 'poli' ? Math.abs(r - g.dc / 2 * Math.cos(Math.PI / g.n)) * 0.8 : Math.abs(distRect(x, y, g));
+        d = w + Math.max(0, z - base);
+      } else if (op.kind === 'hel') d = Math.abs(r - g.d / 2) + Math.max(0, z - op.p.W);
+      else if (op.pts) { d = Infinity; op.pts.forEach(function (pt) { d = Math.min(d, Math.max(0, Math.hypot(x - pt[0], y - pt[1]) - (op.d || op.p.T) / 2 - 0.5) + Math.max(0, z - op.p.W)); }); }
+      if (d < Infinity) out.push({ op: op, d: d });
+    });
+    out.sort(function (a, b) { return a.d - b.d; });
+    if (!out.length) return [];
+    var best = out[0].d;
+    return out.filter(function (o, i) { return i === 0 || (o.d <= best + tol && o.d < tol * 2); }).map(function (o) { return o.op; });
+  }
+
+  root.Plan = { opsAt: opsAt, edges: edges, plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
 })(this);
