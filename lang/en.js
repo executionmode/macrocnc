@@ -342,6 +342,7 @@ I18N.add({
   "Canto fechado.": "Corner closed.",
   "Centro e raio": "Center and radius",
   "Chamada montada pelo desenho. Confira T, Z, K, R e F antes de gerar.": "Call built from the drawing. Check T, Z, K, R and F before generating.",
+  "Ignorar": "Ignore",
   "Chanfro": "Chamfer",
   "Chanfro feito.": "Chamfer done.",
   "Chanfro na 1ª linha": "Chamfer on 1st line",

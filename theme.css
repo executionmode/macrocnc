@@ -486,8 +486,10 @@ label.dp-fr > span { flex: 1 1 auto; }
 .dp3-res .row { margin-left: auto; display: flex; gap: 6px; }
 .hq { padding: 10px 0; border-top: 1px solid var(--ui-line2); }
 .hq > b { display: block; margin-bottom: 6px; }
-.hq-k { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-.hq-k button { padding: 9px 2px; border-radius: 10px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; }
+.hq-k { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.hq-cut { position: sticky; top: -1px; z-index: 2; background: #0d192c; margin: -4px -4px 8px; padding: 6px 4px; border-bottom: 1px solid var(--ui-line2); }
+.hq-cut svg { display: block; width: 100%; height: 130px; }
+.hq-k button { padding: 9px 1px; border-radius: 10px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .hq-k button.on { background: var(--ui-blue); border-color: var(--ui-blue); color: #fff; }
 .hq-v { display: flex; gap: 10px; margin-top: 8px; }
 .hq-v label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ui-mut); flex: 1; }

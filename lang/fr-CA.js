@@ -342,6 +342,7 @@ I18N.add({
   "Canto fechado.": "Coin fermé.",
   "Centro e raio": "Centre et rayon",
   "Chamada montada pelo desenho. Confira T, Z, K, R e F antes de gerar.": "Appel monté à partir du dessin. Vérifie T, Z, K, R et F avant de générer.",
+  "Ignorar": "Ignorer",
   "Chanfro": "Chanfrein",
   "Chanfro feito.": "Chanfrein fait.",
   "Chanfro na 1ª linha": "Chanfrein sur la 1re ligne",

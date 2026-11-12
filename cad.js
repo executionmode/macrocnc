@@ -150,6 +150,7 @@
   var LS_OK = { circle: 1, rect: 1, line: 1, arc: 1, poly: 1 };
   var curLs = 'cont';
   function isRef(e) { return e.ls === 'pont' || e.ls === 'tp'; }   // linhas de referência: não viram peça no 3D
+  function noPart(e) { return isRef(e) || e.ign; }   // marcada como "ignorar" (ex.: linha onde o raio encontra a face): fica no desenho, não vira peça
   function lsDash(ls, k) { return ls === 'trac' ? [9 * k, 5 * k] : ls === 'pont' ? [0.1 * k, 4.5 * k] : ls === 'tp' ? [16 * k, 4 * k, 2.5 * k, 4 * k] : []; }
   function layerOf(e) { return e.t === 'dim' ? 'cotas' : e.t === 'holes' ? 'furos' : 'peca'; }
   function vis(e) { return !(doc.hide || {})[layerOf(e)]; }
@@ -2154,7 +2155,7 @@
   }
   function build3D() {
     var top = 0, esp = doc.esp || 20, bottom = -esp, shapes = [];
-    var real = doc.ents.filter(function (e) { return !isRef(e); });
+    var real = doc.ents.filter(function (e) { return !noPart(e); });
     real.forEach(function (e) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0) shapes.push({ pts: shapePoly(e), ent: e }); });
     loopsOf(real).forEach(function (l) { shapes.push(l); });
     if (!shapes.length) return null;
@@ -2222,21 +2223,22 @@
     return '<div class="cad-dl"><b>' + esc(T('Profundidade de cada elemento (vazio = passante)')) + '</b>' + cand.map(function (i) {
       var e = doc.ents[i], n = e.t === 'holes' ? holePts(e).length : 1;
       var nm = e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados');
-      var kind = e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val = e.ress > 0 ? fmt(e.ress) : e.cham > 0 ? fmt(e.cham) : e.prof > 0 ? fmt(e.prof) : '';
+      var kind = e.ign ? 'ign' : e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val = e.ign ? '' : e.ress > 0 ? fmt(e.ress) : e.cham > 0 ? fmt(e.cham) : e.prof > 0 ? fmt(e.prof) : '';
       var opts = [['pas', 'Passante'], ['prof', 'Rebaixo (prof. mm)']];
-      if (e.t !== 'holes') opts.push(['ress', 'Ressalto (altura mm)'], ['cham', 'Chanfro até a borda (ângulo °)']);
+      if (e.t !== 'holes') opts.push(['ress', 'Ressalto (altura mm)'], ['cham', 'Chanfro até a borda (ângulo °)'], ['ign', 'Ignorar']);
       var info = '';
       if (kind === 'cham') { var w = chamWidth(e, big); if (w > 0) info = '<small>' + esc(T('largura') + ' ' + fmt(w) + ' · ' + T('altura') + ' ' + fmt(w * Math.tan(e.cham * Math.PI / 180))) + ' mm</small>'; }
       return '<div class="cad-dli"><span>' + esc(nm) + info + '</span><select data-kind3d="' + i + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === kind ? ' selected' : '') + '>' + esc(T(o[1])) + '</option>'; }).join('') + '</select>' +
-        '<input type="text" inputmode="decimal" data-val3d="' + i + '"' + (kind === 'pas' ? ' disabled' : '') + ' value="' + val + '">' +
+        '<input type="text" inputmode="decimal" data-val3d="' + i + '"' + (kind === 'pas' || kind === 'ign' ? ' disabled' : '') + ' value="' + val + '">' +
         (kind === 'ress' ? '<label class="cad-rb">' + esc(T('raio na base')) + ' R <input type="text" inputmode="decimal" data-rb3d="' + i + '" value="' + (e.rb > 0 ? fmt(e.rb) : '') + '" placeholder="0"></label>' : '') + '</div>';
     }).join('') + '</div>';
   }
   // o que é cada elemento de dentro: passante, rebaixo (prof), ressalto (altura + raio na base) ou chanfro (ângulo)
   function setKind(en, kd, pv, rb) {
-    var was = en.ress > 0 ? 'ress' : en.cham > 0 ? 'cham' : en.prof > 0 ? 'prof' : 'pas';
+    var was = en.ign ? 'ign' : en.ress > 0 ? 'ress' : en.cham > 0 ? 'cham' : en.prof > 0 ? 'prof' : 'pas';
     if (kd !== was) pv = NaN;   // trocou o tipo: valor padrão do tipo novo
-    delete en.prof; delete en.cham; delete en.ress; delete en.rb;
+    delete en.prof; delete en.cham; delete en.ress; delete en.rb; delete en.ign;
+    if (kd === 'ign') en.ign = 1;
     if (kd === 'prof') en.prof = pv > 0 ? pv : 5;
     if (kd === 'cham') en.cham = pv > 0 && pv < 90 ? pv : 30;
     if (kd === 'ress') { en.ress = pv > 0 ? pv : Math.round((doc.esp || 20) / 2); if (rb > 0) en.rb = rb; }
@@ -2544,7 +2546,7 @@
   function analyze(id) {
     return withDoc(id, function (d) {
       var o = d.origin || { x: 0, y: 0 }, R = function (v) { return Math.round(v * 1000) / 1000; };
-      var real = d.ents.filter(function (e) { return e.t !== 'dim' && !isRef(e); });
+      var real = d.ents.filter(function (e) { return e.t !== 'dim' && !noPart(e); });
       if (!real.length) return null;
       var bb = bounds(real.filter(function (e) { return e.t !== 'holes'; }).length ? real.filter(function (e) { return e.t !== 'holes'; }) : real);
       var A = { id: id, origin: { x: o.x, y: o.y }, hconf: d.hconf || 0, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
@@ -2603,24 +2605,32 @@
     });
   }
   // elementos de dentro de um desenho salvo, para dizer o que é cada um (usado no Pedir Programa)
+  function kindOf(e) { return e.ign ? 'ign' : e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas'; }
+  function valOf(e) { return e.ign ? '' : e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : ''; }
+  function geoOf(e) {   // geometria simples para o corte de prévia das alturas
+    if (e.t === 'circle') return { round: 1, cx: e.x, cy: e.y, d: e.d };
+    if (e.t === 'holes') return { holes: holePts(e), d: e.d };
+    var b = bounds([e]); return e.t === 'poly' ? { round: 1, cx: e.x, cy: e.y, d: polyR(e) * 2, x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 } : { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 };
+  }
   function features(id) {
     return withDoc(id, function (d) {
       var cand = [], big = null, bigA = -1, real = d.ents.filter(function (e) { return !isRef(e); }), loops = loopsOf(real);
-      d.ents.forEach(function (e, i) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && !isRef(e)) { var a = Math.abs(polyArea(shapePoly(e))); if (a > bigA) { bigA = a; big = i; } } });
+      d.ents.forEach(function (e, i) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && !noPart(e)) { var a = Math.abs(polyArea(shapePoly(e))); if (a > bigA) { bigA = a; big = i; } } });
       var bigLoop = null; loops.forEach(function (l) { var a = polyArea(l.pts); if (a > bigA) { bigA = a; bigLoop = l; big = null; } });
       d.ents.forEach(function (e, i) {
         if (isRef(e) || !((['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && i !== big) || e.t === 'holes')) return;
         var n = e.t === 'holes' ? holePts(e).length : 1;
         cand.push({ eid: e.id, t: e.t, name: e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados'),
-          kind: e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val: e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : '', rb: e.rb || '' });
+          kind: kindOf(e), val: valOf(e), rb: e.rb || '', g: geoOf(e) });
       });
       loops.forEach(function (l) {   // contornos de arcos/linhas soltos (ex.: círculo feito com o arco R50)
         if (l === bigLoop) return;
         var e = l.ent, li = loopInfo(l);
         cand.push({ eid: e.id, t: 'loop', name: li.round ? T('Círculo') + ' Ø' + fmt(li.d) : T('Contorno fechado') + ' ' + fmt(li.b.x1 - li.b.x0) + ' x ' + fmt(li.b.y1 - li.b.y0),
-          kind: e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val: e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : '', rb: e.rb || '' });
+          kind: kindOf(e), val: valOf(e), rb: e.rb || '', g: li.round ? { round: 1, cx: li.cx, cy: li.cy, d: li.d } : { x0: li.b.x0, y0: li.b.y0, x1: li.b.x1, y1: li.b.y1 } });
       });
-      return { esp: d.esp || 20, list: cand };
+      var out = big != null ? geoOf(d.ents[big]) : bigLoop ? (function (li) { return li.round ? { round: 1, cx: li.cx, cy: li.cy, d: li.d } : { x0: li.b.x0, y0: li.b.y0, x1: li.b.x1, y1: li.b.y1 }; })(loopInfo(bigLoop)) : null;
+      return { esp: d.esp || 20, list: cand, outer: out };
     });
   }
   function setFeature(id, eid, kd, val, rb) {

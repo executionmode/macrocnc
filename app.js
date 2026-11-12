@@ -1625,38 +1625,91 @@
   }
   function planOv(id) { return store.get('planp.' + id, {}); }
   function setPlanOv(id, ov) { store.set('planp.' + id, ov); }
-  // só a vista de cima não diz as alturas: pergunta uma vez e grava no desenho
+  // só a vista de cima não diz as alturas: pergunta uma vez e grava no desenho (com o corte da peça ao vivo)
   function askHeights(id, done) {
     var fe = Cad.features(id); if (!fe) return;
-    var K = [['pas', 'Passante'], ['prof', 'Rebaixo'], ['ress', 'Ressalto'], ['cham', 'Chanfro']], U = { prof: 'prof.', ress: 'altura', cham: '°' };
+    var K = [['pas', 'Passante'], ['prof', 'Rebaixo'], ['ress', 'Ressalto'], ['cham', 'Chanfro'], ['ign', 'Ignorar']], U = { prof: 'prof.', ress: 'altura', cham: '°' };
+    var byId = {}; fe.list.forEach(function (f) { byId[f.eid] = f; });
     function row(f) {
-      var opts = f.t === 'holes' ? K.slice(0, 2) : K;
+      var opts = f.t === 'holes' ? K.slice(0, 2) : K, nov = f.kind === 'pas' || f.kind === 'ign';
       return '<div class="hq" data-eid="' + f.eid + '"><b class="notr">' + esc(f.name) + '</b><div class="hq-k">' + opts.map(function (o) { return '<button type="button" data-k="' + o[0] + '" class="' + (o[0] === f.kind ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>' +
-        '<div class="hq-v' + (f.kind === 'pas' ? ' hidden' : '') + '"><label><span>' + esc(T(U[f.kind] || 'prof.')) + '</span><input class="input" data-v value="' + String(f.val).replace('.', ',') + '" inputmode="decimal"></label>' +
+        '<div class="hq-v' + (nov ? ' hidden' : '') + '"><label><span>' + esc(T(U[f.kind] || 'prof.')) + '</span><input class="input" data-v value="' + String(f.val).replace('.', ',') + '" inputmode="decimal"></label>' +
         '<label class="' + (f.kind === 'ress' ? '' : 'hidden') + '"><span>' + esc(T('raio na base')) + ' R</span><input class="input" data-r value="' + String(f.rb).replace('.', ',') + '" inputmode="decimal" placeholder="0"></label></div></div>';
     }
-    openSheet(T('Alturas da peça'), '<label class="hq-esp"><span>' + esc(T('Altura total')) + '</span><input class="input" id="hqEsp" value="' + String(fe.esp).replace('.', ',') + '" inputmode="decimal"> mm</label>' +
+    openSheet(T('Alturas da peça'), '<div class="hq-cut"><svg id="hqCut" preserveAspectRatio="xMidYMid meet"></svg></div>' +
+      '<label class="hq-esp"><span>' + esc(T('Altura total')) + '</span><input class="input" id="hqEsp" value="' + String(fe.esp).replace('.', ',') + '" inputmode="decimal"> mm</label>' +
       fe.list.map(row).join('') + '<div class="sheet-acts"><button type="button" class="ui-btn primary" id="hqOk">' + esc(T('Salvar alturas')) + '</button></div>');
+    function nv(x) { var v = parseFloat(String(x).replace(',', '.')); return isFinite(v) ? v : 0; }
+    function state() {
+      return $$('#sheetBody .hq').map(function (r) {
+        var on = r.querySelector('[data-k].on'); return { r: r, f: byId[r.dataset.eid], k: on ? on.dataset.k : 'pas', v: nv(r.querySelector('[data-v]').value), rb: nv(r.querySelector('[data-r]').value) };
+      });
+    }
+    function setK(r, k, keepVal) {
+      r.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', x.dataset.k === k); });
+      var v = r.querySelector('.hq-v'); v.classList.toggle('hidden', k === 'pas' || k === 'ign'); v.querySelector('label span').textContent = T(U[k] || 'prof.');
+      v.querySelector('[data-r]').parentNode.classList.toggle('hidden', k !== 'ress');
+      var iv = v.querySelector('[data-v]'); if (!keepVal && k !== r.dataset.was) iv.value = ''; r.dataset.was = k; return iv;
+    }
+    // círculo concêntrico com Ø = Ø do ressalto + 2 × R é onde o raio encontra a face: só linha, não é outro ressalto
+    function autoFillet() {
+      var S = state();
+      S.forEach(function (b) {
+        if (b.k !== 'ress' || !(b.rb > 0) || !b.f.g || !b.f.g.round) return;
+        S.forEach(function (c) {
+          var g = c.f.g; if (c === b || !g || !g.round || c.k === 'ign') return;
+          if (Math.hypot(g.cx - b.f.g.cx, g.cy - b.f.g.cy) < 0.05 && Math.abs(g.d - (b.f.g.d + 2 * b.rb)) < 0.05) setK(c.r, 'ign', true);
+        });
+      });
+    }
+    function drawCut() {
+      var svg = $('#hqCut'), o = fe.outer; if (!svg || !o) return;
+      var esp = nv($('#hqEsp').value) || fe.esp, S = state(), y0, xa, xb;
+      if (o.round) { y0 = o.cy; xa = o.cx - o.d / 2; xb = o.cx + o.d / 2; } else { y0 = (o.y0 + o.y1) / 2; xa = o.x0; xb = o.x1; }
+      function ins(g, x) {   // a linha de corte (y = y0) passa por dentro do elemento em x?
+        if (g.round) { var dy = y0 - g.cy; return Math.hypot(x - g.cx, dy) <= g.d / 2; }
+        return x >= g.x0 && x <= g.x1 && y0 >= g.y0 && y0 <= g.y1;
+      }
+      function edge(g, x) { return g.round ? Math.hypot(x - g.cx, y0 - g.cy) - g.d / 2 : Math.max(g.x0 - x, x - g.x1, g.y0 - y0, y0 - g.y1); }
+      var boss = S.filter(function (c) { return c.k === 'ress' && c.v > 0 && c.f.g && !c.f.g.holes; }), hb = boss.reduce(function (m, c) { return Math.max(m, Math.min(c.v, esp - 0.1)); }, 0), base = -hb;
+      var N = 360, cols = [];
+      for (var i = 0; i <= N; i++) {
+        var x = xa + (xb - xa) * i / N, z = base, solid = true;
+        boss.forEach(function (c) {
+          var h = base + Math.min(c.v, esp - 0.1), e = edge(c.f.g, x);
+          if (e <= 0) z = Math.max(z, h); else if (c.rb > 0 && e < c.rb) z = Math.max(z, Math.min(h, base + c.rb - Math.sqrt(c.rb * c.rb - (c.rb - e) * (c.rb - e))));
+        });
+        S.forEach(function (c) {
+          var g = c.f.g; if (!g || c.k === 'ign' || c.k === 'ress' || c.k === 'cham') return;
+          if (g.holes) { g.holes.forEach(function (q) { if (Math.hypot(x - q[0], y0 - q[1]) <= g.d / 2) { if (c.k === 'pas') solid = false; else z = Math.min(z, z - c.v); } }); return; }
+          if (ins(g, x)) { if (c.k === 'pas') solid = false; else if (c.v > 0) z = Math.min(z, z - c.v); }
+        });
+        cols.push([x, z, solid]);
+      }
+      var P = '', run = [];
+      function flush() { if (run.length > 1) P += 'M' + run[0][0] + ' ' + (-esp) + run.map(function (q) { return 'L' + q[0] + ' ' + q[1]; }).join('') + 'L' + run[run.length - 1][0] + ' ' + (-esp) + 'Z'; run = []; }
+      cols.forEach(function (q) { if (q[2]) run.push(q); else flush(); }); flush();
+      var pad = (xb - xa) * 0.06;
+      svg.setAttribute('viewBox', (xa - pad) + ' ' + (-pad) + ' ' + (xb - xa + 2 * pad) + ' ' + (esp + 2 * pad));
+      svg.innerHTML = '<g transform="scale(1,-1)"><path d="' + P + '" fill="rgba(59,130,246,.28)" stroke="#93c5fd" stroke-width="' + ((xb - xa) / 260) + '" stroke-linejoin="round"/>' +
+        '<line x1="' + xa + '" x2="' + xb + '" y1="0" y2="0" stroke="#64748b" stroke-dasharray="' + ((xb - xa) / 80) + '" stroke-width="' + ((xb - xa) / 500) + '"/></g>';
+    }
     $$('#sheetBody .hq').forEach(function (r) {
+      r.dataset.was = r.querySelector('[data-k].on') ? r.querySelector('[data-k].on').dataset.k : 'pas';
       r.querySelectorAll('[data-k]').forEach(function (b) {
-        b.onclick = function () {
-          r.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', x === b); });
-          var k = b.dataset.k, v = r.querySelector('.hq-v');
-          v.classList.toggle('hidden', k === 'pas'); v.querySelector('label span').textContent = T(U[k] || 'prof.');
-          v.querySelector('[data-r]').parentNode.classList.toggle('hidden', k !== 'ress');
-          var iv = v.querySelector('[data-v]'); if (k !== r.dataset.was) iv.value = ''; r.dataset.was = k; if (k !== 'pas') iv.focus();
-        };
+        b.onclick = function () { var iv = setK(r, b.dataset.k); autoFillet(); drawCut(); if (b.dataset.k !== 'pas' && b.dataset.k !== 'ign') iv.focus(); };
       });
-      r.dataset.was = (r.querySelector('[data-k].on') || {}).dataset ? r.querySelector('[data-k].on').dataset.k : 'pas';
+      r.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', function () { autoFillet(); drawCut(); }); });
     });
+    $('#hqEsp').addEventListener('input', drawCut);
+    autoFillet(); drawCut();
     $('#hqOk').onclick = function () {
-      var esp = parseFloat(String($('#hqEsp').value).replace(',', '.'));
+      var esp = nv($('#hqEsp').value);
       if (esp > 0) Cad.setEsp(id, esp);
-      $$('#sheetBody .hq').forEach(function (r) {
-        var on = r.querySelector('[data-k].on'), k = on ? on.dataset.k : 'pas';
-        Cad.setFeature(id, r.dataset.eid, k, String(r.querySelector('[data-v]').value).replace(',', '.'), String(r.querySelector('[data-r]').value).replace(',', '.'));
+      state().forEach(function (c) {
+        Cad.setFeature(id, c.r.dataset.eid, c.k, String(c.r.querySelector('[data-v]').value).replace(',', '.'), String(c.r.querySelector('[data-r]').value).replace(',', '.'));
       });
-      Cad.setMeta(id, { hconf: fe.list.length + 1 }); closeSheet(); if (done) done();   // guarda quantos elementos foram conferidos
+      Cad.setMeta(id, { hconf: true }); closeSheet(); if (done) done();
     };
   }
   function loadPlan(id, noAsk) {
