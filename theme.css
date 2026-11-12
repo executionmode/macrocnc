@@ -450,3 +450,6 @@ label.ui-btn { cursor: pointer; text-align: center; }
 #btnImpDraw { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 #btnImpDraw .ic { width: 16px; height: 16px; }
 #libTabs { flex-wrap: nowrap; overflow-x: auto; }
+.dp-stock { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px; margin: 6px 0 10px; border-radius: 12px; background: var(--ui-bg2); border: 1px solid var(--ui-line2); font-size: 14px; }
+.dp-stock label { display: flex; align-items: center; gap: 6px; color: var(--ui-mut); font-size: 12.5px; }
+.dp-stock .input { width: 64px; padding: 6px 8px; font-size: 15px; }

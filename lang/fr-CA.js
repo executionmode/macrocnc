@@ -654,5 +654,10 @@ I18N.add({
   "K desce/volta": "K descente/tour",
   "Q": "Q",
   "A entrada": "A entrée",
-  "R seg.": "R dégagement"
+  "R seg.": "R dégagement",
+  "Bruto": "Brut",
+  "bruto": "brut",
+  "cilindro": "cylindre",
+  "bloco": "bloc",
+  "sobremetal em volta": "surépaisseur autour"
 });

@@ -654,5 +654,10 @@ I18N.add({
   "K desce/volta": "K step/turn",
   "Q": "Q",
   "A entrada": "A lead-in",
-  "R seg.": "R clearance"
+  "R seg.": "R clearance",
+  "Bruto": "Stock",
+  "bruto": "stock",
+  "cilindro": "cylinder",
+  "bloco": "block",
+  "sobremetal em volta": "stock allowance around"
 });

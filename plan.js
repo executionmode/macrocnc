@@ -38,14 +38,27 @@
   }
 
   /* ---------- operações a partir da peça ---------- */
-  function plan(A) {
-    var ops = [], notes = [], esp = A.esp, bb = A.bbox, W = r3(bb.x1 - bb.x0), H = r3(bb.y1 - bb.y0), cx = r3((bb.x0 + bb.x1) / 2), cy = r3((bb.y0 + bb.y1) / 2);
+  /* bruto: mesma forma do contorno de fora (cilindro ou bloco) + sobremetal em volta; altura = peça + sobremetal da face */
+  var SOB = 5, SOB_TOP = 1;
+  function stockOf(A, sob, top) {
+    var o = A.outer, bb = A.bbox;
+    if (o.t === 'circle') return { shape: 'round', d: r3(o.d + 2 * sob), cx: o.cx, cy: o.cy, top: top, bottom: -r3(A.esp) };
+    if (o.t === 'poly') return { shape: 'round', d: r3(o.dc + 2 * sob), cx: o.cx, cy: o.cy, top: top, bottom: -r3(A.esp) };
+    return { shape: 'rect', lx: r3(bb.x1 - bb.x0 + 2 * sob), ly: r3(bb.y1 - bb.y0 + 2 * sob), cx: r3((bb.x0 + bb.x1) / 2), cy: r3((bb.y0 + bb.y1) / 2), top: top, bottom: -r3(A.esp) };
+  }
+  function stockTxt(st) {
+    return '(BRUTO ' + (st.shape === 'round' ? 'CILINDRO D' + gv(st.d) : 'BLOCO ' + gv(st.lx) + ' X ' + gv(st.ly)) + ' ALTURA ' + gv(r3(st.top - st.bottom)) + ' TOPO Z' + gv(st.top) + ' CENTRO X' + gv(st.cx) + ' Y' + gv(st.cy) + ') ;';
+  }
+  function plan(A, sob) {
+    sob = isFinite(sob) && sob >= 0 ? sob : SOB;
+    var ops = [], notes = [], esp = A.esp, bb = A.bbox;
     var thru = -r3(esp + 1);   // passa 1 mm abaixo da peça
+    var st0 = stockOf(A, sob, SOB_TOP), W = st0.shape === 'round' ? st0.d : st0.lx, H = st0.shape === 'round' ? st0.d : st0.ly, cx = st0.cx, cy = st0.cy;
 
-    // 1) faceamento da área toda
+    // 1) faceamento: a área toda do bruto
     var tf = W <= 40 ? 25 : W <= 80 ? 40 : 50;
-    ops.push({ key: 'face', kind: 'face', title: T('Faceamento'), what: T('Face de cima') + ' ' + fmt(W) + ' × ' + fmt(H),
-      p: { T: tf, S: 1200, F: 1150, W: 1, Z: 0, K: 1, Q: r3(tf * 0.7), A: 5, R: 25 }, cx: cx, cy: cy, w: W, h: H });
+    ops.push({ key: 'face', kind: 'face', title: T('Faceamento'), what: T('Face de cima') + ' ' + fmt(W) + ' × ' + fmt(H) + ' (' + T('bruto') + ')',
+      p: { T: tf, S: 1200, F: 1150, W: SOB_TOP, Z: 0, K: 1, Q: r3(tf * 0.7), A: 5, R: 25 }, cx: cx, cy: cy, w: W, h: H });
 
     // 2) contorno externo
     var o = A.outer;
@@ -91,7 +104,7 @@
       gi2++;
     });
     var tn = 1; ops.forEach(function (op) { op.p.N = tn++; op.on = true; });
-    return { name: A.name, esp: esp, mat: A.mat, ops: ops, notes: notes, A: A };
+    return { name: A.name, esp: esp, mat: A.mat, ops: ops, notes: notes, A: A, sob: sob };
   }
 
   /* ---------- texto da peça (para o assistente e para a tela) ---------- */
@@ -112,8 +125,8 @@
 
   /* ---------- montagem dos programas ---------- */
   function libProg(id) { return (root.PROGRAMS || []).filter(function (p) { return p.id === id; })[0]; }
-  function header(O, title, t, S, firstXY) {
-    return ['%', 'O' + pad4(O) + ' (' + title + ') ;', 'G21 G40 G90 G94 ;', 'G54 ;', 'T' + t + ' ;', 'M6 ;', 'G0 ' + firstXY + ' ;', 'S' + gi(S) + ' M3 ;', 'G43 H' + t + ' Z120. ;', 'M8 ;'];
+  function header(O, title, t, S, firstXY, extra) {
+    return ['%', 'O' + pad4(O) + ' (' + title + ') ;'].concat(extra || []).concat(['G21 G40 G90 G94 ;', 'G54 ;', 'T' + t + ' ;', 'M6 ;', 'G0 ' + firstXY + ' ;', 'S' + gi(S) + ' M3 ;', 'G43 H' + t + ' Z120. ;', 'M8 ;']);
   }
   var FOOT = ['G0 Z100. ;', 'M9 ;', 'G53 H0 Z0 ;', 'M30 ;', '%'];
   function subsFor(id, mainText, key) {
@@ -128,6 +141,10 @@
   function build(pl, op, O) {
     var p = op.p, t = gi(p.N), nm = upper(pl.name).slice(0, 18), L, call = [], id = null, key = null;
     var ttl = (nm ? nm + ' - ' : '') + 'OP' + op.idx + ' ' + upper(op.title);
+    // bruto e ferramenta no cabeçalho: o operador vê, e a simulação monta o bruto certo (cilindro ou bloco)
+    var face = pl.ops.filter(function (x) { return x.kind === 'face' && x.on; })[0];
+    var info = [stockTxt(stockOf(pl.A, pl.sob, face ? face.p.W : 0)), '(' + (op.kind === 'pcd' || op.kind === 'g83' ? 'BROCA' : 'FRESA') + ' D' + gv(p.T) + ') ;'];
+    function hd(O2, title, t2, S2, xy) { return header(O2, title, t2, S2, xy, info); }
     if (op.kind === 'face') {
       id = 'm-face';
       var centered = Math.abs(op.cx) < 0.01 && Math.abs(op.cy) < 0.01, corner = Math.abs(pl.A.bbox.x0) < 0.01 && Math.abs(pl.A.bbox.y0) < 0.01;
@@ -135,35 +152,35 @@
       var g65 = 'G65 P1611 X' + gv(op.w) + ' Y' + gv(op.h) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' T' + gv(p.T) + ' Q' + gv(p.Q) + ' A' + gv(p.A) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;';
       if (!centered && !corner) call.push('(ORIGEM DA AREA DESLOCADA COM G52) ;', 'G52 X' + gv(op.cx) + ' Y' + gv(op.cy) + ' ;', g65, 'G52 X0 Y0 ;');
       else call.push(g65);
-      L = header(O, ttl, t, p.S, 'X0 Y0');
+      L = hd(O, ttl, t, p.S, 'X0 Y0');
     } else if (op.kind === 'ret') {
       id = 'm-ret'; var g = op.g;
       call.push('G65 P1616 X' + gv(g.cx) + ' Y' + gv(g.cy) + ' I' + gv(g.w) + ' J' + gv(g.h) + ' C' + gv(g.r || 0) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' A' + gv(p.A) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
-      L = header(O, ttl, t, p.S, 'X' + gv(g.cx) + ' Y' + gv(g.cy));
+      L = hd(O, ttl, t, p.S, 'X' + gv(g.cx) + ' Y' + gv(g.cy));
     } else if (op.kind === 'poli') {
       id = 'm-poli'; var gp = op.g;
       call.push('G65 P1617 X' + gv(gp.cx) + ' Y' + gv(gp.cy) + ' B' + gp.n + ' D' + gv(gp.dc) + ' A' + gv(gp.ang || 0) + ' E' + gv(p.A) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
-      L = header(O, ttl, t, p.S, 'X' + gv(gp.cx) + ' Y' + gv(gp.cy));
+      L = hd(O, ttl, t, p.S, 'X' + gv(gp.cx) + ' Y' + gv(gp.cy));
     } else if (op.kind === 'circ') {
       // diâmetro externo: sem macro na biblioteca — programa parametrizado com G2 descendo K por volta
       var gc = op.g, rT = r3(gc.d / 2 + p.T / 2), xs = r3(gc.cx + rT);
-      L = header(O, ttl, t, p.S, 'X' + gv(r3(xs + p.A)) + ' Y' + gv(gc.cy));
+      L = hd(O, ttl, t, p.S, 'X' + gv(r3(xs + p.A)) + ' Y' + gv(gc.cy));
       L.push('#1 = ' + gv(gc.cx) + ' (X CENTRO) ;', '#2 = ' + gv(gc.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(rT) + ' (RAIO DA TRAJETORIA = D/2 + T/2) ;', '#4 = ' + gv(p.W) + ' (Z INICIAL) ;', '#5 = ' + gv(p.Z) + ' (Z FINAL) ;', '#6 = ' + gv(p.K) + ' (DESCIDA POR VOLTA) ;',
         'G0 Z[#4 + ' + gv(p.R) + '] ;', 'G1 Z#4 F' + gv(p.F) + ' ;', 'G1 X[#1 + #3] Y#2 F' + gv(p.F) + ' ;', 'N10 #4 = #4 - #6 ;', 'IF [#4 LT #5] THEN #4 = #5 ;', 'G2 X[#1 + #3] Y#2 Z#4 I-#3 J0 ;', 'IF [#4 GT #5] GOTO 10 ;', 'G2 X[#1 + #3] Y#2 I-#3 J0 (VOLTA FINAL SEM DESCER) ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] ;');
     } else if (op.kind === 'hel') {
       id = 'm-helice'; var gh = op.g;
       call.push('G65 P1613 X' + gv(gh.cx) + ' Y' + gv(gh.cy) + ' D' + gv(gh.d) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;');
-      L = header(O, ttl, t, p.S, 'X' + gv(gh.cx) + ' Y' + gv(gh.cy));
+      L = hd(O, ttl, t, p.S, 'X' + gv(gh.cx) + ' Y' + gv(gh.cy));
     } else if (op.kind === 'reb') {
       id = 'm-helice';
       op.pts.forEach(function (q) { call.push('G65 P1613 X' + gv(q[0]) + ' Y' + gv(q[1]) + ' D' + gv(op.d) + ' T' + gv(p.T) + ' W' + gv(p.W) + ' Z' + gv(p.Z) + ' K' + gv(p.K) + ' R' + gv(p.R) + ' F' + gv(p.F) + ' ;'); });
-      L = header(O, ttl, t, p.S, 'X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]));
+      L = hd(O, ttl, t, p.S, 'X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]));
     } else if (op.kind === 'pcd') {
       id = 'm-pcd'; var c = op.pc;
       call.push('G65 P1612 X' + gv(c.cx) + ' Y' + gv(c.cy) + ' J' + gv(c.J) + ' B' + c.B + ' A' + gv(c.A) + ' H0 W' + gv(p.W) + ' Z' + gv(p.Z) + ' R' + gv(p.R) + ' Q' + gv(p.Q) + ' F' + gv(p.F) + ' ;');
-      L = header(O, ttl, t, p.S, 'X' + gv(c.cx) + ' Y' + gv(c.cy));
+      L = hd(O, ttl, t, p.S, 'X' + gv(c.cx) + ' Y' + gv(c.cy));
     } else {   // g83: furos soltos, ciclo de furação com bicada
-      L = header(O, ttl, t, p.S, 'X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]));
+      L = hd(O, ttl, t, p.S, 'X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]));
       L.push('G99 G83 X' + gv(op.pts[0][0]) + ' Y' + gv(op.pts[0][1]) + ' Z' + gv(p.Z) + ' R' + gv(p.W + p.R) + ' Q' + gv(p.Q) + ' F' + gv(p.F) + ' ;');
       op.pts.slice(1).forEach(function (q) { L.push('X' + gv(q[0]) + ' Y' + gv(q[1]) + ' ;'); });
       L.push('G80 ;', 'G98 ;');
@@ -173,5 +190,5 @@
     return { O: 'O' + pad4(O), main: main, subs: subs, text: [main].concat(subs.map(function (s) { return s.code; })).join('\n'), lib: id };
   }
 
-  root.Plan = { plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv };
+  root.Plan = { plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
 })(this);

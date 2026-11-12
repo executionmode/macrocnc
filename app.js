@@ -240,6 +240,8 @@
   }
   function guessTool(text, p) {
     if (p && p.toolDia) return p.toolDia;
+    var c = String(text).match(/\((?:FRESA|BROCA) D(\d+\.?\d*)\)/);
+    if (c) return +c[1];
     var g = String(text).match(/G65\s*P\d+[^\n]*?\sT(\d*\.?\d+)/);
     if (g) return +g[1];
     var v = String(text).match(/#\d+\s*=\s*(\d*\.?\d+)\s*\((?:DIAMETRO DA FERRAMENTA|DIAMETRO DA FRESA)/);
@@ -579,8 +581,17 @@
     o0.toolShape = ts;
     return o0;
   };
+  // bruto escrito no cabeçalho pelo plano do desenho: (BRUTO CILINDRO D210. ALTURA 41. TOPO Z1. CENTRO X0 Y0)
+  function commentStock(text) {
+    var m = String(text).match(/\(BRUTO (CILINDRO D(-?[\d.]+)|BLOCO (-?[\d.]+) X (-?[\d.]+)) ALTURA (-?[\d.]+) TOPO Z(-?[\d.]+) CENTRO X(-?[\d.]+) Y(-?[\d.]+)\)/);
+    if (!m) return null;
+    var top = parseFloat(m[6]), o = { shape: m[2] ? 'round' : 'rect', top: top, bottom: top - parseFloat(m[5]), cx: parseFloat(m[7]), cy: parseFloat(m[8]) };
+    if (m[2]) o.d = parseFloat(m[2]); else { o.lx = parseFloat(m[3]); o.ly = parseFloat(m[4]); }
+    return o;
+  }
   SimView.prototype.optsBase = function () {
-    var p = this.p, m = this.manual;
+    var p = this.p, m = this.manual, cs = m ? null : commentStock(this.text);
+    if (cs) return { res: this.hiRes ? 480 : 220, toolDia: guessTool(this.text, p), top: cs.top, shape: cs.shape, stock: { shape: cs.shape, d: cs.d, lx: cs.lx, ly: cs.ly, cx: cs.cx, cy: cs.cy, bottom: cs.bottom } };
     this.autoStock = m ? this.autoStock : programStock(p, this.text);
     if (!m && this.autoStock) {
       var a = this.autoStock;
@@ -1604,7 +1615,7 @@
   function loadPlan(id) {
     if (!cadReady()) return;
     var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
-    var pl = Plan.plan(A), ov = planOverrides(id);
+    var ov = planOverrides(id), pl = Plan.plan(A, ov._sob);
     pl.ops.forEach(function (op) { var o = ov[op.key]; if (o) { Object.keys(o.p || {}).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); if (o.on === false) op.on = false; } });
     planCur = { id: id, pl: pl, out: null };
     store.set('plan.cur', id);
@@ -1619,6 +1630,7 @@
       box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) op.p[i.dataset.k] = v; });
       ov[op.key] = { on: op.on, p: op.p };
     });
+    var sb = $('#dpSob'); if (sb) { var v = parseFloat(String(sb.value).replace(',', '.')); if (isFinite(v) && v >= 0) ov._sob = v; }
     store.set('planp.' + planCur.id, ov);
   }
   function renderPlan() {
@@ -1626,6 +1638,9 @@
     var pl = planCur.pl, im = drawThumb(planCur.id, 240, 180);
     var h = '<div class="card dplan"><div class="dp-head">' + (im ? '<img src="' + im + '" alt="">' : '') + '<div><div class="gtitle">' + esc(T('Desenho importado')) + '</div><h2 class="notr">' + esc(pl.name) + '</h2>' +
       '<p class="hint dp-desc">' + esc(Plan.describe(pl.A)).replace(/\n/g, '<br>') + '</p></div><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>';
+    var st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
+    h += '<div class="dp-stock"><span>' + esc(T('Bruto')) + ': <b>' + esc(st.shape === 'round' ? T('cilindro') + ' Ø' + Plan.gv(st.d).replace(/\.$/, '') : T('bloco') + ' ' + Plan.gv(st.lx).replace(/\.$/, '') + ' × ' + Plan.gv(st.ly).replace(/\.$/, '')) + ' × ' + Plan.gv(st.top - st.bottom).replace(/\.$/, '') + '</b></span>' +
+      '<label>' + esc(T('sobremetal em volta')) + ' <input class="input" id="dpSob" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label></div>';
     h += '<div class="gtitle">' + esc(T('Operações (um programa para cada)')) + '</div>';
     pl.ops.forEach(function (op, i) {
       h += '<div class="dp-op' + (op.on ? '' : ' off') + '" data-op="' + op.key + '"><label class="dp-opt"><input type="checkbox"' + (op.on ? ' checked' : '') + '><b>' + (i + 1) + '. ' + esc(op.title) + '</b><span class="dp-lib">' + esc(PLAN_LIB[op.kind] || '') + '</span></label>' +
@@ -1647,6 +1662,7 @@
     h += '</div>';
     host.innerHTML = h; paintArt(host);
     $('#dpClose').onclick = function () { planCur = null; store.set('plan.cur', null); renderPlan(); };
+    $('#dpSob').addEventListener('change', function () { readPlanForm(); loadPlan(planCur.id); });
     host.querySelectorAll('.dp-op input').forEach(function (i) { i.addEventListener('change', function () { readPlanForm(); if (i.type === 'checkbox') i.closest('.dp-op').classList.toggle('off', !i.checked); }); });
     $('#dpGen').onclick = genPlan;
     $('#dpAsk').onclick = askPlan;
