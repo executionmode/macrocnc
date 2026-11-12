@@ -582,7 +582,21 @@
     return o0;
   };
   // bruto escrito no cabeçalho pelo plano do desenho: (BRUTO CILINDRO D210. ALTURA 41. TOPO Z1. CENTRO X0 Y0)
+  // bruto e ferramenta do plano ficam guardados junto do programa (o principal fica limpo)
+  var simMeta = {};
+  function metaOf(text) {
+    if (simMeta[text]) return simMeta[text];
+    try { var e = getLib().filter(function (p) { return p.text === text && p.stock; })[0]; if (e) return (simMeta[text] = { stock: e.stock, tool: e.tool }); } catch (x) {}
+    return null;
+  }
+  function metaStock(text) {
+    var mt = metaOf(text), s = mt && mt.stock; if (!s) return null;
+    var top = s.top != null ? s.top : 0, o = { shape: s.shape === 'rect' ? 'rect' : 'round', top: top, bottom: s.bottom, cx: s.cx || 0, cy: s.cy || 0, tool: mt.tool };
+    if (o.shape === 'round') o.d = s.d; else { o.lx = s.lx; o.ly = s.ly; }
+    return o;
+  }
   function commentStock(text) {
+    var ms = metaStock(text); if (ms) return ms;
     var m = String(text).match(/\(BRUTO (CILINDRO D(-?[\d.]+)|BLOCO (-?[\d.]+) X (-?[\d.]+)) ALTURA (-?[\d.]+) TOPO Z(-?[\d.]+) CENTRO X(-?[\d.]+) Y(-?[\d.]+)\)/);
     if (!m) return null;
     var top = parseFloat(m[6]), o = { shape: m[2] ? 'round' : 'rect', top: top, bottom: top - parseFloat(m[5]), cx: parseFloat(m[7]), cy: parseFloat(m[8]) };
@@ -591,7 +605,7 @@
   }
   SimView.prototype.optsBase = function () {
     var p = this.p, m = this.manual, cs = m ? null : commentStock(this.text);
-    if (cs) return { res: this.hiRes ? 480 : 220, toolDia: guessTool(this.text, p), top: cs.top, shape: cs.shape, stock: { shape: cs.shape, d: cs.d, lx: cs.lx, ly: cs.ly, cx: cs.cx, cy: cs.cy, bottom: cs.bottom } };
+    if (cs) return { res: this.hiRes ? 480 : 220, toolDia: cs.tool > 0 && !(p && p.toolDia) ? cs.tool : guessTool(this.text, p), top: cs.top, shape: cs.shape, stock: { shape: cs.shape, d: cs.d, lx: cs.lx, ly: cs.ly, cx: cs.cx, cy: cs.cy, bottom: cs.bottom } };
     this.autoStock = m ? this.autoStock : programStock(p, this.text);
     if (!m && this.autoStock) {
       var a = this.autoStock;
@@ -1873,13 +1887,16 @@
     if (!nums[planCur.id]) { var used = Object.keys(nums).map(function (k) { return nums[k]; }); var b0 = 100; while (used.indexOf(b0) >= 0) b0 += 10; nums[planCur.id] = b0; store.set('plan.num', nums); }
     var base = nums[planCur.id], now = Date.now(), out = [];
     pl.ops.forEach(function (op) { op.on = on.indexOf(op) >= 0; });
-    on.forEach(function (op, i) {
-      op.idx = i + 1;
-      var r = Plan.build(pl, op, base + i + 1), name = pl.name + ' · Op ' + (i + 1) + ' ' + op.title + ' (' + r.O + ')';
-      var ex = lib.filter(function (p) { return p.draw === planCur.id && p.opKey === op.key; })[0];
-      if (ex) { ex.text = r.text; ex.name = name; ex.updated = now - i; ex.opN = i + 1; ex.drawName = pl.name; }
-      else lib.unshift({ id: uid(), name: name, text: r.text, status: 'novo', created: now, updated: now - i, draw: planCur.id, drawName: pl.name, opKey: op.key, opN: i + 1 });
-      out.push({ O: r.O, title: 'Op ' + (i + 1) + ' · ' + op.title, name: name, text: r.text });
+    on.forEach(function (op, i) { op.idx = i + 1; });
+    // mesma ferramenta e mesmo centro em operações seguidas = um programa só, do começo ao fim
+    Plan.groups(on).forEach(function (grp, i) {
+      var r = Plan.buildGroup(pl, grp, base + i + 1), key = grp.map(function (o) { return o.key; }).join('+'),
+        ttl = grp.map(function (o) { return o.title; }).join(' + '), name = pl.name + ' · Op ' + (i + 1) + ' ' + ttl + ' (' + r.O + ')';
+      var ex = lib.filter(function (p) { return p.draw === planCur.id && p.opKey === key; })[0];
+      if (ex) { ex.text = r.text; ex.name = name; ex.updated = now - i; ex.opN = i + 1; ex.drawName = pl.name; ex.stock = r.stock; ex.tool = r.tool; }
+      else lib.unshift({ id: uid(), name: name, text: r.text, status: 'novo', created: now, updated: now - i, draw: planCur.id, drawName: pl.name, opKey: key, opN: i + 1, stock: r.stock, tool: r.tool });
+      simMeta[r.text] = { stock: r.stock, tool: r.tool };
+      out.push({ O: r.O, title: 'Op ' + (i + 1) + ' · ' + ttl, name: name, text: r.text });
     });
     if (store.set('lib', lib)) toast(out.length + ' ' + T('programas salvos em Meus Programas.'));
     planCur.out = out; renderPlan();

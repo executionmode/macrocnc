@@ -157,7 +157,7 @@
     // bruto e ferramenta no cabeçalho: o operador vê, e a simulação monta o bruto certo (cilindro ou bloco)
     var face = pl.ops.filter(function (x) { return x.kind === 'face' && x.on; })[0];
     var info = [stockTxt(stockOf(pl.A, pl.sob, face ? face.p.W : 0)), '(' + (kind === 'pcd' || kind === 'g83' ? 'BROCA' : 'FRESA') + ' D' + gv(p.T) + ') ;'];
-    function hd(O2, title, t2, S2, xy) { return header(O2, title, t2, S2, xy, info); }
+    function hd(O2, title, t2, S2, xy) { return header(O2, title, t2, S2, xy); }   // principal limpo: só o comentário do cabeçalho
     if (kind === 'face') {
       id = 'm-face';
       var centered = Math.abs(op.cx) < 0.01 && Math.abs(op.cy) < 0.01, corner = Math.abs(pl.A.bbox.x0) < 0.01 && Math.abs(pl.A.bbox.y0) < 0.01;
@@ -236,6 +236,110 @@
     var main = L.concat(call, FOOT).join('\n');
     var subs = id ? subsFor(id, main, key) : [];
     return { O: 'O' + pad4(O), main: main, subs: subs, text: [main].concat(subs.map(function (s) { return s.code; })).join('\n'), lib: id };
+  }
+
+  /* ---------- parametrizados simples no padrão do operador (Regras > Parametrizados simples) ----------
+   * variáveis no começo em sequência (#1, #2...), sem .0; ferramenta numa variável, a última, em T#n e G43 H#n;
+   * um N e um IF ... GOTO por laço, sem THEN/WHILE/FUP/G65; incremento que fecha exato; G0 20 mm além do início;
+   * contorno externo G2; ao terminar sobe Z50.; comentários curtos sem acento. */
+  function fv(v) { var r = r3(+v); if (Object.is(r, -0)) r = 0; return String(r); }
+  var NICE = [10, 8, 6, 5, 4, 3, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.125, 0.0625];
+  function exactInc(dist, want) {   // maior incremento "redondo" <= o pedido que fecha exato a distância
+    dist = Math.abs(dist); if (dist < 1e-9) return want || 1;
+    var c = [want].concat(NICE).filter(function (k) { return k > 0 && k <= want + 1e-9; });
+    for (var i = 0; i < c.length; i++) { var n = dist / c[i]; if (Math.abs(n - Math.round(n)) < 1e-9) return r3(c[i]); }
+    return r3(dist / Math.ceil(dist / want));
+  }
+  function niceStep(want) { for (var i = 0; i < NICE.length; i++) if (NICE[i] <= want + 1e-9) return NICE[i]; return 0.0625; }
+  function exactDeg(want) { var c = [want, 10, 9, 6, 5, 4.5, 3, 2.5, 2, 1.5, 1, 0.5]; for (var i = 0; i < c.length; i++) if (c[i] > 0 && c[i] <= want + 1e-9 && Math.abs(90 / c[i] - Math.round(90 / c[i])) < 1e-9) return c[i]; return 1; }
+  function paramProg(pl, ops, O) {
+    var V = [], n = 0, body = [], op0 = ops[0], g0 = op0.g, cx = g0 ? g0.cx : 0, cy = g0 ? g0.cy : 0, sh = Math.abs(cx) > 1e-6 || Math.abs(cy) > 1e-6;
+    var VC = {};
+    function sv(val, c) { var k = c + '|' + val; return VC[k] || (VC[k] = v(val, c)); }   // mesma medida fixa = mesma variável
+    function v(val, c) { n++; V.push('#' + n + ' = ' + (typeof val === 'number' ? fv(val) : val) + (c ? ' (' + c + ')' : '') + ' ;'); return '#' + n; }
+    var nm = upper(pl.name).slice(0, 18), ttl = (nm ? nm + ' - ' : '') + ops.map(function (o) { return 'OP' + o.idx; }).join(' ') + ' ' + ops.map(function (o) { return upper(o.title); }).join(' + ');
+    var startX = null, tvar = null;
+    ops.forEach(function (op, oi) {
+      var p = op.p, g = op.g, F = gi(p.F);
+      if (op.kind === 'circ') {   // diâmetro por fora (concordante G2)
+        var a = v(g.d, 'DIAMETRO EXTERNO'), b = tvar || (tvar = v(p.T, 'DIAMETRO DA FERRAMENTA')), c = v('[' + a + ' + ' + b + '] / 2', 'RAIO DA TRAJETORIA');
+        var inc = exactInc(p.W - p.Z, p.K), z = v(p.W, 'Z INICIAL'), k = v(inc, 'INCREMENTO EM Z' + (p.M === 0 ? ' POR NIVEL' : ' POR VOLTA')), zf = v(p.Z, 'PROFUNDIDADE FINAL');
+        var r0 = g.d / 2 + p.T / 2; if (startX == null) startX = r0 + 20;
+        body.push('(OP' + op.idx + ' ' + upper(op.title) + ') ;', 'G0 X[' + c + ' + 20] Y0 ;', 'G0 Z[' + z + ' + 2] ;', 'G1 Z' + z + ' F500 ;');
+        if (p.M === 0) body.push('N' + (10 + oi * 100) + ' ;', z + ' = ' + z + ' - ' + k + ' ;', 'G1 X[' + c + ' + 20] Y0 F' + F + ' ;', 'G1 Z' + z + ' ;', 'G1 X' + c + ' ;', 'G2 X' + c + ' Y0 I-' + c + ' J0 ;', 'IF [' + z + ' GT ' + zf + '] GOTO ' + (10 + oi * 100) + ' ;');
+        else body.push('G1 X' + c + ' Y0 F' + F + ' ;', 'N' + (10 + oi * 100) + ' ;', z + ' = ' + z + ' - ' + k + ' ;', 'G2 X' + c + ' Y0 Z' + z + ' I-' + c + ' J0 ;', 'IF [' + z + ' GT ' + zf + '] GOTO ' + (10 + oi * 100) + ' ;', 'G2 X' + c + ' Y0 I-' + c + ' J0 (VOLTA DE ACABAMENTO) ;');
+        body.push('G1 X[' + c + ' + 20] ;', 'G0 Z50. ;');
+      } else if (op.kind === 'boss') {   // desbaste em volta do ressalto redondo, respeitando o raio da base
+        var R = g.rb || 0, base = op.p.Z, top = p.W, zr = r3(base + R), Q = niceStep(p.Q), rEnd = g.d / 2 + p.T / 2;
+        var stockR = op.rOut + p.T / 2 - Q, nr = Math.max(1, Math.ceil((stockR - rEnd) / Q - 1e-9));
+        var rStart = r3(rEnd + nr * Q);
+        var a2 = sv(g.d, 'DIAMETRO DO RESSALTO'), b2 = tvar || (tvar = v(p.T, 'DIAMETRO DA FERRAMENTA')), c2 = v('[' + a2 + ' + ' + b2 + '] / 2', 'RAIO DA TRAJETORIA NA PAREDE');
+        var d2 = R > 0 ? sv(R, 'RAIO NA BASE') : null, z2 = v(top, 'Z INICIAL NA FACE');
+        var k1 = v(exactInc(top - zr, p.K), 'INCREMENTO EM Z ATE O RAIO'), g2 = v(zr, R > 0 ? 'Z DO INICIO DO RAIO' : 'Z DA FACE DE BAIXO');
+        var h2 = R > 0 ? sv(base, 'Z DA FACE DE BAIXO') : null, k2 = R > 0 ? v(exactInc(R, p.K), 'INCREMENTO EM Z NO RAIO') : null;
+        var q2 = v(Q, 'PASSO LATERAL'), j2 = v(rStart, 'RAIO DA PRIMEIRA VOLTA'), kk = v(0, 'RAIO ATUAL'), l2 = R > 0 ? v(0, 'RAIO LIMITE NO RAIO') : null;
+        if (startX == null) startX = rStart + 20;
+        var N1 = 10 + oi * 100, N2 = N1 + 10, N3 = N1 + 20, N4 = N1 + 30, N5 = N1 + 40, N6 = N1 + 50;
+        body.push('(OP' + op.idx + ' ' + upper(op.title) + ') ;', 'G0 X[' + j2 + ' + 20] Y0 ;', 'G0 Z[' + z2 + ' + 2] ;', 'G1 Z' + z2 + ' F500 ;');
+        var jStart = j2;
+        if (p.M === 1 && R > 0 && rStart > rEnd + R + 1e-9) {   // helicoidal: anéis de fora até o começo do raio descem em rampa até a face de baixo
+          var o2 = v('[' + c2 + ' + ' + d2 + ']', 'RAIO DO ULTIMO ANEL EM RAMPA'), zz = v(top, 'Z DA RAMPA'), ka = v(exactInc(top - base, p.K), 'INCREMENTO EM Z POR VOLTA');
+          body.push(kk + ' = ' + j2 + ' ;', 'N' + N5 + ' ;', 'G0 Z[' + z2 + ' + 2] ;', 'G0 X' + kk + ' Y0 ;', 'G1 Z' + z2 + ' F500 ;', zz + ' = ' + fv(top) + ' ;',
+            'N' + N6 + ' ;', zz + ' = ' + zz + ' - ' + ka + ' ;', 'G2 X' + kk + ' Y0 Z' + zz + ' I-' + kk + ' J0 F' + F + ' ;', 'IF [' + zz + ' GT ' + h2 + '] GOTO ' + N6 + ' ;',
+            'G2 X' + kk + ' Y0 I-' + kk + ' J0 ;', kk + ' = ' + kk + ' - ' + q2 + ' ;', 'IF [' + kk + ' GT ' + o2 + '] GOTO ' + N5 + ' ;',
+            'G0 Z[' + z2 + ' + 2] ;', 'G0 X[' + o2 + ' + 20] Y0 ;', 'G1 Z' + z2 + ' F500 ;');
+          jStart = o2;
+        }
+        // circular: desce o incremento e dá as voltas de fora para dentro até a parede
+        body.push('N' + N1 + ' ;', z2 + ' = ' + z2 + ' - ' + k1 + ' ;', kk + ' = ' + jStart + ' ;', 'G1 X[' + jStart + ' + 20] Y0 F' + F + ' ;', 'G1 Z' + z2 + ' ;',
+          'N' + N2 + ' ;', 'G1 X' + kk + ' Y0 ;', 'G2 X' + kk + ' Y0 I-' + kk + ' J0 ;', kk + ' = ' + kk + ' - ' + q2 + ' ;', 'IF [' + kk + ' GT ' + c2 + '] GOTO ' + N2 + ' ;',
+          'G1 X' + c2 + ' Y0 ;', 'G2 X' + c2 + ' Y0 I-' + c2 + ' J0 ;', 'IF [' + z2 + ' GT ' + g2 + '] GOTO ' + N1 + ' ;');
+        if (R > 0) body.push('(NO RAIO A ULTIMA VOLTA SEGUE O RAIO DA BASE) ;', 'N' + N3 + ' ;', z2 + ' = ' + z2 + ' - ' + k2 + ' ;',
+          l2 + ' = ' + c2 + ' + ' + d2 + ' - SQRT[' + d2 + ' * ' + d2 + ' - [' + g2 + ' - ' + z2 + '] * [' + g2 + ' - ' + z2 + ']] ;', kk + ' = ' + jStart + ' ;', 'G1 X[' + jStart + ' + 20] Y0 ;', 'G1 Z' + z2 + ' ;',
+          'N' + N4 + ' ;', 'G1 X' + kk + ' Y0 ;', 'G2 X' + kk + ' Y0 I-' + kk + ' J0 ;', kk + ' = ' + kk + ' - ' + q2 + ' ;', 'IF [' + kk + ' GT ' + l2 + '] GOTO ' + N4 + ' ;',
+          'G1 X' + l2 + ' Y0 ;', 'G2 X' + l2 + ' Y0 I-' + l2 + ' J0 ;', 'IF [' + z2 + ' GT ' + h2 + '] GOTO ' + N3 + ' ;');
+        body.push('G1 X[' + j2 + ' + 20] Y0 ;', 'G0 Z50. ;');
+      } else if (op.kind === 'fillet') {   // raio côncavo: a quina da fresa segue o arco, volta plana a cada ângulo
+        var Rf = g.rb, rc = Math.max(0, Math.min(p.C || 0, p.T / 2, Rf)), H = exactDeg(p.H);
+        var a3 = sv(g.d, 'DIAMETRO DO RESSALTO'), b3 = tvar || (tvar = v(p.T, 'DIAMETRO DA FERRAMENTA')), r3v = sv(Rf, 'RAIO NA BASE'), e3 = v(rc, rc <= 0 ? 'RAIO DE CANTO DA FRESA - TOPO RETO' : rc >= p.T / 2 ? 'RAIO DE CANTO - FRESA ESFERICA' : 'RAIO DE CANTO DA FRESA');
+        var f3 = sv(op.base, 'Z DA FACE DE BAIXO'), an = v(0, 'ANGULO ATUAL'), ia = v(H, 'INCREMENTO DO ANGULO'), xr = v(0, 'RAIO ATUAL DA TRAJETORIA'), zz3 = v(0, 'Z ATUAL');
+        if (startX == null) startX = g.d / 2 + Rf + p.T / 2 + 20;
+        var M1 = 10 + oi * 100;
+        body.push('(OP' + op.idx + ' ' + upper(op.title) + ') ;', 'G0 X[' + a3 + ' / 2 + ' + r3v + ' + ' + b3 + ' / 2 + 20] Y0 ;', 'G0 Z[' + f3 + ' + ' + r3v + ' + 2] ;',
+          'N' + M1 + ' ;', xr + ' = ' + a3 + ' / 2 + ' + r3v + ' - [' + r3v + ' - ' + e3 + '] * COS[' + an + '] + ' + b3 + ' / 2 - ' + e3 + ' ;',
+          zz3 + ' = ' + f3 + ' + ' + r3v + ' - [' + r3v + ' - ' + e3 + '] * SIN[' + an + '] - ' + e3 + ' ;',
+          'G1 X' + xr + ' Y0 Z' + zz3 + ' F' + F + ' ;', 'G2 X' + xr + ' Y0 I-' + xr + ' J0 ;', an + ' = ' + an + ' + ' + ia + ' ;', 'IF [' + an + ' LE 90] GOTO ' + M1 + ' ;',
+          'G1 X[' + xr + ' + 20] ;', 'G0 Z50. ;');
+      }
+    });
+    var tn = v(op0.p.N, 'NUMERO DA FERRAMENTA');   // a última da lista
+    var L = ['%', 'O' + pad4(O) + ' (' + shortT(ttl) + ') ;', 'G21 G40 G90 G94 ;', 'G54 ;'].concat(V, ['T' + tn + ' ;', 'M6 ;', 'S' + gi(op0.p.S) + ' M3 ;', 'G0 G43 H' + tn + ' Z100. ;']);
+    if (sh) L.push('G52 X' + gv(cx) + ' Y' + gv(cy) + ' ;');
+    L.push('G0 X' + gv(r3(startX || 0)) + ' Y0 ;', 'M8 ;');
+    L = L.concat(body, ['G0 Z100. ;']);
+    if (sh) L.push('G52 X0 Y0 ;');
+    L = L.concat(['M9 ;', 'G53 H0 Z0 ;', 'M30 ;', '%']);
+    var main = L.join('\n');
+    return { O: 'O' + pad4(O), main: main, subs: [], text: main, lib: null };
+  }
+  function shortT(t) { if (t.length <= 56) return t; t = t.slice(0, 56); return t.slice(0, t.lastIndexOf(' ')).replace(/[ +-]+$/, ''); }
+  function isParam(op) { return op.kind === 'boss' || op.kind === 'fillet' || (op.kind === 'circ' && op.p.L !== 1); }
+  // operações seguidas com a mesma ferramenta (Ø e T) e o mesmo centro viram um programa só
+  function groups(ops) {
+    var G = [];
+    ops.forEach(function (op) {
+      var last = G[G.length - 1], l = last && last[last.length - 1];
+      if (l && isParam(op) && isParam(l) && op.p.T === l.p.T && op.p.N === l.p.N && op.g && l.g && Math.abs(op.g.cx - l.g.cx) < 1e-6 && Math.abs(op.g.cy - l.g.cy) < 1e-6) last.push(op); else G.push([op]);
+    });
+    return G;
+  }
+  function meta(pl, ops) {
+    var face = pl.ops.filter(function (x) { return x.kind === 'face' && x.on; })[0];
+    return { stock: stockOf(pl.A, pl.sob, face ? face.p.W : 0), tool: ops[0].p.T };
+  }
+  function buildGroup(pl, ops, O) {
+    var r = ops.length > 1 || isParam(ops[0]) ? paramProg(pl, ops, O) : build(pl, ops[0], O);
+    var m = meta(pl, ops); r.stock = m.stock; r.tool = m.tool; return r;
   }
 
   /* ---------- linhas tocáveis da vista 3D: cada uma liga a uma operação ---------- */
@@ -340,5 +444,5 @@
     return S;
   }
 
-  root.Plan = { segments: segments, opsAt: opsAt, edges: edges, plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
+  root.Plan = { groups: groups, buildGroup: buildGroup, isParam: isParam, segments: segments, opsAt: opsAt, edges: edges, plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
 })(this);
