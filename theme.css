@@ -508,3 +508,6 @@ label.dp-fr > span { flex: 1 1 auto; }
 .seg2 button { padding: 10px 4px; border-radius: 10px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 14px; cursor: pointer; }
 .seg2 button.on { background: var(--ui-blue); border-color: var(--ui-blue); color: #fff; }
 .adj-acts { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dp3-sel { flex-direction: row !important; flex-wrap: wrap; gap: 6px !important; }
+.dp3-seg { padding: 7px 10px; border-radius: 999px; background: rgba(34,197,94,.16); border: 1px solid #22c55e; color: #bdf5cf; font-size: 13.5px; cursor: pointer; }
+.dp3-wait { flex: 1; text-align: center; color: var(--ui-mut); font-size: 13.5px; }

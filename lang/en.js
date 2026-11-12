@@ -711,5 +711,12 @@ I18N.add({
   "Escreva o pedido.": "Write the request.",
   "Assistente desligado": "Assistant off",
   "Para mandar pedidos escritos, o assistente precisa da sua chave da API (com crédito). Os programas do desenho importado não precisam: use Ajustar e gerar.": "To send written requests, the assistant needs your API key (with credit). Programs from the imported drawing don't: use Adjust and generate.",
-  "Abrir configurações": "Open settings"
+  "Abrir configurações": "Open settings",
+  "Parede do ressalto": "Boss wall",
+  "Face de baixo": "Lower face",
+  "Contorno de fora": "Outer contour",
+  "Selecionar perfil": "Select profile",
+  "Toque nas linhas do perfil a usinar": "Tap the profile lines to machine",
+  "Toque nas linhas · arraste para girar": "Tap the lines · drag to rotate",
+  "Toque numa linha tracejada da peça.": "Tap a dashed line on the part."
 });

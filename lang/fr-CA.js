@@ -711,5 +711,12 @@ I18N.add({
   "Escreva o pedido.": "Écrivez la demande.",
   "Assistente desligado": "Assistant désactivé",
   "Para mandar pedidos escritos, o assistente precisa da sua chave da API (com crédito). Os programas do desenho importado não precisam: use Ajustar e gerar.": "Pour envoyer des demandes écrites, l’assistant a besoin de votre clé API (avec crédit). Les programmes du dessin importé n’en ont pas besoin : utilisez Ajuster et générer.",
-  "Abrir configurações": "Ouvrir les réglages"
+  "Abrir configurações": "Ouvrir les réglages",
+  "Parede do ressalto": "Paroi de l’épaulement",
+  "Face de baixo": "Face du bas",
+  "Contorno de fora": "Contour extérieur",
+  "Selecionar perfil": "Sélectionner le profil",
+  "Toque nas linhas do perfil a usinar": "Touchez les lignes du profil à usiner",
+  "Toque nas linhas · arraste para girar": "Touchez les lignes · glissez pour tourner",
+  "Toque numa linha tracejada da peça.": "Touchez une ligne pointillée de la pièce."
 });

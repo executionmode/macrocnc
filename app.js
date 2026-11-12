@@ -1654,27 +1654,30 @@
     pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); var o = ov[op.key]; if (o && o.p) Object.keys(o.p).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); });
     var keep = planCur && planCur.id === id ? planCur.view : null;
     var st3 = Cad.st3d(id); if (st3) st3.label = '';
-    planCur = { id: id, pl: pl, st: st3, edges: Plan.edges(pl), sel: (ov._sel || []).filter(function (k) { return pl.ops.some(function (o) { return o.key === k; }); }), view: keep || { az: -35, el: 32, zoom: 0.92, panX: 0, panY: 0 }, out: null };
+    planCur = { id: id, pl: pl, st: st3, edges: Plan.edges(pl), seg: ov._seg || [], sel: [], view: keep || { az: -35, el: 32, zoom: 0.92, panX: 0, panY: 0 }, out: null };
+    syncSel();
     store.set('plan.cur', id);
     renderPlan();
   }
-  function saveSel() { var ov = planOv(planCur.id); ov._sel = planCur.sel; setPlanOv(planCur.id, ov); }
+  function saveSel() { var ov = planOv(planCur.id); ov._seg = planCur.seg; setPlanOv(planCur.id, ov); }
+  // trechos do perfil escolhidos (verdes) -> operações
+  function segsNow() { return Plan.segments(planCur.pl, planCur.view.az); }
+  function syncSel() {
+    var S = segsNow(), keys = {};
+    planCur.seg = planCur.seg.filter(function (k) { return S.some(function (sg) { return sg.key === k; }); });
+    S.forEach(function (sg) { if (planCur.seg.indexOf(sg.key) >= 0) sg.ops.forEach(function (k) { keys[k] = 1; }); });
+    planCur.sel = Object.keys(keys);
+  }
   function selOps() { return planCur.pl.ops.filter(function (op) { return planCur.sel.indexOf(op.key) >= 0; }); }   // na ordem de usinagem
   function draw3D() {
     var cv = $('#dpCv'); if (!cv || !planCur || !planCur.st) return;
     var W = cv.clientWidth, H = cv.clientHeight, v = planCur.view; v.W = W; v.H = H;
     Stock3D.render(cv, planCur.st, v, false);
     var c = cv.getContext('2d'), S = Stock3D.projector(planCur.st, v, W, H);
-    planCur.proj = planCur.edges.map(function (e) { return { e: e, lines: e.lines.map(function (L) { return L.map(function (p) { return S(p[0], p[1], p[2]); }); }) }; });
-    planCur.proj.forEach(function (pe) {
-      var on = planCur.sel.indexOf(pe.e.key) >= 0;
-      if (pe.e.face) {   // a face de cima: preenchimento quando escolhida
-        if (!on) return;
-        c.fillStyle = 'rgba(255,170,40,.28)'; c.beginPath(); pe.lines[0].forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.fill();
-        return;
-      }
-      var hl = planCur.hl && planCur.hl.indexOf(pe.e.key) >= 0;
-      c.strokeStyle = hl ? '#ffffff' : on ? '#ffaa28' : 'rgba(110,190,255,.85)'; c.lineWidth = hl || on ? 4 : 2; c.setLineDash(on || hl ? [] : [6, 4]);
+    planCur.proj = segsNow().map(function (sg) { return { e: sg, lines: sg.lines.map(function (L) { return L.map(function (p) { return S(p[0], p[1], p[2]); }); }) }; });
+    planCur.proj.forEach(function (pe) {   // tracejado azul em todo o perfil; verde = escolhido
+      var on = planCur.seg.indexOf(pe.e.key) >= 0;
+      c.strokeStyle = on ? '#22c55e' : 'rgba(110,190,255,.9)'; c.lineWidth = on ? 4.5 : 2; c.setLineDash(on ? [] : [7, 5]); c.lineCap = 'round';
       pe.lines.forEach(function (L) { c.beginPath(); L.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); });
     });
     c.setLineDash([]);
@@ -1698,7 +1701,7 @@
         for (var i = 1; i < L.length; i++) {
           var a = L[i - 1], b = L[i], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0;
           var d = Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy);
-          if (d < 18) { var A3 = pe.e.lines[li][i - 1], B3 = pe.e.lines[li][i]; cands.push({ d: d, e: pe.e, p: [A3[0] + (B3[0] - A3[0]) * t, A3[1] + (B3[1] - A3[1]) * t, A3[2] + (B3[2] - A3[2]) * t] }); }
+          if (d < 24) { var A3 = pe.e.lines[li][i - 1], B3 = pe.e.lines[li][i]; cands.push({ d: d, e: pe.e, p: [A3[0] + (B3[0] - A3[0]) * t, A3[1] + (B3[1] - A3[1]) * t, A3[2] + (B3[2] - A3[2]) * t] }); }
         }
       });
     });
@@ -1737,13 +1740,10 @@
     var pl = planCur.pl, ops = selOps(), st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
     var stTxt = (st.shape === 'round' ? 'Ø' + Plan.gv(st.d).replace(/\.$/, '') : Plan.gv(st.lx).replace(/\.$/, '') + '×' + Plan.gv(st.ly).replace(/\.$/, '')) + '×' + Plan.gv(st.top - st.bottom).replace(/\.$/, '');
     var h = '<div class="card dp3"><div class="dp3-h"><b class="notr">' + esc(pl.name) + '</b><button type="button" class="ui-chip" id="dpHq">✎ ' + esc(T('Alturas')) + '</button><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>' +
-      '<div class="dp3-cv"><canvas id="dpCv"></canvas><span class="dp3-tip">' + esc(T('Toque na linha a usinar · arraste para girar')) + '</span></div>' +
-      '<div class="dp3-sel">' + (ops.length ? ops.map(function (op, i) {
-        return '<div class="dp3-op" data-k="' + op.key + '"><span class="n">' + (i + 1) + '</span><span class="t">' + esc(op.title) + '<small>Ø' + Plan.gv(op.p.T).replace(/\.$/, '') + ' · T' + op.p.N + ' · S' + op.p.S + ' · F' + op.p.F + '</small></span>' +
-          (op.warn && op.warn.length ? '<span class="w" title="' + esc(op.warn[0]) + '">!</span>' : '') + '<button type="button" class="x" aria-label="Tirar">✕</button></div>';
-      }).join('') : '') + '</div>' +
+      '<div class="dp3-cv"><canvas id="dpCv"></canvas><span class="dp3-tip">' + esc(T('Toque nas linhas · arraste para girar')) + '</span></div>' +
+      '<div class="dp3-sel">' + segsNow().filter(function (sg) { return planCur.seg.indexOf(sg.key) >= 0; }).map(function (sg) { return '<span class="dp3-seg" data-s="' + sg.key + '">' + esc(sg.label) + ' ✕</span>'; }).join('') + '</div>' +
       '<div class="dp3-act"><button type="button" class="ui-chip" id="dpStock">' + esc(T('Bruto')) + ' ' + esc(stTxt) + '</button>' +
-      '<button type="button" class="ui-btn primary" id="dpGen"' + (ops.length ? '' : ' disabled') + '><span data-icon="gear"></span> ' + esc(ops.length ? T('Ajustar e gerar') + ' (' + ops.length + ')' : T('Toque na peça')) + '</button></div>';
+      (planCur.seg.length ? '<button type="button" class="ui-btn primary" id="dpGen"><span data-icon="check"></span> ' + esc(T('Selecionar perfil')) + '</button>' : '<span class="dp3-wait">' + esc(T('Toque nas linhas do perfil a usinar')) + '</span>') + '</div>';
     if (planCur.out) h += '<div class="dp3-res">' + planCur.out.map(function (f, i) {
       return '<div class="dp-res"><b>' + esc(f.O) + '</b> <span class="notr">' + esc(f.title) + '</span><span class="row"><button type="button" class="btn" data-r="sim" data-i="' + i + '">' + esc(T('Simular')) + '</button><button type="button" class="btn" data-r="ed" data-i="' + i + '">' + esc(T('Editor')) + '</button></span></div>';
     }).join('') + '</div>';
@@ -1756,11 +1756,8 @@
       openSheet(T('Bruto'), '<label class="hq-esp"><span>' + esc(T('Sobremetal em volta')) + '</span><input class="input" id="sbV" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label><div class="sheet-acts"><button type="button" class="ui-btn primary" id="sbOk">OK</button></div>');
       $('#sbOk').onclick = function () { var v = parseFloat(String($('#sbV').value).replace(',', '.')); if (v >= 0) { var ov = planOv(planCur.id); ov._sob = v; setPlanOv(planCur.id, ov); } closeSheet(); loadPlan(planCur.id, true); };
     };
-    $('#dpGen').onclick = openAdjust;
-    host.querySelectorAll('.dp3-op').forEach(function (r) {
-      r.querySelector('.x').onclick = function (e) { e.stopPropagation(); planCur.sel = planCur.sel.filter(function (k) { return k !== r.dataset.k; }); saveSel(); planCur.out = null; renderPlan(); };
-      r.onclick = function () { editOp(r.dataset.k); };
-    });
+    if ($('#dpGen')) $('#dpGen').onclick = openAdjust;
+    host.querySelectorAll('.dp3-seg').forEach(function (r) { r.onclick = function () { planCur.seg = planCur.seg.filter(function (k) { return k !== r.dataset.s; }); syncSel(); saveSel(); planCur.out = null; renderPlan(); }; });
     host.querySelectorAll('[data-r]').forEach(function (b) {
       b.onclick = function () {
         var f = planCur.out[+b.dataset.i];
@@ -1779,12 +1776,17 @@
     });
     cv.addEventListener('pointerup', function (e) {
       if (!d0) return; var tap = !d0.moved; d0 = null; if (!tap) return;
-      var r = cv.getBoundingClientRect(), u = e.clientX - r.left, vv = e.clientY - r.top, hits = [];
-      var pk = Stock3D.picker(planCur.st, planCur.view, cv.clientWidth, cv.clientHeight)(u, vv);   // ponto da peça debaixo do dedo
-      if (pk) { var o = planCur.pl.A.origin || { x: 0, y: 0 }; hits = Plan.opsAt(planCur.pl, [pk[0] - o.x, pk[1] - o.y, pk[2]]).map(function (op) { return { key: op.key, label: op.title + (op.what ? ' — ' + op.what.split(' — ')[0] : '') }; }); }
-      if (!hits.length) hits = hitEdge(u, vv);
-      if (!hits.length) return toast(T('Toque em cima da peça.'));
-      pickOp(hits);
+      var r = cv.getBoundingClientRect(), u = e.clientX - r.left, vv = e.clientY - r.top, hit = null;
+      var lh = hitEdge(u, vv); if (lh.length) hit = lh[0];   // em cima da linha tracejada
+      if (!hit) {   // ou na superfície: o trecho do perfil mais perto do ponto tocado
+        var pk = Stock3D.picker(planCur.st, planCur.view, cv.clientWidth, cv.clientHeight)(u, vv);
+        if (pk) { var o = planCur.pl.A.origin || { x: 0, y: 0 }, q = [pk[0] - o.x, pk[1] - o.y, pk[2]], bd = Infinity;
+          segsNow().forEach(function (sg) { var d = sg.dist(q); if (d < bd) { bd = d; hit = sg; } }); if (bd > 8) hit = null; }
+      }
+      if (!hit) return toast(T('Toque numa linha tracejada da peça.'));
+      var i = planCur.seg.indexOf(hit.key);
+      if (i >= 0) planCur.seg.splice(i, 1); else planCur.seg.push(hit.key);
+      syncSel(); saveSel(); planCur.out = null; renderPlan();
     });
   }
   // tela de ajustes: ferramenta, profundidade, externo/interno de cada operação; depois gerar ou gerar e simular
