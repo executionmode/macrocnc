@@ -1643,13 +1643,14 @@
         var on = r.querySelector('[data-k].on'), k = on ? on.dataset.k : 'pas';
         Cad.setFeature(id, r.dataset.eid, k, String(r.querySelector('[data-v]').value).replace(',', '.'), String(r.querySelector('[data-r]').value).replace(',', '.'));
       });
-      Cad.setMeta(id, { hconf: true }); closeSheet(); if (done) done();
+      Cad.setMeta(id, { hconf: fe.list.length + 1 }); closeSheet(); if (done) done();   // guarda quantos elementos foram conferidos
     };
   }
   function loadPlan(id, noAsk) {
     if (!cadReady()) return;
     var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
-    if (!A.hconf && !noAsk) { askHeights(id, function () { loadPlan(id, true); }); }
+    var feN = (Cad.features(id) || { list: [] }).list.length + 1;
+    if (A.hconf !== feN && !noAsk) { askHeights(id, function () { loadPlan(id, true); }); }   // nunca conferido, ou o desenho mudou
     var ov = planOv(id), pl = Plan.plan(A, ov._sob);
     pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); var o = ov[op.key]; if (o && o.p) Object.keys(o.p).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); });
     var keep = planCur && planCur.id === id ? planCur.view : null;
@@ -1715,6 +1716,7 @@
   }
   function renderPlan() {
     var host = $('#drawPlan'); $('#chatSetup').classList.toggle('hidden', !!planCur || Assistant.isReady());
+    $('#chatLog').classList.toggle('hidden', !!planCur && !chat.length);   // sem o texto de exemplos embaixo do desenho
     if (!planCur) { host.innerHTML = ''; return; }
     var pl = planCur.pl, ops = selOps(), st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
     var stTxt = (st.shape === 'round' ? 'Ø' + Plan.gv(st.d).replace(/\.$/, '') : Plan.gv(st.lx).replace(/\.$/, '') + '×' + Plan.gv(st.ly).replace(/\.$/, '')) + '×' + Plan.gv(st.top - st.bottom).replace(/\.$/, '');

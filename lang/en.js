@@ -688,5 +688,6 @@ I18N.add({
   "Alturas da peça": "Part heights",
   "Altura total": "Total height",
   "Salvar alturas": "Save heights",
-  "Sobremetal em volta": "Stock allowance around"
+  "Sobremetal em volta": "Stock allowance around",
+  "Contorno fechado": "Closed contour"
 });

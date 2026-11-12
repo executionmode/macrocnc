@@ -241,7 +241,7 @@
       if (op.kind === 'face') add(op.key, op.title, [A.bosses && A.bosses.length ? outline(A.bosses[0], 0) : outline(A.outer, 0)], true);
       else if (op.kind === 'ret' || op.kind === 'poli' || op.kind === 'circ') {   // parede de fora: linha no meio da altura dela e a aresta de baixo
         var zt = A.base || 0, zm = (zt - A.esp) / 2, hasF = (A.bosses || []).some(function (b) { return b.rb > 0; });
-        add(op.key, op.title + ' ' + op.what, (hasF ? [] : [outline(op.g, zt)]).concat([outline(op.g, zm), outline(op.g, -A.esp)]));
+        add(op.key, op.title + ' ' + op.what, [outline(op.g, zm)]);
       }
       else if (op.kind === 'boss') add(op.key, op.title + ' Ø' + fmt(op.g.d), [circ(op.g.cx, op.g.cy, op.g.d / 2, 0)]);
       else if (op.kind === 'fillet') add(op.key, op.title + ' R' + fmt(op.g.rb), [circ(op.g.cx, op.g.cy, op.g.d / 2 + op.g.rb, op.base)]);

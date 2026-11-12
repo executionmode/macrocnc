@@ -688,5 +688,6 @@ I18N.add({
   "Alturas da peça": "Hauteurs de la pièce",
   "Altura total": "Hauteur totale",
   "Salvar alturas": "Enregistrer les hauteurs",
-  "Sobremetal em volta": "Surépaisseur autour"
+  "Sobremetal em volta": "Surépaisseur autour",
+  "Contorno fechado": "Contour fermé"
 });

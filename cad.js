@@ -2124,6 +2124,14 @@
     });
     return loops;
   }
+  // contorno fechado feito de arcos/linhas: é um círculo? (todos os pontos à mesma distância do centro)
+  function loopInfo(l) {
+    var p = l.pts, n = p.length - 1, cx = 0, cy = 0; for (var i = 0; i < n; i++) { cx += p[i][0]; cy += p[i][1]; } cx /= n; cy /= n;
+    var r0 = Math.hypot(p[0][0] - cx, p[0][1] - cy), round = p.every(function (q) { return Math.abs(Math.hypot(q[0] - cx, q[1] - cy) - r0) < Math.max(0.05, r0 * 0.002); });
+    var b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity }; p.forEach(function (q) { b.x0 = Math.min(b.x0, q[0]); b.y0 = Math.min(b.y0, q[1]); b.x1 = Math.max(b.x1, q[0]); b.y1 = Math.max(b.y1, q[1]); });
+    if (round) { cx = (b.x0 + b.x1) / 2; cy = (b.y0 + b.y1) / 2; }
+    return { round: round, cx: cx, cy: cy, d: round ? Math.round(r0 * 2000) / 1000 : 0, b: b, area: polyArea(p) };
+  }
   function polyArea(p) { var a = 0; for (var i = 0, j = p.length - 1; i < p.length; j = i++) a += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]); return Math.abs(a / 2); }
   function distPoly(x, y, sh) {   // distância do ponto até a borda do contorno
     var e = sh.ent;
@@ -2539,7 +2547,7 @@
       var real = d.ents.filter(function (e) { return e.t !== 'dim' && !isRef(e); });
       if (!real.length) return null;
       var bb = bounds(real.filter(function (e) { return e.t !== 'holes'; }).length ? real.filter(function (e) { return e.t !== 'holes'; }) : real);
-      var A = { id: id, origin: { x: o.x, y: o.y }, hconf: !!d.hconf, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
+      var A = { id: id, origin: { x: o.x, y: o.y }, hconf: d.hconf || 0, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
       var W = bb.x1 - bb.x0, H = bb.y1 - bb.y0;
       function isOuter(e) { var b = bounds([e]); return Math.abs(b.x1 - b.x0 - W) < 0.01 && Math.abs(b.y1 - b.y0 - H) < 0.01; }
       real.forEach(function (e) {
@@ -2563,6 +2571,18 @@
       ['circles', 'rects', 'polys'].forEach(function (k) { A[k] = A[k].filter(function (f) { if (f.ress > 0) { f.t = k === 'circles' ? 'circle' : k === 'rects' ? 'rect' : 'poly'; A.bosses.push(f); return false; } return true; }); });
       A.base = -A.bosses.reduce(function (m, b) { return Math.max(m, b.ress); }, 0);
       A.faceAt = function (x, y) { for (var i = 0; i < A.bosses.length; i++) { var b = A.bosses[i]; if (b.t === 'circle' ? Math.hypot(x - b.cx, y - b.cy) <= b.d / 2 + 1e-6 : b.t === 'rect' ? Math.abs(x - b.cx) <= b.w / 2 && Math.abs(y - b.cy) <= b.h / 2 : Math.hypot(x - b.cx, y - b.cy) <= b.dc / 2) return R(A.base + b.ress); } return A.base; };
+      // contornos feitos de arcos/linhas
+      loopsOf(real).forEach(function (l) {
+        var li = loopInfo(l), e = l.ent, prof = e.prof > 0 && e.prof < (d.esp || 20) ? e.prof : 0, ress = e.ress > 0 ? Math.min(e.ress, (d.esp || 20) - 0.1) : 0;
+        var isOut = Math.abs(li.b.x1 - li.b.x0 - W) < 0.01 && Math.abs(li.b.y1 - li.b.y0 - H) < 0.01;
+        if (li.round) {
+          var c = { cx: R(li.cx - o.x), cy: R(li.cy - o.y), d: li.d, prof: prof, ress: ress, rb: ress && e.rb > 0 ? e.rb : 0, eid: e.id };
+          if (isOut && (!A.outer || A.outer.t === 'outro')) A.outer = { t: 'circle', cx: c.cx, cy: c.cy, d: c.d };
+          else if (e.cham > 0) { c.cham = e.cham; A.chams.push(c); }
+          else if (ress) { c.t = 'circle'; A.bosses.push(c); A.base = Math.min(A.base, -ress); }
+          else A.circles.push(c);
+        } else if (!isOut) A.other++;
+      });
       if (!A.outer) A.outer = { t: 'outro', cx: R((bb.x0 + bb.x1) / 2 - o.x), cy: R((bb.y0 + bb.y1) / 2 - o.y), w: R(W), h: R(H) };
       return A;
     });
@@ -2585,12 +2605,19 @@
   // elementos de dentro de um desenho salvo, para dizer o que é cada um (usado no Pedir Programa)
   function features(id) {
     return withDoc(id, function (d) {
-      var cand = [], big = null, bigA = -1;
+      var cand = [], big = null, bigA = -1, real = d.ents.filter(function (e) { return !isRef(e); }), loops = loopsOf(real);
       d.ents.forEach(function (e, i) { if (['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && !isRef(e)) { var a = Math.abs(polyArea(shapePoly(e))); if (a > bigA) { bigA = a; big = i; } } });
+      var bigLoop = null; loops.forEach(function (l) { var a = polyArea(l.pts); if (a > bigA) { bigA = a; bigLoop = l; big = null; } });
       d.ents.forEach(function (e, i) {
         if (isRef(e) || !((['circle', 'rect', 'poly'].indexOf(e.t) >= 0 && i !== big) || e.t === 'holes')) return;
         var n = e.t === 'holes' ? holePts(e).length : 1;
         cand.push({ eid: e.id, t: e.t, name: e.t === 'circle' ? T('Círculo') + ' Ø' + fmt(e.d) : e.t === 'holes' ? (n === 1 ? T('Furo') : n + ' ' + T('furos')) + ' Ø' + fmt(e.d) : e.t === 'rect' ? T('Retângulo') + ' ' + fmt(e.w) + ' x ' + fmt(e.h) : T('Polígono') + ' ' + e.n + ' ' + T('lados'),
+          kind: e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val: e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : '', rb: e.rb || '' });
+      });
+      loops.forEach(function (l) {   // contornos de arcos/linhas soltos (ex.: círculo feito com o arco R50)
+        if (l === bigLoop) return;
+        var e = l.ent, li = loopInfo(l);
+        cand.push({ eid: e.id, t: 'loop', name: li.round ? T('Círculo') + ' Ø' + fmt(li.d) : T('Contorno fechado') + ' ' + fmt(li.b.x1 - li.b.x0) + ' x ' + fmt(li.b.y1 - li.b.y0),
           kind: e.ress > 0 ? 'ress' : e.cham > 0 ? 'cham' : e.prof > 0 ? 'prof' : 'pas', val: e.ress > 0 ? e.ress : e.cham > 0 ? e.cham : e.prof > 0 ? e.prof : '', rb: e.rb || '' });
       });
       return { esp: d.esp || 20, list: cand };
