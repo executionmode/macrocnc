@@ -584,5 +584,15 @@ I18N.add({
   "Toque nos elementos que quer girar.": "Tap the elements you want to rotate.",
   "Girado": "Rotated",
   "Toque no centro do giro": "Tap the pivot point",
-  "centro do furo": "hole center"
+  "centro do furo": "hole center",
+  "Material": "Material",
+  "Tolerância geral": "General tolerance",
+  "Formato": "Format",
+  "Escala": "Scale",
+  "PERSPECTIVA ISOMÉTRICA": "ISOMETRIC VIEW",
+  "sem escala": "not to scale",
+  "1º diedro": "1st angle",
+  "Material (deste desenho)": "Material (this drawing)",
+  "ex.: Aço SAE 1045": "e.g. AISI 1045 steel",
+  "Tolerância geral (folha A4)": "General tolerance (A4 sheet)"
 });

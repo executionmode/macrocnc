@@ -584,5 +584,15 @@ I18N.add({
   "Toque nos elementos que quer girar.": "Touchez les éléments à pivoter.",
   "Girado": "Pivoté",
   "Toque no centro do giro": "Touchez le centre de rotation",
-  "centro do furo": "centre du trou"
+  "centro do furo": "centre du trou",
+  "Material": "Matériau",
+  "Tolerância geral": "Tolérance générale",
+  "Formato": "Format",
+  "Escala": "Échelle",
+  "PERSPECTIVA ISOMÉTRICA": "VUE ISOMÉTRIQUE",
+  "sem escala": "sans échelle",
+  "1º diedro": "1er dièdre",
+  "Material (deste desenho)": "Matériau (ce dessin)",
+  "ex.: Aço SAE 1045": "ex. : acier AISI 1045",
+  "Tolerância geral (folha A4)": "Tolérance générale (feuille A4)"
 });
