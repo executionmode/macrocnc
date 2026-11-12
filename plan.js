@@ -66,19 +66,19 @@
       if (b.t !== 'circle') { notes.push(T('Ressalto que não é redondo: ainda não há programa pronto — peça ao assistente.')); return; }
       var stR = st0.shape === 'round' ? st0.d / 2 + Math.hypot(st0.cx - b.cx, st0.cy - b.cy) : Math.hypot(st0.lx / 2 + Math.abs(st0.cx - b.cx), st0.ly / 2 + Math.abs(st0.cy - b.cy));
       ops.push({ key: 'bos' + i, kind: 'boss', title: T('Desbaste do ressalto'), what: 'Ø' + fmt(b.d) + ' × ' + fmt(b.ress) + (b.rb ? ' ' + T('com raio') + ' R' + fmt(b.rb) + ' ' + T('na base') : '') + ' — ' + T('do topo até Z') + fmt(base),
-        p: { T: 50, S: 1000, F: 1000, W: 0, Z: r3(base), K: 2, Q: 30, R: 5 }, g: b, rOut: r3(stR) });
+        p: { T: 50, S: 1000, F: 1000, W: 0, Z: r3(base), K: 2, Q: 30, R: 5, M: 0 }, g: b, rOut: r3(stR) });
       if (b.rb > 0) ops.push({ key: 'rbs' + i, kind: 'fillet', title: T('Raio na base do ressalto'), what: 'R' + fmt(b.rb) + ' ' + T('entre') + ' Ø' + fmt(b.d) + ' ' + T('e a face de baixo') + ' — ' + T('quina da fresa segue o raio'),
-        p: { T: 25, S: 1500, F: 1200, H: 2, R: 5 }, g: b, base: r3(base) });
+        p: { T: 25, S: 1500, F: 1200, H: 2, R: 5, C: 0 }, g: b, base: r3(base) });
     });
 
     // 3) contorno externo
     var o = A.outer;
     if (o.t === 'rect') ops.push({ key: 'cont', kind: 'ret', title: T('Contorno externo'), what: T('Retângulo') + ' ' + fmt(o.w) + ' × ' + fmt(o.h) + (o.r ? ' R' + fmt(o.r) : ''),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0, M: 1 }, g: o });
     else if (o.t === 'poly') ops.push({ key: 'cont', kind: 'poli', title: T('Contorno externo'), what: T('Polígono') + ' ' + o.n + ' ' + T('lados') + ', Ø' + fmt(o.dc) + ' ' + T('entre cantos'),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0, M: 1 }, g: o });
     else if (o.t === 'circle') ops.push({ key: 'cont', kind: 'circ', title: T('Contorno externo'), what: T('Diâmetro externo') + ' Ø' + fmt(o.d),
-      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0 }, g: o });
+      p: { T: 25, S: 1200, F: 800, W: cW, Z: -r3(esp), K: 2, A: 20, R: 5, L: 0, M: 1 }, g: o });
     else notes.push(T('O contorno de fora não é um retângulo, círculo ou polígono: fica para o assistente ou para o CAM.'));
 
     // 3) furos/alojamentos redondos de dentro: interpolação helicoidal (O1613)
@@ -178,15 +178,26 @@
       // diâmetro externo: sem macro na biblioteca — programa parametrizado com G2 descendo K por volta
       var gc = op.g, rT = r3(gc.d / 2 + p.T / 2), xs = r3(gc.cx + rT);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(xs + p.A)) + ' Y' + gv(gc.cy));
-      L.push('#1 = ' + gv(gc.cx) + ' (X CENTRO) ;', '#2 = ' + gv(gc.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(rT) + ' (RAIO DA TRAJETORIA = D/2 + T/2) ;', '#4 = ' + gv(p.W) + ' (Z INICIAL) ;', '#5 = ' + gv(p.Z) + ' (Z FINAL) ;', '#6 = ' + gv(p.K) + ' (DESCIDA POR VOLTA) ;',
-        'G0 Z[#4 + ' + gv(p.R) + '] ;', 'G1 Z#4 F' + gv(p.F) + ' ;', 'G1 X[#1 + #3] Y#2 F' + gv(p.F) + ' ;', 'N10 #4 = #4 - #6 ;', 'IF [#4 LT #5] THEN #4 = #5 ;', 'G2 X[#1 + #3] Y#2 Z#4 I-#3 J0 ;', 'IF [#4 GT #5] GOTO 10 ;', 'G2 X[#1 + #3] Y#2 I-#3 J0 (VOLTA FINAL SEM DESCER) ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] ;');
+      L.push('#1 = ' + gv(gc.cx) + ' (X CENTRO) ;', '#2 = ' + gv(gc.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(rT) + ' (RAIO DA TRAJETORIA = D/2 + T/2) ;', '#4 = ' + gv(p.W) + ' (Z INICIAL) ;', '#5 = ' + gv(p.Z) + ' (Z FINAL) ;', '#6 = ' + gv(p.K) + ' (DESCIDA POR ' + (p.M === 0 ? 'NIVEL' : 'VOLTA') + ') ;',
+        'G0 Z[#4 + ' + gv(p.R) + '] ;', 'G1 Z#4 F' + gv(p.F) + ' ;');
+      if (p.M === 0) L.push('(INTERPOLACAO CIRCULAR - DESCE FORA DA PECA E DA A VOLTA EM Z FIXO) ;', 'N10 #4 = #4 - #6 ;', 'IF [#4 LT #5] THEN #4 = #5 ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] Y#2 ;', 'G1 Z#4 ;', 'G1 X[#1 + #3] ;', 'G2 X[#1 + #3] Y#2 I-#3 J0 ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] ;', 'IF [#4 GT #5] GOTO 10 ;');
+      else L.push('(INTERPOLACAO HELICOIDAL - DESCE #6 A CADA VOLTA) ;', 'G1 X[#1 + #3] Y#2 F' + gv(p.F) + ' ;', 'N10 #4 = #4 - #6 ;', 'IF [#4 LT #5] THEN #4 = #5 ;', 'G2 X[#1 + #3] Y#2 Z#4 I-#3 J0 ;', 'IF [#4 GT #5] GOTO 10 ;', 'G2 X[#1 + #3] Y#2 I-#3 J0 (VOLTA FINAL SEM DESCER) ;', 'G1 X[#1 + #3 + ' + gv(p.A) + '] ;');
     } else if (kind === 'boss') {
       // desbaste em volta de ressalto redondo: voltas G2 de fora para dentro a cada Z; perto da base segue o raio R
       var b = op.g, tr = r3(p.T / 2);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(b.cx + op.rOut + tr + 5)) + ' Y' + gv(b.cy));
       L.push('#1 = ' + gv(b.cx) + ' (X CENTRO DO RESSALTO) ;', '#2 = ' + gv(b.cy) + ' (Y CENTRO DO RESSALTO) ;', '#3 = ' + gv(b.d / 2) + ' (RAIO DO RESSALTO) ;', '#4 = ' + gv(b.rb || 0) + ' (RAIO NA BASE - 0 = CANTO VIVO) ;',
         '#5 = ' + gv(op.rOut) + ' (RAIO DO BRUTO A LIMPAR) ;', '#6 = ' + gv(tr) + ' (RAIO DA FRESA) ;', '#7 = ' + gv(p.Z) + ' (Z DA FACE DE BAIXO) ;', '#8 = ' + gv(p.K) + ' (DESCIDA EM Z) ;', '#9 = ' + gv(p.Q) + ' (PASSO LATERAL) ;', '#10 = ' + gv(p.W) + ' (Z INICIAL - TOPO) ;',
-        '#20 = #10 ;', 'G0 Z[#10 + ' + gv(p.R) + '] ;',
+        '#20 = #10 ;', 'G0 Z[#10 + ' + gv(p.R) + '] ;');
+      if (p.M === 1) L.push('(INTERPOLACAO HELICOIDAL - CADA ANEL DESCE #8 POR VOLTA ATE O LIMITE DO RAIO) ;',
+        '#22 = #5 + #6 - #9 ;', 'IF [#22 LT [#3 + #4 + #6]] THEN #22 = #3 + #4 + #6 (1A VOLTA LIMPA ATE A FACE DE BAIXO) ;',
+        'N10 IF [#22 LT [#3 + #6]] THEN #22 = #3 + #6 ;',
+        '(Z LIMITE NESTE ANEL - A BORDA DA FRESA NAO PODE ENTRAR NO RAIO) ;', '#24 = #22 - #6 ;', '#21 = #7 ;', '#23 = #3 + #4 - #24 ;',
+        'IF [#23 GT 0] THEN #21 = #7 + #4 - SQRT[#4 * #4 - #23 * #23] ;', 'IF [#24 LT #3] THEN #21 = #10 ;',
+        'G0 X[#1 + #22] Y#2 ;', 'G1 Z#10 F' + gv(p.F) + ' ;', '#20 = #10 ;',
+        'N20 #20 = #20 - #8 ;', 'IF [#20 LT #21] THEN #20 = #21 ;', 'G2 X[#1 + #22] Y#2 Z#20 I-#22 J0 ;', 'IF [#20 GT #21] GOTO 20 ;', 'G2 X[#1 + #22] Y#2 I-#22 J0 ;',
+        'G0 Z[#10 + ' + gv(p.R) + '] ;', 'IF [#22 LE [#3 + #6]] GOTO 30 ;', '#22 = #22 - #9 ;', 'GOTO 10 ;', 'N30 G0 Z[#10 + ' + gv(p.R) + '] ;');
+      else L.push('(INTERPOLACAO CIRCULAR - DESCE #8 E DA AS VOLTAS EM Z FIXO) ;',
         'N10 #20 = #20 - #8 ;', 'IF [#20 LT #7] THEN #20 = #7 ;',
         '(RAIO LIMITE NESTE Z - PERTO DA BASE SEGUE O RAIO R) ;', '#21 = #3 ;', '#23 = #7 + #4 - #20 ;', 'IF [#23 GT 0] THEN #21 = #3 + #4 - SQRT[#4 * #4 - #23 * #23] ;',
         '#22 = #5 + #6 - #9 ;', 'G0 X[#1 + #5 + #6 + 5] Y#2 ;', 'G1 Z#20 F' + gv(p.F) + ' ;',
@@ -196,11 +207,13 @@
       // raio côncavo na base do ressalto: a quina de baixo da fresa segue o arco, uma volta G2 a cada H graus
       var bf = op.g, tf2 = r3(p.T / 2);
       L = hd(O, ttl, t, p.S, 'X' + gv(r3(bf.cx + bf.d / 2 + bf.rb + tf2 + 5)) + ' Y' + gv(bf.cy));
-      L.push('(FRESA DE TOPO RETA COM CANTO VIVO - DESBASTE JA FEITO) ;', '#1 = ' + gv(bf.cx) + ' (X CENTRO) ;', '#2 = ' + gv(bf.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(bf.d / 2) + ' (RAIO DO RESSALTO) ;', '#4 = ' + gv(bf.rb) + ' (RAIO NA BASE) ;',
-        '#6 = ' + gv(tf2) + ' (RAIO DA FRESA) ;', '#7 = ' + gv(op.base) + ' (Z DA FACE DE BAIXO) ;', '#11 = ' + gv(p.H) + ' (PASSO EM GRAUS) ;', '#12 = 0 ;',
+      var rc = Math.max(0, Math.min(p.C || 0, tf2, bf.rb));
+      L.push('(' + (rc <= 0 ? 'FRESA DE TOPO RETA COM CANTO VIVO' : rc >= tf2 ? 'FRESA ESFERICA' : 'FRESA COM RAIO DE CANTO R' + gv(rc)) + ' - DESBASTE JA FEITO) ;', '#1 = ' + gv(bf.cx) + ' (X CENTRO) ;', '#2 = ' + gv(bf.cy) + ' (Y CENTRO) ;', '#3 = ' + gv(bf.d / 2) + ' (RAIO DO RESSALTO) ;', '#4 = ' + gv(bf.rb) + ' (RAIO NA BASE - ALTURA DO RAIO) ;',
+        '#6 = ' + gv(tf2) + ' (RAIO DA FRESA) ;', '#15 = ' + gv(rc) + ' (RAIO DE CANTO DA FRESA) ;', '#7 = ' + gv(op.base) + ' (Z DA FACE DE BAIXO) ;', '#11 = ' + gv(p.H) + ' (PASSO EM GRAUS) ;', '#12 = 0 ;',
         'G0 Z[#7 + #4 + ' + gv(p.R) + '] ;',
-        'N10 IF [#12 GT 90] THEN #12 = 90 ;', '#13 = #3 + #4 - #4 * COS[#12] (RAIO DO PONTO NO ARCO) ;', '#14 = #7 + #4 - #4 * SIN[#12] (Z DO PONTO NO ARCO) ;',
-        'G1 X[#1 + #13 + #6] Y#2 Z#14 F' + gv(p.F) + ' ;', 'G2 X[#1 + #13 + #6] Y#2 I-[#13 + #6] J0 ;', 'IF [#12 GE 90] GOTO 20 ;', '#12 = #12 + #11 ;', 'GOTO 10 ;',
+        '(O CENTRO DO CANTO DA FRESA ANDA NUM ARCO DE RAIO R - RAIO DE CANTO) ;',
+        'N10 IF [#12 GT 90] THEN #12 = 90 ;', '#13 = #3 + #4 - [#4 - #15] * COS[#12] (RAIO DO CENTRO DO CANTO) ;', '#14 = #7 + #4 - [#4 - #15] * SIN[#12] - #15 (Z DA PONTA DA FRESA) ;',
+        'G1 X[#1 + #13 + #6 - #15] Y#2 Z#14 F' + gv(p.F) + ' ;', 'G2 X[#1 + #13 + #6 - #15] Y#2 I-[#13 + #6 - #15] J0 ;', 'IF [#12 GE 90] GOTO 20 ;', '#12 = #12 + #11 ;', 'GOTO 10 ;',
         'N20 G1 X[#1 + #3 + #4 + #6 + 5] ;', 'G0 Z[#7 + #4 + ' + gv(p.R) + '] ;');
     } else if (kind === 'hel') {
       id = 'm-helice'; var gh = op.g;

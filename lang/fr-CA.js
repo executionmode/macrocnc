@@ -718,5 +718,21 @@ I18N.add({
   "Selecionar perfil": "Sélectionner le profil",
   "Toque nas linhas do perfil a usinar": "Touchez les lignes du profil à usiner",
   "Toque nas linhas · arraste para girar": "Touchez les lignes · glissez pour tourner",
-  "Toque numa linha tracejada da peça.": "Touchez une ligne pointillée de la pièce."
+  "Toque numa linha tracejada da peça.": "Touchez une ligne pointillée de la pièce.",
+  "Altura do ressalto": "Hauteur de l’épaulement",
+  "Raio na base R": "Rayon à la base R",
+  "Face de baixo em Z": "Face du bas à Z",
+  "o raio vai de Z": "le rayon va de Z",
+  "até Z": "jusqu’à Z",
+  "Jeito de usinar": "Méthode d’usinage",
+  "Circular (Z fixo)": "Circulaire (Z fixe)",
+  "Helicoidal (rampa)": "Hélicoïdale (rampe)",
+  "altura do raio": "hauteur du rayon",
+  "do": "de",
+  "até": "jusqu’à",
+  "Ferramenta do raio": "Outil du rayon",
+  "Topo reto": "Bout plat",
+  "Esférica": "Hémisphérique",
+  "Raio de canto": "Rayon de coin",
+  "Raio de canto da fresa": "Rayon de coin de la fraise"
 });

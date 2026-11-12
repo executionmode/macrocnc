@@ -1650,7 +1650,12 @@
     var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
     var feN = (Cad.features(id) || { list: [] }).list.length + 1;
     if (A.hconf !== feN && !noAsk) { askHeights(id, function () { loadPlan(id, true); }); }   // nunca conferido, ou o desenho mudou
-    var ov = planOv(id), pl = Plan.plan(A, ov._sob);
+    var ov = planOv(id), geo = JSON.stringify([A.esp, A.base || 0]);
+    if (ov._geo !== geo) {   // alturas mudaram: Z inicial/final voltam a vir do desenho
+      Object.keys(ov).forEach(function (k) { if (k.charAt(0) !== '_' && ov[k] && ov[k].p) { delete ov[k].p.W; delete ov[k].p.Z; } });
+      ov._geo = geo; setPlanOv(id, ov);
+    }
+    var pl = Plan.plan(A, ov._sob);
     pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); var o = ov[op.key]; if (o && o.p) Object.keys(o.p).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); });
     var keep = planCur && planCur.id === id ? planCur.view : null;
     var st3 = Cad.st3d(id); if (st3) st3.label = '';
@@ -1790,27 +1795,60 @@
     });
   }
   // tela de ajustes: ferramenta, profundidade, externo/interno de cada operação; depois gerar ou gerar e simular
+  // informações e escolhas próprias de cada operação (altura do ressalto, altura do raio, tipo de fresa, jeito de usinar)
+  function seg2(attr, opts, cur) { return '<div class="seg2' + (opts.length > 2 ? ' seg3' : '') + '" ' + attr + '>' + opts.map(function (o) { return '<button type="button" data-v="' + o[0] + '" class="' + (String(o[0]) === String(cur) ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>'; }
+  function adjExtra(op) {
+    var A = planCur.pl.A, g = op.g, h = '', f = function (v) { return Plan.gv(v).replace(/\.$/, ''); };
+    if (op.kind === 'boss') {
+      h += '<div class="adj-info"><label><span>' + esc(T('Altura do ressalto')) + '</span><input class="input" data-geo="ress" value="' + f(g.ress) + '" inputmode="decimal"></label>' +
+        '<label><span>' + esc(T('Raio na base R')) + '</span><input class="input" data-geo="rb" value="' + f(g.rb || 0) + '" inputmode="decimal"></label>' +
+        '<div class="adj-note">' + esc(T('Face de baixo em Z')) + f(A.base) + (g.rb ? ' · ' + esc(T('o raio vai de Z')) + f(A.base + g.rb) + ' ' + esc(T('até Z')) + f(A.base) : '') + '</div></div>';
+      h += '<div class="adj-lab">' + esc(T('Jeito de usinar')) + '</div>' + seg2('data-p="M"', [[0, 'Circular (Z fixo)'], [1, 'Helicoidal (rampa)']], op.p.M);
+    } else if (op.kind === 'fillet') {
+      h += '<div class="adj-info"><div class="adj-note">' + esc(T('Raio')) + ' R' + f(g.rb) + ' · ' + esc(T('altura do raio')) + ' ' + f(g.rb) + ' mm (' + 'Z' + f(op.base + g.rb) + ' → Z' + f(op.base) + ') · ' + esc(T('do')) + ' Ø' + f(g.d) + ' ' + esc(T('até')) + ' Ø' + f(g.d + 2 * g.rb) + '</div></div>';
+      var tt = !(op.p.C > 0) ? 0 : op.p.C >= op.p.T / 2 ? 1 : 2;
+      h += '<div class="adj-lab">' + esc(T('Ferramenta do raio')) + '</div>' + seg2('data-tool', [[0, 'Topo reto'], [1, 'Esférica'], [2, 'Raio de canto']], tt) +
+        '<label class="adj-rc' + (tt === 2 ? '' : ' hidden') + '"><span>' + esc(T('Raio de canto da fresa')) + '</span><input class="input" data-k="C" value="' + f(op.p.C || 0) + '" inputmode="decimal"></label>';
+    } else if (op.kind === 'circ' || op.kind === 'ret' || op.kind === 'poli') {
+      if (op.kind === 'circ') h += '<div class="adj-lab">' + esc(T('Jeito de usinar')) + '</div>' + seg2('data-p="M"', [[0, 'Circular (Z fixo)'], [1, 'Helicoidal (rampa)']], op.p.M);
+    }
+    return h;
+  }
   function openAdjust() {
     var ops = selOps(); if (!ops.length) return;
     var h = ops.map(function (op, i) {
       var lado = op.kind === 'circ' || op.kind === 'hel';
       return '<div class="adj" data-k="' + op.key + '"><div class="adj-h"><span class="n">' + (i + 1) + '</span><b>' + esc(op.title) + '</b></div><div class="hint">' + esc(op.what.split(' — ')[0]) + '</div>' +
+        adjExtra(op) +
         (lado ? '<div class="seg2" data-lado><button type="button" data-l="0" class="' + (op.p.L === 0 ? 'on' : '') + '">' + esc(T('Contorno externo')) + '</button><button type="button" data-l="1" class="' + (op.p.L === 1 ? 'on' : '') + '">' + esc(T('Interno (furo)')) + '</button></div>' : '') +
         (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
         '<div class="dp-grid">' + (PLAN_KEYS[op.kind] || []).map(function (k) { return '<label><span>' + esc(T(PLAN_F2[k] || PLAN_F[k])) + '</span><input class="input" data-k="' + k + '" value="' + String(op.p[k]).replace('.', ',') + '" inputmode="decimal"></label>'; }).join('') + '</div></div>';
     }).join('');
     openSheet(T('Ajustes da usinagem'), h + '<div class="sheet-acts adj-acts"><button type="button" class="ui-btn" id="adGen"><span data-icon="save"></span> ' + esc(T('Gerar programas')) + '</button><button type="button" class="ui-btn primary" id="adSim"><span data-icon="play"></span> ' + esc(T('Gerar e simular')) + '</button></div>');
-    $$('#sheetBody [data-lado] button').forEach(function (b) { b.onclick = function () { b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); }; });
+    $$('#sheetBody [data-lado] button, #sheetBody [data-p] button, #sheetBody [data-tool] button').forEach(function (b) {
+      b.onclick = function () {
+        b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+        if (b.parentNode.hasAttribute('data-tool')) { var box = b.closest('.adj'), rc = box.querySelector('.adj-rc'); rc.classList.toggle('hidden', b.dataset.v !== '2'); }
+      };
+    });
     function apply() {
-      var ov = planOv(planCur.id);
+      var ov = planOv(planCur.id), geoCh = null;
       $$('#sheetBody .adj').forEach(function (box) {
         var key = box.dataset.k, op = planCur.pl.ops.filter(function (o) { return o.key === key; })[0]; if (!op) return;
         var pk = (ov[key] && ov[key].p) || {};
         box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) { op.p[i.dataset.k] = v; if (v !== op.def[i.dataset.k]) pk[i.dataset.k] = v; else delete pk[i.dataset.k]; } });
         var l = box.querySelector('[data-lado] .on'); if (l) { op.p.L = +l.dataset.l; if (op.p.L !== op.def.L) pk.L = op.p.L; else delete pk.L; }
+        var m = box.querySelector('[data-p="M"] .on'); if (m) { op.p.M = +m.dataset.v; if (op.p.M !== op.def.M) pk.M = op.p.M; else delete pk.M; }
+        var tl = box.querySelector('[data-tool] .on'); if (tl) { var tv = +tl.dataset.v; op.p.C = tv === 0 ? 0 : tv === 1 ? op.p.T / 2 : Math.max(0, op.p.C || 0); if (op.p.C !== op.def.C) pk.C = op.p.C; else delete pk.C; }
+        var gr = box.querySelector('[data-geo="ress"]'), gb = box.querySelector('[data-geo="rb"]');
+        if (gr && op.g && op.g.eid) { var nr = parseFloat(String(gr.value).replace(',', '.')), nb = parseFloat(String(gb.value).replace(',', '.')) || 0; if (nr > 0 && (nr !== op.g.ress || nb !== (op.g.rb || 0))) geoCh = { eid: op.g.eid, ress: nr, rb: nb }; }
         ov[key] = { p: pk };
       });
       setPlanOv(planCur.id, ov);
+      if (geoCh) {   // mudou a altura do ressalto ou o raio: grava no desenho e refaz o plano (mantendo o perfil escolhido)
+        Cad.setFeature(planCur.id, geoCh.eid, 'ress', geoCh.ress, geoCh.rb);
+        var id = planCur.id, seg = planCur.seg.slice(); loadPlan(id, true); planCur.seg = seg; syncSel();
+      }
     }
     $('#adGen').onclick = function () { apply(); closeSheet(); genPlan(); };
     $('#adSim').onclick = function () { apply(); closeSheet(); genPlan(); var f = planCur.out && planCur.out[0]; if (f) { setEditor(f.text, f.name); openSim(f.text, libraryMatch(f.text), f.name); } };

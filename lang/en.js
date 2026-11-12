@@ -718,5 +718,21 @@ I18N.add({
   "Selecionar perfil": "Select profile",
   "Toque nas linhas do perfil a usinar": "Tap the profile lines to machine",
   "Toque nas linhas · arraste para girar": "Tap the lines · drag to rotate",
-  "Toque numa linha tracejada da peça.": "Tap a dashed line on the part."
+  "Toque numa linha tracejada da peça.": "Tap a dashed line on the part.",
+  "Altura do ressalto": "Boss height",
+  "Raio na base R": "Base fillet R",
+  "Face de baixo em Z": "Lower face at Z",
+  "o raio vai de Z": "the fillet goes from Z",
+  "até Z": "to Z",
+  "Jeito de usinar": "Machining method",
+  "Circular (Z fixo)": "Circular (fixed Z)",
+  "Helicoidal (rampa)": "Helical (ramp)",
+  "altura do raio": "fillet height",
+  "do": "from",
+  "até": "to",
+  "Ferramenta do raio": "Fillet tool",
+  "Topo reto": "Flat end",
+  "Esférica": "Ball",
+  "Raio de canto": "Corner radius",
+  "Raio de canto da fresa": "Cutter corner radius"
 });
