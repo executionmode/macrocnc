@@ -225,5 +225,31 @@
     return { O: 'O' + pad4(O), main: main, subs: subs, text: [main].concat(subs.map(function (s) { return s.code; })).join('\n'), lib: id };
   }
 
-  root.Plan = { plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
+  /* ---------- linhas tocáveis da vista 3D: cada uma liga a uma operação ---------- */
+  function circ(cx, cy, r, z) { var o = []; for (var i = 0; i <= 72; i++) { var a = i / 72 * Math.PI * 2; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a), z]); } return o; }
+  function rrect(cx, cy, w, h, r, z) {
+    r = Math.max(0, Math.min(r || 0, w / 2, h / 2)); var o = [], C = [[cx + w / 2 - r, cy + h / 2 - r, 0], [cx - w / 2 + r, cy + h / 2 - r, 90], [cx - w / 2 + r, cy - h / 2 + r, 180], [cx + w / 2 - r, cy - h / 2 + r, 270]];
+    C.forEach(function (c) { for (var i = 0; i <= 8; i++) { var a = (c[2] + i * 90 / 8) * Math.PI / 180; o.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a), z]); } }); o.push(o[0]); return o;
+  }
+  function ngon(cx, cy, n, dc, ang, z) { var o = []; for (var i = 0; i <= n; i++) { var a = ((ang || 0) + i * 360 / n) * Math.PI / 180; o.push([cx + dc / 2 * Math.cos(a), cy + dc / 2 * Math.sin(a), z]); } return o; }
+  function outline(g, z) { return g.t === 'rect' ? rrect(g.cx, g.cy, g.w, g.h, g.r, z) : g.t === 'poly' ? ngon(g.cx, g.cy, g.n, g.dc, g.ang, z) : g.t === 'circle' ? circ(g.cx, g.cy, g.d / 2, z) : rrect(g.cx, g.cy, g.w, g.h, 0, z); }
+  function edges(pl) {
+    var A = pl.A, o = A.origin || { x: 0, y: 0 }, E = [];
+    function add(key, label, lines, face) { E.push({ key: key, label: label, lines: lines.map(function (L) { return L.map(function (p) { return [p[0] + o.x, p[1] + o.y, p[2]]; }); }), face: !!face }); }
+    pl.ops.forEach(function (op) {
+      var p = op.p;
+      if (op.kind === 'face') add(op.key, op.title, [A.bosses && A.bosses.length ? outline(A.bosses[0], 0) : outline(A.outer, 0)], true);
+      else if (op.kind === 'ret' || op.kind === 'poli' || op.kind === 'circ') {   // parede de fora: linha no meio da altura dela e a aresta de baixo
+        var zt = A.base || 0, zm = (zt - A.esp) / 2, hasF = (A.bosses || []).some(function (b) { return b.rb > 0; });
+        add(op.key, op.title + ' ' + op.what, (hasF ? [] : [outline(op.g, zt)]).concat([outline(op.g, zm), outline(op.g, -A.esp)]));
+      }
+      else if (op.kind === 'boss') add(op.key, op.title + ' Ø' + fmt(op.g.d), [circ(op.g.cx, op.g.cy, op.g.d / 2, 0)]);
+      else if (op.kind === 'fillet') add(op.key, op.title + ' R' + fmt(op.g.rb), [circ(op.g.cx, op.g.cy, op.g.d / 2 + op.g.rb, op.base)]);
+      else if (op.kind === 'hel') add(op.key, op.title + ' Ø' + fmt(op.g.d), [circ(op.g.cx, op.g.cy, op.g.d / 2, p.W)]);
+      else if (op.kind === 'pcd' || op.kind === 'g83' || op.kind === 'reb') add(op.key, op.title + ' ' + op.what.split(' — ')[0], op.pts.map(function (q) { return circ(q[0], q[1], (op.d || p.T) / 2, p.W); }));
+    });
+    return E;
+  }
+
+  root.Plan = { edges: edges, plan: plan, describe: describe, build: build, helixTool: helixTool, fitCircle: fitCircle, gv: gv, stockOf: stockOf, SOB: SOB };
 })(this);

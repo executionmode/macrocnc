@@ -679,5 +679,14 @@ I18N.add({
   "quina da fresa segue o raio": "cutter corner follows the radius",
   "Ressalto": "Boss",
   "face de baixo em Z": "lower face at Z",
-  "Ressalto que não é redondo: ainda não há programa pronto — peça ao assistente.": "Non-round boss: no ready program yet — ask the assistant."
+  "Ressalto que não é redondo: ainda não há programa pronto — peça ao assistente.": "Non-round boss: no ready program yet — ask the assistant.",
+  "Alturas": "Heights",
+  "Toque na linha a usinar · arraste para girar": "Tap the line to machine · drag to rotate",
+  "Gerar": "Generate",
+  "programa": "program",
+  "Toque numa linha": "Tap a line",
+  "Alturas da peça": "Part heights",
+  "Altura total": "Total height",
+  "Salvar alturas": "Save heights",
+  "Sobremetal em volta": "Stock allowance around"
 });

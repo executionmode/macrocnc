@@ -2539,7 +2539,7 @@
       var real = d.ents.filter(function (e) { return e.t !== 'dim' && !isRef(e); });
       if (!real.length) return null;
       var bb = bounds(real.filter(function (e) { return e.t !== 'holes'; }).length ? real.filter(function (e) { return e.t !== 'holes'; }) : real);
-      var A = { id: id, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
+      var A = { id: id, origin: { x: o.x, y: o.y }, hconf: !!d.hconf, name: d.name, esp: d.esp || 20, mat: d.mat || '', bbox: { x0: R(bb.x0 - o.x), y0: R(bb.y0 - o.y), x1: R(bb.x1 - o.x), y1: R(bb.y1 - o.y) }, outer: null, circles: [], rects: [], polys: [], holes: [], chams: [], other: 0 };
       var W = bb.x1 - bb.x0, H = bb.y1 - bb.y0;
       function isOuter(e) { var b = bounds([e]); return Math.abs(b.x1 - b.x0 - W) < 0.01 && Math.abs(b.y1 - b.y0 - H) < 0.01; }
       real.forEach(function (e) {
@@ -2604,6 +2604,8 @@
     save(true); if (d === doc) { draw(); updSaveBtn(); } dbPut(id);
   }
   function setEsp(id, v) { if (!ensure() || !store.docs[id] || !(v > 0)) return; var d = store.docs[id]; d.esp = v; d.upd = Date.now(); if (d.saved) d.savedAt = d.upd; save(true); if (d === doc) draw(); dbPut(id); }
+  function st3d(id) { return withDoc(id, function () { return build3D(); }); }
+  function setMeta(id, m) { if (!ensure() || !store.docs[id]) return; var d = store.docs[id]; Object.keys(m).forEach(function (k) { d[k] = m[k]; }); d.upd = Date.now(); if (d.saved) d.savedAt = d.upd; save(true); dbPut(id); }
   function openDoc(id) {
     if (!ensure() || !store.docs[id]) return;
     if (id === store.cur) return;
@@ -2616,7 +2618,7 @@
   }
   // API para testes
   root.Cad = {
-    show: show, openFiles: function () { openFiles(); }, ensure: ensure, savedList: savedList, analyze: analyze, thumb: thumb, openDoc: openDoc, features: features, setFeature: setFeature, setEsp: setEsp,
+    show: show, openFiles: function () { openFiles(); }, ensure: ensure, savedList: savedList, analyze: analyze, thumb: thumb, openDoc: openDoc, features: features, setFeature: setFeature, setEsp: setEsp, st3d: st3d, setMeta: setMeta,
     get doc() { return doc; },
     add: function (e) { pushUndo(); e.id = uid(); doc.ents.push(e); save(); draw(); return e; },
     prims: prims, holePts: holePts, describe: describe, num: num, dimText: dimText, runActions: runActions, autoDim: autoDim,

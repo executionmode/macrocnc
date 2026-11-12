@@ -679,5 +679,14 @@ I18N.add({
   "quina da fresa segue o raio": "le coin de la fraise suit le rayon",
   "Ressalto": "Épaulement",
   "face de baixo em Z": "face du bas à Z",
-  "Ressalto que não é redondo: ainda não há programa pronto — peça ao assistente.": "Épaulement non rond : pas encore de programme prêt — demandez à l’assistant."
+  "Ressalto que não é redondo: ainda não há programa pronto — peça ao assistente.": "Épaulement non rond : pas encore de programme prêt — demandez à l’assistant.",
+  "Alturas": "Hauteurs",
+  "Toque na linha a usinar · arraste para girar": "Touchez la ligne à usiner · glissez pour tourner",
+  "Gerar": "Générer",
+  "programa": "programme",
+  "Toque numa linha": "Touchez une ligne",
+  "Alturas da peça": "Hauteurs de la pièce",
+  "Altura total": "Hauteur totale",
+  "Salvar alturas": "Enregistrer les hauteurs",
+  "Sobremetal em volta": "Surépaisseur autour"
 });

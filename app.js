@@ -1592,12 +1592,11 @@
   }
   renderChat();
 
-  /* ---------- DESENHO -> PROGRAMAS (importar desenho no Pedir Programa) ---------- */
-  var planCur = null;   // { id, pl, out }
+  /* ---------- DESENHO -> PROGRAMAS: vista 3D, toque na linha a usinar ---------- */
+  var planCur = null;   // { id, pl, st, view, out }
   var PLAN_F = { T: 'Ø fresa/broca', N: 'T nº', S: 'S rpm', F: 'F mm/min', W: 'W (Z inicial)', Z: 'Z final', K: 'K desce/volta', Q: 'Q passo lateral', A: 'A entrada', R: 'R seg.', H: 'H graus/volta' };
   var PLAN_KEYS = { face: ['T', 'N', 'S', 'F', 'W', 'Z', 'K', 'Q'], ret: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], poli: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'], circ: ['T', 'N', 'S', 'F', 'Z', 'K', 'A'],
     hel: ['T', 'N', 'S', 'F', 'Z', 'K'], boss: ['T', 'N', 'S', 'F', 'K', 'Q'], fillet: ['T', 'N', 'S', 'F', 'H'], reb: ['T', 'N', 'S', 'F', 'Z', 'K'], pcd: ['T', 'N', 'S', 'F', 'Z', 'Q'], g83: ['T', 'N', 'S', 'F', 'Z', 'Q'] };
-  var PLAN_LIB = { boss: T('parametrizado'), fillet: T('parametrizado'), face: 'O1611', ret: 'O1616', poli: 'O1617', circ: T('parametrizado'), hel: 'O1613', reb: 'O1613', pcd: 'O1612', g83: 'G83' };
   function cadReady() { return window.Cad && Cad.ensure && Cad.ensure(); }
   function drawThumb(id, w, h) { try { return Cad.thumb(id, w || 120, h || 90); } catch (e) { return null; } }
   function pickDrawing(cb, title) {
@@ -1607,106 +1606,187 @@
     openSheet(title || 'Importar desenho', '<div class="dlist">' + L.map(function (d) {
       var im = drawThumb(d.id, 120, 90);
       return '<button type="button" class="drow" data-id="' + d.id + '">' + (im ? '<img src="' + im + '" alt="">' : '<span class="dph" data-icon="folder"></span>') +
-        '<span class="frow-t"><b class="notr">' + esc(d.name) + '</b><small>' + (d.folder ? '📁 ' + esc(d.folder) + ' · ' : '') + when(d.savedAt) + ' · ' + d.n + ' ' + T('elementos') + '</small></span></button>';
+        '<span class="frow-t"><b class="notr">' + esc(d.name) + '</b><small>' + (d.folder ? '📁 ' + esc(d.folder) + ' · ' : '') + when(d.savedAt) + '</small></span></button>';
     }).join('') + '</div>');
     $$('#sheetBody .drow').forEach(function (b) { b.onclick = function () { closeSheet(); cb(b.dataset.id); }; });
   }
-  function planOverrides(id) { return store.get('planp.' + id, {}); }
-  function loadPlan(id) {
+  function planOv(id) { return store.get('planp.' + id, {}); }
+  function setPlanOv(id, ov) { store.set('planp.' + id, ov); }
+  // só a vista de cima não diz as alturas: pergunta uma vez e grava no desenho
+  function askHeights(id, done) {
+    var fe = Cad.features(id); if (!fe) return;
+    var K = [['pas', 'Passante'], ['prof', 'Rebaixo'], ['ress', 'Ressalto'], ['cham', 'Chanfro']], U = { prof: 'prof.', ress: 'altura', cham: '°' };
+    function row(f) {
+      var opts = f.t === 'holes' ? K.slice(0, 2) : K;
+      return '<div class="hq" data-eid="' + f.eid + '"><b class="notr">' + esc(f.name) + '</b><div class="hq-k">' + opts.map(function (o) { return '<button type="button" data-k="' + o[0] + '" class="' + (o[0] === f.kind ? 'on' : '') + '">' + esc(T(o[1])) + '</button>'; }).join('') + '</div>' +
+        '<div class="hq-v' + (f.kind === 'pas' ? ' hidden' : '') + '"><label><span>' + esc(T(U[f.kind] || 'prof.')) + '</span><input class="input" data-v value="' + String(f.val).replace('.', ',') + '" inputmode="decimal"></label>' +
+        '<label class="' + (f.kind === 'ress' ? '' : 'hidden') + '"><span>' + esc(T('raio na base')) + ' R</span><input class="input" data-r value="' + String(f.rb).replace('.', ',') + '" inputmode="decimal" placeholder="0"></label></div></div>';
+    }
+    openSheet(T('Alturas da peça'), '<label class="hq-esp"><span>' + esc(T('Altura total')) + '</span><input class="input" id="hqEsp" value="' + String(fe.esp).replace('.', ',') + '" inputmode="decimal"> mm</label>' +
+      fe.list.map(row).join('') + '<div class="sheet-acts"><button type="button" class="ui-btn primary" id="hqOk">' + esc(T('Salvar alturas')) + '</button></div>');
+    $$('#sheetBody .hq').forEach(function (r) {
+      r.querySelectorAll('[data-k]').forEach(function (b) {
+        b.onclick = function () {
+          r.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', x === b); });
+          var k = b.dataset.k, v = r.querySelector('.hq-v');
+          v.classList.toggle('hidden', k === 'pas'); v.querySelector('label span').textContent = T(U[k] || 'prof.');
+          v.querySelector('[data-r]').parentNode.classList.toggle('hidden', k !== 'ress');
+          var iv = v.querySelector('[data-v]'); if (k !== r.dataset.was) iv.value = ''; r.dataset.was = k; if (k !== 'pas') iv.focus();
+        };
+      });
+      r.dataset.was = (r.querySelector('[data-k].on') || {}).dataset ? r.querySelector('[data-k].on').dataset.k : 'pas';
+    });
+    $('#hqOk').onclick = function () {
+      var esp = parseFloat(String($('#hqEsp').value).replace(',', '.'));
+      if (esp > 0) Cad.setEsp(id, esp);
+      $$('#sheetBody .hq').forEach(function (r) {
+        var on = r.querySelector('[data-k].on'), k = on ? on.dataset.k : 'pas';
+        Cad.setFeature(id, r.dataset.eid, k, String(r.querySelector('[data-v]').value).replace(',', '.'), String(r.querySelector('[data-r]').value).replace(',', '.'));
+      });
+      Cad.setMeta(id, { hconf: true }); closeSheet(); if (done) done();
+    };
+  }
+  function loadPlan(id, noAsk) {
     if (!cadReady()) return;
     var A = Cad.analyze(id); if (!A) { toast('Esse desenho está vazio.'); return; }
-    var ov = planOverrides(id), pl = Plan.plan(A, ov._sob);
-    pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); });   // valores do desenho (sem as mudanças do operador)
-    pl.ops.forEach(function (op) { var o = ov[op.key]; if (o) { Object.keys(o.p || {}).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); if (o.on === false) op.on = false; } });
-    planCur = { id: id, pl: pl, out: null };
+    if (!A.hconf && !noAsk) { askHeights(id, function () { loadPlan(id, true); }); }
+    var ov = planOv(id), pl = Plan.plan(A, ov._sob);
+    pl.ops.forEach(function (op) { op.def = JSON.parse(JSON.stringify(op.p)); var o = ov[op.key]; if (o && o.p) Object.keys(o.p).forEach(function (k) { if (op.p[k] !== undefined) op.p[k] = o.p[k]; }); });
+    var keep = planCur && planCur.id === id ? planCur.view : null;
+    var st3 = Cad.st3d(id); if (st3) st3.label = '';
+    planCur = { id: id, pl: pl, st: st3, edges: Plan.edges(pl), sel: (ov._sel || []).filter(function (k) { return pl.ops.some(function (o) { return o.key === k; }); }), view: keep || { az: -35, el: 32, zoom: 0.92, panX: 0, panY: 0 }, out: null };
     store.set('plan.cur', id);
     renderPlan();
   }
-  function readPlanForm() {
-    if (!planCur) return;
-    var ov = {};
-    planCur.pl.ops.forEach(function (op) {
-      var box = $('#drawPlan [data-op="' + op.key + '"]'); if (!box) return;
-      op.on = box.querySelector('input[type=checkbox]').checked;
-      box.querySelectorAll('input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) op.p[i.dataset.k] = v; });
-      var pk = {}; (PLAN_KEYS[op.kind] || []).forEach(function (k) { if (!op.def || op.p[k] !== op.def[k]) pk[k] = op.p[k]; });   // só o que o operador mudou; o resto vem do desenho
-      ov[op.key] = { on: op.on, p: pk };
+  function saveSel() { var ov = planOv(planCur.id); ov._sel = planCur.sel; setPlanOv(planCur.id, ov); }
+  function selOps() { return planCur.pl.ops.filter(function (op) { return planCur.sel.indexOf(op.key) >= 0; }); }   // na ordem de usinagem
+  function draw3D() {
+    var cv = $('#dpCv'); if (!cv || !planCur || !planCur.st) return;
+    var W = cv.clientWidth, H = cv.clientHeight, v = planCur.view; v.W = W; v.H = H;
+    Stock3D.render(cv, planCur.st, v, false);
+    var c = cv.getContext('2d'), S = Stock3D.projector(planCur.st, v, W, H);
+    planCur.proj = planCur.edges.map(function (e) { return { e: e, lines: e.lines.map(function (L) { return L.map(function (p) { return S(p[0], p[1], p[2]); }); }) }; });
+    planCur.proj.forEach(function (pe) {
+      var on = planCur.sel.indexOf(pe.e.key) >= 0;
+      if (pe.e.face) {   // a face de cima: preenchimento quando escolhida
+        if (!on) return;
+        c.fillStyle = 'rgba(255,170,40,.28)'; c.beginPath(); pe.lines[0].forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.fill();
+        return;
+      }
+      c.strokeStyle = on ? '#ffaa28' : 'rgba(110,190,255,.85)'; c.lineWidth = on ? 4 : 2; c.setLineDash(on ? [] : [6, 4]);
+      pe.lines.forEach(function (L) { c.beginPath(); L.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); });
     });
-    var sb = $('#dpSob'); if (sb) { var v = parseFloat(String(sb.value).replace(',', '.')); if (isFinite(v) && v >= 0) ov._sob = v; }
-    store.set('planp.' + planCur.id, ov);
+    c.setLineDash([]);
+  }
+  // ponto 3D visível? anda na direção da câmera e vê se a peça tapa
+  function visible3D(p) {
+    var v = planCur.view, az = v.az * Math.PI / 180, el = v.el * Math.PI / 180, sa = Math.sin(az), ca = Math.cos(az), se = Math.sin(el), ce = Math.cos(el), st = planCur.st;
+    var dx = -ce * sa, dy = -ce * ca, dz = se, step = Math.max(0.5, st.cell);
+    for (var t = step * 1.5; t < 2000; t += step) {
+      var x = p[0] + dx * t, y = p[1] + dy * t, z = p[2] + dz * t;
+      if (z > st.top + 0.5) return true;
+      var h = st.hAt(x, y); if (h != null && h > z + 0.3) return false;
+    }
+    return true;
+  }
+  function hitEdge(x, y) {
+    var cands = [];
+    (planCur.proj || []).forEach(function (pe) {
+      if (pe.e.face) return;
+      pe.lines.forEach(function (L, li) {
+        for (var i = 1; i < L.length; i++) {
+          var a = L[i - 1], b = L[i], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)) : 0;
+          var d = Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy);
+          if (d < 18) { var A3 = pe.e.lines[li][i - 1], B3 = pe.e.lines[li][i]; cands.push({ d: d, e: pe.e, p: [A3[0] + (B3[0] - A3[0]) * t, A3[1] + (B3[1] - A3[1]) * t, A3[2] + (B3[2] - A3[2]) * t] }); }
+        }
+      });
+    });
+    cands.sort(function (a, b) { return a.d - b.d; });
+    var seen = {};
+    for (var k = 0; k < cands.length; k++) { var c = cands[k]; if (seen[c.e.key]) continue; seen[c.e.key] = 1; if (visible3D(c.p)) return c.e; }   // a linha mais perto que dá para ver
+    var best = null;
+    (planCur.proj || []).forEach(function (pe) {   // tocou dentro da face de cima = faceamento
+      if (!pe.e.face || best) return;
+      var P = pe.lines[0], ins = false;
+      for (var i = 0, j = P.length - 1; i < P.length; j = i++) if ((P[i][1] > y) !== (P[j][1] > y) && x < (P[j][0] - P[i][0]) * (y - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]) ins = !ins;
+      if (ins) best = pe.e;
+    });
+    return best || (cands[0] && cands[0].e) || null;
   }
   function renderPlan() {
-    var host = $('#drawPlan'); if (!planCur) { host.innerHTML = ''; return; }
-    var pl = planCur.pl, im = drawThumb(planCur.id, 240, 180);
-    var h = '<div class="card dplan"><div class="dp-head">' + (im ? '<img src="' + im + '" alt="">' : '') + '<div><div class="gtitle">' + esc(T('Desenho importado')) + '</div><h2 class="notr">' + esc(pl.name) + '</h2>' +
-      '<p class="hint dp-desc">' + esc(Plan.describe(pl.A)).replace(/\n/g, '<br>') + '</p></div><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>';
-    // 1º: o que é cada elemento — só a vista de cima não mostra alturas
-    var fe = Cad.features(planCur.id) || { esp: pl.esp, list: [] }, KOPT = [['pas', 'Furo/recorte passante'], ['prof', 'Rebaixo (prof. mm)'], ['ress', 'Ressalto (altura mm)'], ['cham', 'Chanfro até a borda (ângulo °)']];
-    h += '<div class="dp-feat"><div class="gtitle">' + esc(T('1. Confira a peça')) + '</div><p class="hint">' + esc(T('A vista de cima não mostra as alturas. Diga o que é cada elemento: furo passante, rebaixo, ressalto (com raio na base) ou chanfro.')) + '</p>' +
-      '<label class="dp-fr"><span>' + esc(T('Altura total da peça')) + '</span><input class="input" id="dpEsp" value="' + String(fe.esp).replace('.', ',') + '" inputmode="decimal"> mm</label>' +
-      fe.list.map(function (f) {
-        var opts = f.t === 'holes' ? KOPT.slice(0, 2) : KOPT;
-        return '<div class="dp-fr" data-eid="' + f.eid + '"><span class="notr">' + esc(f.name) + '</span><select class="input">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === f.kind ? ' selected' : '') + '>' + esc(T(o[1])) + '</option>'; }).join('') + '</select>' +
-          (f.kind !== 'pas' ? '<input class="input dp-v" value="' + String(f.val).replace('.', ',') + '" inputmode="decimal">' : '') +
-          (f.kind === 'ress' ? '<label class="dp-rb">' + esc(T('raio na base')) + ' R<input class="input dp-r" value="' + String(f.rb).replace('.', ',') + '" inputmode="decimal" placeholder="0"></label>' : '') + '</div>';
-      }).join('') + '</div>';
-    var st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
-    h += '<div class="dp-stock"><span>' + esc(T('Bruto')) + ': <b>' + esc(st.shape === 'round' ? T('cilindro') + ' Ø' + Plan.gv(st.d).replace(/\.$/, '') : T('bloco') + ' ' + Plan.gv(st.lx).replace(/\.$/, '') + ' × ' + Plan.gv(st.ly).replace(/\.$/, '')) + ' × ' + Plan.gv(st.top - st.bottom).replace(/\.$/, '') + '</b></span>' +
-      '<label>' + esc(T('sobremetal em volta')) + ' <input class="input" id="dpSob" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label></div>';
-    h += '<div class="gtitle">' + esc(T('2. Operações (um programa para cada)')) + '</div>';
-    pl.ops.forEach(function (op, i) {
-      h += '<div class="dp-op' + (op.on ? '' : ' off') + '" data-op="' + op.key + '"><label class="dp-opt"><input type="checkbox"' + (op.on ? ' checked' : '') + '><b>' + (i + 1) + '. ' + esc(op.title) + '</b><span class="dp-lib">' + esc(PLAN_LIB[op.kind] || '') + '</span></label>' +
-        '<div class="hint">' + esc(op.what) + '</div>' + (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
-        '<details><summary>' + esc(T('Ferramenta e dados de corte')) + ' — Ø' + Plan.gv(op.p.T).replace(/\.$/, '') + ' · T' + op.p.N + ' · S' + op.p.S + ' · F' + op.p.F + '</summary><div class="dp-grid">' +
-        (PLAN_KEYS[op.kind] || []).map(function (k) { return '<label><span>' + esc(T(PLAN_F[k])) + '</span><input class="input" data-k="' + k + '" value="' + String(op.p[k]).replace('.', ',') + '" inputmode="decimal"></label>'; }).join('') + '</div></details></div>';
-    });
-    if (pl.notes.length) h += pl.notes.map(function (n) { return '<div class="note">' + esc(n) + '</div>'; }).join('');
-    h += '<p class="hint">' + esc(T('Valores de partida para aço com ferramenta comum: confira ferramenta, rotação, avanço e Z antes de rodar. Zero-peça = X0 Y0 do desenho, Z0 = face de cima acabada.')) + '</p>';
-    h += '<div class="row wrap"><button type="button" class="ui-btn primary" id="dpGen"><span data-icon="save"></span> ' + esc(T('Gerar e salvar em Meus Programas')) + '</button>' +
-      '<button type="button" class="ui-btn" id="dpAsk"><span data-icon="chat"></span> ' + esc(T('Perguntar ao assistente')) + '</button></div>';
-    if (planCur.out) {
-      h += '<div class="gtitle" style="margin-top:14px">' + esc(T('Programas gerados e salvos')) + '</div>' + planCur.out.map(function (f, i) {
-        return '<div class="dp-res"><b>' + esc(f.O) + '</b> <span class="notr">' + esc(f.title) + '</span><div class="row wrap">' +
-          '<button type="button" class="btn" data-r="sim" data-i="' + i + '">' + esc(T('Simular')) + '</button><button type="button" class="btn" data-r="ed" data-i="' + i + '">' + esc(T('Editor')) + '</button>' +
-          '<button type="button" class="btn" data-r="dl" data-i="' + i + '">' + esc(T('Baixar')) + '</button></div></div>';
-      }).join('') + '<button type="button" class="ui-btn wide" id="dpLib"><span data-icon="folder"></span> ' + esc(T('Abrir Meus Programas')) + '</button>';
-    }
+    var host = $('#drawPlan'); $('#chatSetup').classList.toggle('hidden', !!planCur || Assistant.isReady());
+    if (!planCur) { host.innerHTML = ''; return; }
+    var pl = planCur.pl, ops = selOps(), st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
+    var stTxt = (st.shape === 'round' ? 'Ø' + Plan.gv(st.d).replace(/\.$/, '') : Plan.gv(st.lx).replace(/\.$/, '') + '×' + Plan.gv(st.ly).replace(/\.$/, '')) + '×' + Plan.gv(st.top - st.bottom).replace(/\.$/, '');
+    var h = '<div class="card dp3"><div class="dp3-h"><b class="notr">' + esc(pl.name) + '</b><button type="button" class="ui-chip" id="dpHq">✎ ' + esc(T('Alturas')) + '</button><button type="button" class="ui-ico" id="dpClose" aria-label="Fechar">✕</button></div>' +
+      '<div class="dp3-cv"><canvas id="dpCv"></canvas><span class="dp3-tip">' + esc(T('Toque na linha a usinar · arraste para girar')) + '</span></div>' +
+      '<div class="dp3-sel">' + (ops.length ? ops.map(function (op, i) {
+        return '<div class="dp3-op" data-k="' + op.key + '"><span class="n">' + (i + 1) + '</span><span class="t">' + esc(op.title) + '<small>Ø' + Plan.gv(op.p.T).replace(/\.$/, '') + ' · T' + op.p.N + ' · S' + op.p.S + ' · F' + op.p.F + '</small></span>' +
+          (op.warn && op.warn.length ? '<span class="w" title="' + esc(op.warn[0]) + '">!</span>' : '') + '<button type="button" class="x" aria-label="Tirar">✕</button></div>';
+      }).join('') : '') + '</div>' +
+      '<div class="dp3-act"><button type="button" class="ui-chip" id="dpStock">' + esc(T('Bruto')) + ' ' + esc(stTxt) + '</button>' +
+      '<button type="button" class="ui-btn primary" id="dpGen"' + (ops.length ? '' : ' disabled') + '><span data-icon="save"></span> ' + esc(ops.length ? T('Gerar') + ' ' + ops.length + ' ' + (ops.length > 1 ? T('programas') : T('programa')) : T('Toque numa linha')) + '</button></div>';
+    if (planCur.out) h += '<div class="dp3-res">' + planCur.out.map(function (f, i) {
+      return '<div class="dp-res"><b>' + esc(f.O) + '</b> <span class="notr">' + esc(f.title) + '</span><span class="row"><button type="button" class="btn" data-r="sim" data-i="' + i + '">' + esc(T('Simular')) + '</button><button type="button" class="btn" data-r="ed" data-i="' + i + '">' + esc(T('Editor')) + '</button></span></div>';
+    }).join('') + '</div>';
     h += '</div>';
     host.innerHTML = h; paintArt(host);
+    requestAnimationFrame(draw3D);
     $('#dpClose').onclick = function () { planCur = null; store.set('plan.cur', null); renderPlan(); };
-    $('#dpSob').addEventListener('change', function () { var id = planCur.id; readPlanForm(); setTimeout(function () { loadPlan(id); }, 0); });
-    $('#dpEsp').addEventListener('change', function () { var v = parseFloat(String(this.value).replace(',', '.')), id = planCur.id; if (v > 0) { readPlanForm(); Cad.setEsp(id, v); setTimeout(function () { loadPlan(id); }, 0); } });
-    host.querySelectorAll('.dp-fr[data-eid]').forEach(function (r) {
-      function upd() {
-        if (!planCur) return;
-        readPlanForm(); var v = r.querySelector('.dp-v'), rb = r.querySelector('.dp-r'), id = planCur.id;
-        Cad.setFeature(id, r.dataset.eid, r.querySelector('select').value, v ? String(v.value).replace(',', '.') : '', rb ? String(rb.value).replace(',', '.') : '');
-        setTimeout(function () { if (planCur && planCur.id === id) loadPlan(id); }, 0);   // redesenha depois do evento (o campo ainda está em foco)
-      }
-      r.querySelectorAll('select, input').forEach(function (i) { i.addEventListener('change', upd); });
-    });
-    host.querySelectorAll('.dp-op input').forEach(function (i) { i.addEventListener('change', function () { readPlanForm(); if (i.type === 'checkbox') i.closest('.dp-op').classList.toggle('off', !i.checked); }); });
+    $('#dpHq').onclick = function () { var id = planCur.id; askHeights(id, function () { loadPlan(id, true); }); };
+    $('#dpStock').onclick = function () {
+      openSheet(T('Bruto'), '<label class="hq-esp"><span>' + esc(T('Sobremetal em volta')) + '</span><input class="input" id="sbV" value="' + String(pl.sob).replace('.', ',') + '" inputmode="decimal"> mm</label><div class="sheet-acts"><button type="button" class="ui-btn primary" id="sbOk">OK</button></div>');
+      $('#sbOk').onclick = function () { var v = parseFloat(String($('#sbV').value).replace(',', '.')); if (v >= 0) { var ov = planOv(planCur.id); ov._sob = v; setPlanOv(planCur.id, ov); } closeSheet(); loadPlan(planCur.id, true); };
+    };
     $('#dpGen').onclick = genPlan;
-    $('#dpAsk').onclick = askPlan;
+    host.querySelectorAll('.dp3-op').forEach(function (r) {
+      r.querySelector('.x').onclick = function (e) { e.stopPropagation(); planCur.sel = planCur.sel.filter(function (k) { return k !== r.dataset.k; }); saveSel(); planCur.out = null; renderPlan(); };
+      r.onclick = function () { editOp(r.dataset.k); };
+    });
     host.querySelectorAll('[data-r]').forEach(function (b) {
       b.onclick = function () {
         var f = planCur.out[+b.dataset.i];
         if (b.dataset.r === 'sim') { setEditor(f.text, f.name); openSim(f.text, libraryMatch(f.text), f.name); }
-        else if (b.dataset.r === 'ed') { setEditor(f.text, f.name); show('editor'); }
-        else download(f.O + '.txt', f.text);
+        else { setEditor(f.text, f.name); show('editor'); }
       };
     });
-    var lb = $('#dpLib'); if (lb) lb.onclick = function () { libTab = 'todos'; show('meus'); };
+    // girar com o dedo; toque curto = escolher a linha
+    var cv = $('#dpCv'), d0 = null, raf = 0;
+    cv.addEventListener('pointerdown', function (e) { d0 = { x: e.clientX, y: e.clientY, az: planCur.view.az, el: planCur.view.el, moved: false }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', function (e) {
+      if (!d0) return; var dx = e.clientX - d0.x, dy = e.clientY - d0.y;
+      if (!d0.moved && Math.hypot(dx, dy) < 7) return; d0.moved = true;
+      planCur.view.az = d0.az - dx * 0.5; planCur.view.el = Math.max(5, Math.min(89, d0.el + dy * 0.4));
+      if (!raf) raf = requestAnimationFrame(function () { raf = 0; draw3D(); });
+    });
+    cv.addEventListener('pointerup', function (e) {
+      if (!d0) return; var tap = !d0.moved; d0 = null; if (!tap) return;
+      var r = cv.getBoundingClientRect(), hit = hitEdge(e.clientX - r.left, e.clientY - r.top);
+      if (!hit) return toast(T('Toque em cima de uma linha.'));
+      var i = planCur.sel.indexOf(hit.key);
+      if (i >= 0) planCur.sel.splice(i, 1); else { planCur.sel.push(hit.key); toast(hit.label); }
+      saveSel(); planCur.out = null; renderPlan();
+    });
+  }
+  function editOp(key) {
+    var op = planCur.pl.ops.filter(function (o) { return o.key === key; })[0]; if (!op) return;
+    openSheet(op.title, '<p class="hint">' + esc(op.what) + '</p>' + (op.warn || []).map(function (w) { return '<div class="note">' + esc(w) + '</div>'; }).join('') +
+      '<div class="dp-grid">' + (PLAN_KEYS[op.kind] || []).map(function (k) { return '<label><span>' + esc(T(PLAN_F[k])) + '</span><input class="input" data-k="' + k + '" value="' + String(op.p[k]).replace('.', ',') + '" inputmode="decimal"></label>'; }).join('') + '</div>' +
+      '<div class="sheet-acts"><button type="button" class="ui-btn primary" id="eoOk">OK</button></div>');
+    $('#eoOk').onclick = function () {
+      var ov = planOv(planCur.id), pk = (ov[key] && ov[key].p) || {};
+      $$('#sheetBody input[data-k]').forEach(function (i) { var v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) { op.p[i.dataset.k] = v; if (v !== op.def[i.dataset.k]) pk[i.dataset.k] = v; else delete pk[i.dataset.k]; } });
+      ov[key] = { p: pk }; setPlanOv(planCur.id, ov); closeSheet(); planCur.out = null; renderPlan();
+    };
   }
   function genPlan() {
-    readPlanForm();
-    var pl = planCur.pl, on = pl.ops.filter(function (op) { return op.on; });
-    if (!on.length) return toast('Marque pelo menos uma operação.');
+    var pl = planCur.pl, on = selOps();
+    if (!on.length) return;
     // números dos programas: cada desenho ganha uma dezena só dele (O0101..O0109, O0111..O0119, ...)
     var nums = store.get('plan.num', {}), lib = getLib();
     if (!nums[planCur.id]) { var used = Object.keys(nums).map(function (k) { return nums[k]; }); var b0 = 100; while (used.indexOf(b0) >= 0) b0 += 10; nums[planCur.id] = b0; store.set('plan.num', nums); }
-    var base = nums[planCur.id], now = Date.now();
-    var out = [];
+    var base = nums[planCur.id], now = Date.now(), out = [];
+    pl.ops.forEach(function (op) { op.on = on.indexOf(op) >= 0; });
     on.forEach(function (op, i) {
       op.idx = i + 1;
       var r = Plan.build(pl, op, base + i + 1), name = pl.name + ' · Op ' + (i + 1) + ' ' + op.title + ' (' + r.O + ')';
@@ -1718,17 +1798,9 @@
     if (store.set('lib', lib)) toast(out.length + ' ' + T('programas salvos em Meus Programas.'));
     planCur.out = out; renderPlan();
   }
-  function askPlan() {
-    readPlanForm();
-    var pl = planCur.pl, desc = Plan.describe(pl.A);
-    var ops = pl.ops.filter(function (o) { return o.on; }).map(function (o, i) { return (i + 1) + '. ' + o.title + ' — ' + o.what + ' (Ø' + o.p.T + ', T' + o.p.N + ')'; }).join('\n');
-    var text = T('Peça do desenho (importada da aba Desenho):') + '\n' + desc + '\n\n' + T('Operações que separei:') + '\n' + ops + '\n\n' + T('Monte um programa para cada operação, no padrão da biblioteca, usando as macros aprovadas quando servirem.');
-    ta.value = text; ta.dispatchEvent(new Event('input'));
-    if (!Assistant.isReady()) { checkChatSetup(); toast('O assistente precisa da chave da API. Sem ela, use "Gerar e salvar".'); }
-    else { ta.focus(); toast('Pedido montado. Confira e toque em Enviar.'); }
-  }
-  $('#btnImpDraw').addEventListener('click', function () { pickDrawing(loadPlan); });
-  setTimeout(function () { var pid = store.get('plan.cur', null); if (pid && window.Cad && window.Plan) { try { if (Cad.ensure() && Cad.savedList().some(function (d) { return d.id === pid; })) loadPlan(pid); } catch (e) {} } }, 0);
+  $('#btnImpDraw').addEventListener('click', function () { pickDrawing(function (id) { loadPlan(id); }); });
+  window.addEventListener('resize', function () { if (planCur) requestAnimationFrame(draw3D); });
+  setTimeout(function () { var pid = store.get('plan.cur', null); if (pid && window.Cad && window.Plan) { try { if (Cad.ensure() && Cad.savedList().some(function (d) { return d.id === pid; })) loadPlan(pid, true); } catch (e) {} } }, 0);
 
   /* ---------- CONFIG ---------- */
   function loadCfgUi() {
