@@ -1741,6 +1741,7 @@
   function renderPlan() {
     var host = $('#drawPlan'); $('#chatSetup').classList.toggle('hidden', !!planCur || Assistant.isReady());
     $('#chatLog').classList.toggle('hidden', !!planCur && !chat.length);   // sem o texto de exemplos embaixo do desenho
+    $('#view-pedir').classList.toggle('plan-open', !!planCur);   // com desenho aberto: some a caixa de texto, a tela inteira fica para o desenho
     if (!planCur) { host.innerHTML = ''; return; }
     var pl = planCur.pl, ops = selOps(), st = Plan.stockOf(pl.A, pl.sob, (pl.ops.filter(function (o) { return o.kind === 'face'; })[0] || { p: { W: 0 } }).p.W);
     var stTxt = (st.shape === 'round' ? 'Ø' + Plan.gv(st.d).replace(/\.$/, '') : Plan.gv(st.lx).replace(/\.$/, '') + '×' + Plan.gv(st.ly).replace(/\.$/, '')) + '×' + Plan.gv(st.top - st.bottom).replace(/\.$/, '');

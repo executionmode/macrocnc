@@ -520,3 +520,7 @@ label.dp-fr > span { flex: 1 1 auto; }
 .adj-rc { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ui-mut); margin-bottom: 8px; }
 .adj-rc.hidden { display: none; }
 .adj-rc .input { padding: 8px; font-size: 15px; width: 120px; }
+/* desenho aberto no Pedir Programa: tira a caixa do assistente da frente */
+#view-pedir.plan-open .chat-row, #view-pedir.plan-open #chatKind, #view-pedir.plan-open .chat-opts .ctx { display: none; }
+#view-pedir.plan-open .chat-opts { justify-content: center; margin-bottom: 0; }
+#view-pedir.plan-open #drawPlan { padding-bottom: 90px; }
