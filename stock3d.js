@@ -194,8 +194,52 @@
     var ln = Math.hypot(Lw[0], Lw[1], Lw[2]); Lw = [Lw[0] / ln, Lw[1] / ln, Lw[2] / ln];
     var top = st.top, zr = Math.max(1e-6, top - (st.sim.zMin == null ? top - 1 : Math.min(st.sim.zMin, top)));
     var order = st._order, bottom = st.bottom;
+    var vYm = ca > -1e-9, vYp = ca < 1e-9, vXm = sa > -1e-9, vXp = sa < 1e-9;   // paredes visíveis: normal apontando para quem olha
+    // vazios ligados à borda = lado de fora; os outros vazios são furos/recortes passantes
+    if (st._outKey !== nx + '|' + ny + '|' + ins.length) {
+      var out = new Uint8Array(nx * ny), stack = [];
+      for (var bi = 0; bi < nx; bi++) { stack.push(bi, (ny - 1) * nx + bi); }
+      for (var bj = 0; bj < ny; bj++) { stack.push(bj * nx, bj * nx + nx - 1); }
+      while (stack.length) {
+        var q = stack.pop(); if (out[q] || ins[q]) continue; out[q] = 1;
+        var qi = q % nx, qj = (q - qi) / nx;
+        if (qi > 0) stack.push(q - 1); if (qi < nx - 1) stack.push(q + 1); if (qj > 0) stack.push(q - nx); if (qj < ny - 1) stack.push(q + nx);
+      }
+      st._out = out; st._outKey = nx + '|' + ny + '|' + ins.length;
+    }
+    var outM = st._out;
+    function isHole(q) { return !ins[q] && !outM[q]; }
+    // uma célula só é desenhada com os 4 cantos dentro; a parede vai onde a célula vizinha não é desenhada
+    function cellIn(q) { return q >= 0 && q + nx + 1 < ins.length && ins[q] && ins[q + 1] && ins[q + nx] && ins[q + nx + 1]; }
+    function holeCell(q) { return q >= 0 && q + nx + 1 < ins.length && !cellIn(q) && (isHole(q) || isHole(q + 1) || isHole(q + nx) || isHole(q + nx + 1)) && !(outM[q] || outM[q + 1] || outM[q + nx] || outM[q + nx + 1]); }
+    // 1º: paredes dos furos (de trás para frente). O resto da peça, desenhado depois, cobre o que fica escondido;
+    // só aparece a parede de dentro do furo vista pela boca dele.
+    for (var o0 = 0; o0 < order.length; o0++) {
+      var k0 = order[o0];
+      if (!ins[k0] || !ins[k0 + 1] || !ins[k0 + nx] || !ins[k0 + nx + 1]) continue;
+      var i0 = k0 % nx, j0 = (k0 - i0) / nx;
+      if (i0 === 0 || j0 === 0 || i0 === nx - 2 || j0 === ny - 2) continue;
+      var xa0 = x0 + i0 * cell, ya0 = y0 + j0 * cell, xb0 = xa0 + cell, yb0 = ya0 + cell;
+      if (vYm && holeCell(k0 - nx)) wall(xa0, ya0, h[k0], xb0, ya0, h[k0 + 1], 1.1, k0);
+      if (vYp && holeCell(k0 + nx)) wall(xa0, yb0, h[k0 + nx], xb0, yb0, h[k0 + nx + 1], 0.8, k0);
+      if (vXm && holeCell(k0 - 1)) wall(xa0, ya0, h[k0], xa0, yb0, h[k0 + nx], 0.95, k0);
+      if (vXp && holeCell(k0 + 1)) wall(xb0, ya0, h[k0 + 1], xb0, yb0, h[k0 + nx + 1], 0.9, k0);
+    }
     function S(x, y, z) { var q = P(x, y, z); return [ox + q[0] * sc, oy + q[1] * sc]; }
-    function wall(xa, ya, za, xb, yb, zb, shade) {
+    // sombra da parede pela direção real do contorno (em curvas não fica listrado como escada)
+    function smoothShade(k, shade) {
+      if (k == null) return shade;
+      var ki = k % nx, kj = (k - ki) / nx, gx = 0, gy = 0;
+      for (var dj = -4; dj <= 5; dj++) for (var di = -4; di <= 5; di++) {
+        var qi = ki + di, qj = kj + dj; if (qi < 0 || qj < 0 || qi >= nx || qj >= ny) continue;
+        if (ins[qj * nx + qi]) { var wgt = Math.exp(-((di - 0.5) * (di - 0.5) + (dj - 0.5) * (dj - 0.5)) / 8); gx += (di - 0.5) * wgt; gy += (dj - 0.5) * wgt; }
+      }
+      var gl = Math.hypot(gx, gy); if (gl < 1e-6) return shade;
+      var nxx = -gx / gl, nyy = -gy / gl;   // normal para fora do material
+      return 0.9375 - 0.025 * nxx - 0.15 * nyy;
+    }
+    function wall(xa, ya, za, xb, yb, zb, shade, k) {
+      shade = smoothShade(k, shade);
       var a = S(xa, ya, za), b = S(xb, yb, zb), b2 = S(xb, yb, bottom), a2 = S(xa, ya, bottom);
       c.fillStyle = prn ? 'rgb(' + Math.round(120 * shade) + ',' + Math.round(126 * shade) + ',' + Math.round(134 * shade) + ')' : pal ? 'rgb(' + Math.round(28 * shade) + ',' + Math.round(150 * shade) + ',' + Math.round(30 * shade) + ')' : 'rgb(' + Math.round(70 * shade) + ',' + Math.round(78 * shade) + ',' + Math.round(88 * shade) + ')';
       c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(b2[0], b2[1]); c.lineTo(a2[0], a2[1]); c.closePath(); c.fill();
@@ -277,10 +321,11 @@
       var edge = jj === 0 || jj === ny - 2 || ii === 0 || ii === nx - 2 || !ins[k - nx] || !ins[k + 2 * nx] || !ins[k - 1] || !ins[k + 2];
       if (pc[0] < -cullPad || pc[0] > W + cullPad || pc[1] > H + cullPad || (!edge && pc[1] < -cullPad)) continue;
       // paredes externas do bruto
-      if (jj === 0 || !ins[k - nx]) wall(xa, ya, h00, xb, ya, h10, 1.1);
-      if (jj === ny - 2 || !ins[k + 2 * nx]) wall(xa, yb, h01, xb, yb, h11, 0.8);
-      if (ii === 0 || !ins[k - 1]) wall(xa, ya, h00, xa, yb, h01, 0.95);
-      if (ii === nx - 2 || !ins[k + 2]) wall(xb, ya, h10, xb, yb, h11, 0.9);
+      // só as paredes viradas para quem olha (as de trás ficam escondidas e, desenhadas, vazavam através da peça)
+      if (vYm && (jj === 0 || (!cellIn(k - nx) && !holeCell(k - nx)))) wall(xa, ya, h00, xb, ya, h10, 1.1, k);
+      if (vYp && (jj === ny - 2 || (!cellIn(k + nx) && !holeCell(k + nx)))) wall(xa, yb, h01, xb, yb, h11, 0.8, k);
+      if (vXm && (ii === 0 || (!cellIn(k - 1) && !holeCell(k - 1)))) wall(xa, ya, h00, xa, yb, h01, 0.95, k);
+      if (vXp && (ii === nx - 2 || (!cellIn(k + 1) && !holeCell(k + 1)))) wall(xb, ya, h10, xb, yb, h11, 0.9, k);
       var dzx = (h10 + h11 - h00 - h01) / (2 * cell), dzy = (h01 + h11 - h00 - h10) / (2 * cell);
       var nl = Math.sqrt(dzx * dzx + dzy * dzy + 1);
       var lum = Math.max(0, (-dzx * Lw[0] - dzy * Lw[1] + Lw[2]) / nl);
@@ -293,7 +338,7 @@
       c.fillStyle = 'rgb(' + Math.round(R * f) + ',' + Math.round(Gc * f) + ',' + Math.round(B * f) + ')';
       var p1 = S(xa, ya, h00), p2 = S(xb, ya, h10), p3 = S(xb, yb, h11), p4 = S(xa, yb, h01);
       c.beginPath(); c.moveTo(p1[0], p1[1]); c.lineTo(p2[0], p2[1]); c.lineTo(p3[0], p3[1]); c.lineTo(p4[0], p4[1]); c.closePath(); c.fill();
-      c.strokeStyle = c.fillStyle; c.lineWidth = 0.6; c.stroke();
+      c.strokeStyle = c.fillStyle; c.lineWidth = prn ? 1.4 : 0.6; c.stroke();
     }
     if (toolPending) drawTool();
     // colisões
