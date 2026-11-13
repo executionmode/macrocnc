@@ -2026,6 +2026,7 @@
     },
     openEditor: function (text, name) { setEditor(text, name); show('editor'); },
     // salvar arquivo pela página do Claude (quando o app roda como artefato); null = não disponível aqui
+    hasDownloads: function () { return !!RT.downloads; },
     saveFile: function (filename, data) { return RT.downloads ? RT.downloads.save({ filename: filename, data: data }) : null; }
   };
 })();

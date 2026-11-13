@@ -149,6 +149,7 @@
   var LS = [['cont', '━━ Cheia'], ['trac', '╍╍ Tracejada'], ['pont', '┈┈ Pontilhada'], ['tp', '─·─ Traço-ponto']];
   var LS_OK = { circle: 1, rect: 1, line: 1, arc: 1, poly: 1 };
   var curLs = 'cont';
+  var clipRad = null;   // folha A4: caixa da peça (raio com centro fora dela ganha chamada curta)
   function isRef(e) { return e.ls === 'pont' || e.ls === 'tp'; }   // linhas de referência: não viram peça no 3D
   function noPart(e) { return isRef(e) || e.ign; }   // marcada como "ignorar" (ex.: linha onde o raio encontra a face): fica no desenho, não vira peça
   function lsDash(ls, k) { return ls === 'trac' ? [9 * k, 5 * k] : ls === 'pont' ? [0.1 * k, 4.5 * k] : ls === 'tp' ? [16 * k, 4 * k, 2.5 * k, 4 * k] : []; }
@@ -230,7 +231,9 @@
     } else if (e.k === 'dia' || e.k === 'rad') {
       var c = resCirc(e.c), ua = [Math.cos(e.ang * D2R), Math.sin(e.ang * D2R)], P = [c.x + c.r * ua[0], c.y + c.r * ua[1]];
       var Lp = [P[0] + ua[0] * 22 * k, P[1] + ua[1] * 22 * k], sg = ua[0] >= 0 ? 1 : -1, L2p = [Lp[0] + sg * (tw + 6 * k), Lp[1]];
-      if (e.k === 'rad') { seg([c.x, c.y], P); arrow(P, ua); }
+      var far = e.k === 'rad' && clipRad && (c.x < clipRad[0] || c.x > clipRad[2] || c.y < clipRad[1] || c.y > clipRad[3]);
+      if (far) { var Lr = Math.min(c.r, Math.max(Math.min(clipRad[2] - clipRad[0], clipRad[3] - clipRad[1]) * 0.35, 20 * k)); seg([P[0] - ua[0] * Lr, P[1] - ua[1] * Lr], P); arrow(P, ua); }   // raio grande com centro fora da peça: chamada curta, sem ir até o centro
+      else if (e.k === 'rad') { seg([c.x, c.y], P); arrow(P, ua); }
       else { seg([c.x - c.r * ua[0], c.y - c.r * ua[1]], P); arrow(P, ua); arrow([c.x - c.r * ua[0], c.y - c.r * ua[1]], [-ua[0], -ua[1]]); }
       seg(P, Lp); seg(Lp, L2p);
       text((Lp[0] + L2p[0]) / 2, Lp[1] + h * 0.7, 0, s);
@@ -524,6 +527,11 @@
       var ix = +(e.target.dataset.kind3d != null ? e.target.dataset.kind3d : e.target.dataset.val3d != null ? e.target.dataset.val3d : e.target.dataset.rb3d), en = doc.ents[ix];
       var row = e.target.closest('.cad-dli'), kd = row.querySelector('select').value, pv = num(row.querySelector('input[data-val3d]').value), rbi = row.querySelector('input[data-rb3d]');
       if (en) { setKind(en, kd, pv, rbi ? num(rbi.value) : en.rb); save(); draw(); render3D(true); refreshDepth(); }
+    }
+    if (e.target.dataset && e.target.dataset.shcut) {   // onde passam os cortes da folha A4 (medido do X0 Y0)
+      var shk = e.target.dataset.shcut, shv = String(e.target.value).trim().replace(',', '.'); doc.sheet = doc.sheet || {};
+      if (shk === 'cuts') doc.sheet.cuts = shv; else doc.sheet[shk] = shv === '' || !isFinite(parseFloat(shv)) ? null : parseFloat(shv);
+      save();
     }
     if (e.target.dataset && e.target.dataset.docf) { doc[e.target.dataset.docf] = e.target.value.trim(); save(); }
     if (e.target.dataset && e.target.dataset.sheet) { var au = sheetAuthors(); au[e.target.dataset.sheet] = e.target.value.trim(); try { localStorage.setItem(SHEET_KEY, JSON.stringify(au)); } catch (er) {} }
@@ -1462,7 +1470,7 @@
         ctx.save(); ctx.strokeStyle = col || COL.cl; ctx.lineWidth = 1 * pxk; ctx.beginPath(); ctx.moveTo(q[0] - L, q[1]); ctx.lineTo(q[0] + L, q[1]); ctx.moveTo(q[0], q[1] - L); ctx.lineTo(q[0], q[1] + L); ctx.stroke(); ctx.restore();
       }
     });
-    if ((e.t === 'poly' || e.t === 'arc') && showCl) { var cp = toS(e.x, e.y), Lp = 6 * pxk; ctx.save(); ctx.strokeStyle = col || COL.cl; ctx.lineWidth = 1 * pxk; ctx.beginPath(); ctx.moveTo(cp[0] - Lp, cp[1]); ctx.lineTo(cp[0] + Lp, cp[1]); ctx.moveTo(cp[0], cp[1] - Lp); ctx.lineTo(cp[0], cp[1] + Lp); ctx.stroke(); ctx.restore(); }
+    if ((e.t === 'poly' || e.t === 'arc') && showCl && !(clipRad && e.t === 'arc' && (e.x < clipRad[0] || e.x > clipRad[2] || e.y < clipRad[1] || e.y > clipRad[3]))) { var cp = toS(e.x, e.y), Lp = 6 * pxk; ctx.save(); ctx.strokeStyle = col || COL.cl; ctx.lineWidth = 1 * pxk; ctx.beginPath(); ctx.moveTo(cp[0] - Lp, cp[1]); ctx.lineTo(cp[0] + Lp, cp[1]); ctx.moveTo(cp[0], cp[1] - Lp); ctx.lineTo(cp[0], cp[1] + Lp); ctx.stroke(); ctx.restore(); }
   }
   function drawDim(e, col) {
     var g = dimGeom(e, pxk / view.s);
@@ -1676,6 +1684,9 @@
       '<label class="cad-f"><span>' + esc(T('Aprovado por (folha A4)')) + '</span><input type="text" data-sheet="apr" value="' + esc(au.apr) + '"></label>' +
       '<label class="cad-f"><span>' + esc(T('Material (deste desenho)')) + '</span><input type="text" data-docf="mat" value="' + esc(doc.mat || '') + '" placeholder="' + esc(T('ex.: Aço SAE 1045')) + '"></label>' +
       '<label class="cad-f"><span>' + esc(T('Tolerância geral (folha A4)')) + '</span><input type="text" data-sheet="tol" value="' + esc(au.tol) + '"></label>' +
+      '<label class="cad-f"><span>' + esc(T('Cortes na folha A4')) + '</span><select data-shcut="cuts"><option value="auto"' + ((doc.sheet || {}).cuts === 'none' ? '' : ' selected') + '>' + esc(T('Com cortes')) + '</option><option value="none"' + ((doc.sheet || {}).cuts === 'none' ? ' selected' : '') + '>' + esc(T('Sem cortes')) + '</option></select></label>' +
+      '<label class="cad-f"><span>' + esc(T('Corte A-A na altura Y (vazio = automático)')) + '</span><input type="text" inputmode="decimal" data-shcut="cutA" value="' + esc((doc.sheet || {}).cutA != null ? String((doc.sheet || {}).cutA) : '') + '"></label>' +
+      '<label class="cad-f"><span>' + esc(T('Corte B-B na posição X (vazio = automático)')) + '</span><input type="text" inputmode="decimal" data-shcut="cutB" value="' + esc((doc.sheet || {}).cutB != null ? String((doc.sheet || {}).cutB) : '') + '"></label>' +
       '<div class="cad-menu">' +
       btn('xdxf', 'DXF (AutoCAD, SolidWorks)', 'primary') + btn('xpdf', 'PDF (para imprimir)') + btn('xpng', 'Imagem PNG') + btn('xjson', 'Cópia de segurança (.json)') + btn('ijson', 'Abrir cópia de segurança') + '</div>');
   }
@@ -1739,7 +1750,23 @@
     g(0, 'ENDSEC'); g(0, 'EOF');
     return out.join('\r\n') + '\r\n';
   }
-  function exportDXF() { shareOrDownload(new Blob([dxfText()], { type: 'application/dxf' }), fileName('dxf')); }
+  function exportDXF() {
+    var txt = dxfText();
+    if (root.App && root.App.hasDownloads && root.App.hasDownloads()) shareOrDownload(new Blob([zipStore(fileName('dxf'), txt)], { type: 'application/zip' }), fileName('dxf').replace(/\.dxf$/, '_dxf.zip'));   // dentro do Claude: o .dxf vai dentro de um .zip
+    else shareOrDownload(new Blob([txt], { type: 'application/dxf' }), fileName('dxf'));
+  }
+  function zipStore(name, text) {   // .zip sem compressão com um arquivo só
+    var data = new TextEncoder().encode(text), nm = new TextEncoder().encode(name), crc = -1;
+    for (var i = 0; i < data.length; i++) { crc ^= data[i]; for (var k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1)); }
+    crc = (crc ^ -1) >>> 0;
+    var d = new Date(), dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xffff, dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xffff;
+    var out = new Uint8Array(30 + nm.length + data.length + 46 + nm.length + 22), v = new DataView(out.buffer), o = 0;
+    function w4(x) { v.setUint32(o, x, true); o += 4; } function w2(x) { v.setUint16(o, x, true); o += 2; }
+    w4(0x04034b50); w2(20); w2(0x0800); w2(0); w2(dt); w2(dd); w4(crc); w4(data.length); w4(data.length); w2(nm.length); w2(0); out.set(nm, o); o += nm.length; out.set(data, o); o += data.length;
+    var cd = o; w4(0x02014b50); w2(20); w2(20); w2(0x0800); w2(0); w2(dt); w2(dd); w4(crc); w4(data.length); w4(data.length); w2(nm.length); w2(0); w2(0); w2(0); w2(0); w4(0); w4(0); out.set(nm, o); o += nm.length;
+    var cdl = o - cd; w4(0x06054b50); w2(0); w2(0); w2(1); w2(1); w4(cdl); w4(cd); w2(0);
+    return out;
+  }
   // desenha num canvas fora da tela, fundo branco, com moldura e legenda
   function renderSheet(PW, PH) {
     var c = document.createElement('canvas'); c.width = PW; c.height = PH;
@@ -1777,6 +1804,26 @@
     var bx0 = st.ob[0], by0 = st.ob[1], bx1 = st.ob[2], by1 = st.ob[3];
     var pcx = (bx0 + bx1) / 2, pcy = (by0 + by1) / 2, pw = bx1 - bx0, ph = by1 - by0;
     var ents = doc.ents.filter(function (e) { return vis(e); });
+    clipRad = [bx0, by0, bx1, by1];
+    // cotas em X/Y empilhadas fora da peça com espaço fixo no papel (texto de uma não cai em cima da outra)
+    var dimQ = [], stackL = [], stackR = [], stackB = [], stackT = [];
+    ents.forEach(function (e) {
+      if (e.t !== 'dim' || e.k !== 'lin' || (e.o !== 'h' && e.o !== 'v')) return;
+      var A = resPt(e.p1), B = resPt(e.p2), span = e.o === 'v' ? Math.abs(B[1] - A[1]) : Math.abs(B[0] - A[0]);
+      dimQ.push([e, e.q.x, e.q.y]);
+      if (e.o === 'v') { if (e.q.x < bx0 + 1e-6) stackL.push([e, span]); else if (e.q.x > bx1 - 1e-6) stackR.push([e, span]); }
+      else { if (e.q.y < by0 + 1e-6) stackB.push([e, span]); else if (e.q.y > by1 - 1e-6) stackT.push([e, span]); }
+    });
+    [stackL, stackR, stackB, stackT].forEach(function (L) { L.sort(function (a, b) { return a[1] - b[1]; }); });
+    function stackDims(scl) {   // scl = mm do papel por mm da peça
+      function off(i) { return (9 + i * 8) / scl; }
+      stackL.forEach(function (d, i) { d[0].q.x = bx0 - off(i); });
+      stackR.forEach(function (d, i) { d[0].q.x = bx1 + off(i); });
+      stackB.forEach(function (d, i) { d[0].q.y = by0 - off(i); });
+      stackT.forEach(function (d, i) { d[0].q.y = by1 + off(i); });
+    }
+    function unstack() { dimQ.forEach(function (d) { d[0].q.x = d[1]; d[0].q.y = d[2]; }); clipRad = null; }
+    try {
 
     /* ---------- onde cortar: a linha que passa pelos detalhes mais importantes ---------- */
     var feats = [];   // detalhes de dentro: furos, círculos e contornos internos
@@ -1799,11 +1846,23 @@
       });
       return best;
     }
-    var cutA = bestCut('h', pcy, null);
+    var SH = doc.sheet || {}, noCut = SH.cuts === 'none';
+    var cutA = isFinite(parseFloat(SH.cutA)) ? doc.origin.y + parseFloat(SH.cutA) : bestCut('h', pcy, null);
     var aEnts = crossed('h', cutA).map(function (f) { return f.e; });
-    var cutB = bestCut('v', pcx, aEnts);
+    var cutB = isFinite(parseFloat(SH.cutB)) ? doc.origin.x + parseFloat(SH.cutB) : bestCut('v', pcx, aEnts);
     var lookA = cutA <= pcy + 1e-6 ? 1 : -1;      // A-A olha para +Y (ou -Y): o lado com mais peça
     var lookB = cutB >= pcx - 1e-6 ? -1 : 1;      // B-B olha para -X (ou +X)
+    function cutExt(axis, v, look) {   // largura que o corte ocupa no papel: material cortado + o que se vê atrás dele
+      var a0 = axis === 'h' ? bx0 : by0, a1 = axis === 'h' ? bx1 : by1, N = 400, f = -1, l = -1;
+      var d1 = axis === 'h' ? (look > 0 ? by1 : by0) : (look > 0 ? bx1 : bx0);
+      function solid(uu) { for (var j = 0; j <= 40; j++) { var dd = v + (d1 - v) * j / 40, q = axis === 'h' ? [uu, dd] : [dd, uu]; if (st.hAt(q[0], q[1]) != null) return true; } return false; }
+      for (var i = 0; i <= N; i++) if (solid(a0 + (a1 - a0) * Math.min(1 - 1e-7, Math.max(1e-7, i / N)))) { if (f < 0) f = i; l = i; }
+      if (f < 0) return [a0, a0];
+      function ref(ui, uo) { for (var k = 0; k < 30; k++) { var m = (ui + uo) / 2; if (solid(m)) ui = m; else uo = m; } return ui; }
+      var du = (a1 - a0) / N;
+      return [f > 0 ? ref(a0 + f * du, a0 + (f - 1) * du) : a0, l < N ? ref(a0 + l * du, a0 + (l + 1) * du) : a1];
+    }
+    var extA = cutExt('h', cutA, lookA), extB = cutExt('v', cutB, lookB);
 
     /* ---------- folha: margens (esquerda 20 mm, demais 10 mm) e legenda ---------- */
     var FL = mm(20), FT = mm(10), FR = PW - mm(10), FB = PH - mm(10), TBH = mm(36), tbTop = FB - TBH;
@@ -1812,14 +1871,24 @@
     /* ---------- escala normalizada que cabe na folha ---------- */
     var PXK = mm(0.27);   // tamanho do texto/linhas da vista de cima (texto da cota ~3,2 mm)
     var LAB = 12, GAP = 9, GAPV = 8, ISO_W = 48, ISO_H = 36, AW = area.w / u, AH = area.h / u;
-    function planExt(sc) { var eb = bounds(ents, PXK / (sc * u)); return { x0: Math.min(eb.x0, bx0), y0: Math.min(eb.y0, by0), x1: Math.max(eb.x1, bx1), y1: Math.max(eb.y1, by1) }; }
+    function planExt(sc) { stackDims(sc); var eb = bounds(ents, PXK / (sc * u)); return { x0: Math.min(eb.x0, bx0), y0: Math.min(eb.y0, by0), x1: Math.max(eb.x1, bx1), y1: Math.max(eb.y1, by1) }; }
     // arranjos possíveis: T1 [cima | 3D] / [A-A | B-B]; T2 [cima | B-B em pé] / [A-A | 3D]; T3 [cima | B-B em pé] / [A-A] / [3D]
     function lay(sc, tp) {
       var ex = planExt(sc), L = { sc: sc, ex: ex, tp: tp };
       L.pW = (ex.x1 - ex.x0) * sc + 2 * LAB; L.pH = (ex.y1 - ex.y0) * sc + 2 * LAB + 6;
       L.aW = pw * sc + 2 * LAB; L.aH = esp * sc + 30;
       L.c1 = Math.max(L.pW, L.aW);
-      if (tp === 1) { L.c2 = Math.max(ISO_W, ph * sc + 2 * LAB); L.H = L.pH + GAPV + L.aH; L.W = L.c1 + GAP + L.c2; L.iso = [AW - L.c1 - GAP, L.pH]; }
+      L.aWr = (extA[1] - extA[0]) * sc + 2 * LAB; L.bWr = (extB[1] - extB[0]) * sc + 2 * LAB;
+      if (tp === 5) {   // [cima] / [A-A | B-B | 3D]: os cortes só ocupam a largura do material cortado
+        var rowW = L.aWr + GAP + L.bWr; L.isoBelow = AW - rowW - GAP < ISO_W;
+        if (!L.isoBelow) { L.W = Math.max(L.pW, rowW + GAP + ISO_W); L.H = L.pH + GAPV + L.aH; L.iso = [AW - rowW - GAP, L.aH]; }
+        else { L.W = Math.max(L.pW, rowW); L.H = L.pH + GAPV + L.aH + GAPV + ISO_H; L.iso = [AW, AH - L.pH - L.aH - 2 * GAPV]; }
+        L.c1 = L.W;
+      } else if (noCut) {   // só a vista de cima e a perspectiva
+        L.c1 = L.pW; L.aH = 0;
+        if (tp === 1) { L.c2 = ISO_W; L.W = L.c1 + GAP + L.c2; L.H = L.pH; L.iso = [AW - L.c1 - GAP, L.pH]; }
+        else { L.c2 = 0; L.W = L.c1; L.H = L.pH + GAPV + ISO_H; L.iso = [AW, AH - L.pH - GAPV]; }
+      } else if (tp === 1) { L.c2 = Math.max(ISO_W, ph * sc + 2 * LAB); L.H = L.pH + GAPV + L.aH; L.W = L.c1 + GAP + L.c2; L.iso = [AW - L.c1 - GAP, L.pH]; }
       else if (tp === 4) {   // peça comprida: [cima] / [A-A] / [B-B | 3D]
         L.bW = ph * sc + 2 * LAB; L.c2 = 0; L.W = Math.max(L.c1, L.bW + GAP + ISO_W);
         L.H = L.pH + GAPV + L.aH + GAPV + L.aH; L.iso = [AW - L.bW - GAP, AH - L.pH - L.aH - 2 * GAPV];
@@ -1834,11 +1903,11 @@
     }
     var SC = [10, 5, 4, 2.5, 2, 1.5, 1, 1 / 1.5, 1 / 2, 1 / 2.5, 1 / 3, 1 / 4, 1 / 5, 1 / 7.5, 1 / 10, 1 / 15, 1 / 20, 1 / 25, 1 / 50, 1 / 100];
     var Lb = null;
-    for (var si = 0; si < SC.length && !Lb; si++) [1, 2, 3, 4].forEach(function (tp) { var Lt = lay(SC[si], tp); if (Lt.ok && (!Lb || Lt.isoA > Lb.isoA)) Lb = Lt; });
+    for (var si = 0; si < SC.length && !Lb; si++) (noCut ? [1, 3] : [1, 2, 3, 4, 5]).forEach(function (tp) { var Lt = lay(SC[si], tp); if (Lt.ok && (!Lb || Lt.isoA > Lb.isoA)) Lb = Lt; });
     if (!Lb) Lb = lay(SC[SC.length - 1], 1);
-    var sc = Lb.sc, S = sc * u, ex = Lb.ex, TP = Lb.tp;
+    var sc = Lb.sc, S = sc * u, ex = Lb.ex, TP = Lb.tp; stackDims(sc);
     var scaleTxt = sc >= 1 ? fmt(sc) + ':1' : '1:' + fmt(Math.round(1 / sc * 10) / 10);
-    var gx0 = area.x + (TP === 1 || TP === 4 ? Math.max(0, (area.w - mm(TP === 4 ? Lb.c1 : Lb.W)) / 2) * (TP === 4 ? 1 : 0) : Math.max(0, (area.w - mm(Lb.W)) / 2)), gy0 = area.y + (TP === 3 || TP === 4 ? 0 : Math.max(0, (area.h - mm(Lb.H)) / 2));
+    var gx0 = area.x + (TP === 1 || TP === 4 || (TP === 5 && Lb.isoBelow) ? Math.max(0, (area.w - mm(TP === 4 ? Lb.c1 : Lb.W)) / 2) * (TP === 4 ? 1 : 0) : Math.max(0, (area.w - mm(Lb.W)) / 2)), gy0 = area.y + (TP === 3 || TP === 4 || (TP === 5 && Lb.isoBelow) ? 0 : Math.max(0, (area.h - mm(Lb.H)) / 2));
     // vista de cima: a peça fica alinhada com o corte A-A embaixo dela
     var planL = gx0 + mm(LAB) + (Math.max(0, Lb.c1 - Lb.pW) / 2) * u, planT = gy0 + mm(LAB + 6);
     function tx(x) { return planL + (x - ex.x0) * S; }
@@ -1921,7 +1990,7 @@
         g.fillText(L, tip[0] + nrm[0] * mm(3.6) + dir[0] * s * mm(2.5), tip[1] + nrm[1] * mm(3.6) + dir[1] * s * mm(2.5));
       });
     }
-    cutLine('h', cutA, lookA, 'A'); cutLine('v', cutB, lookB, 'B');
+    if (!noCut) { cutLine('h', cutA, lookA, 'A'); cutLine('v', cutB, lookB, 'B'); }
 
     /* ---------- chamadas de fabricação: furos (passante / rebaixo) e chanfro ---------- */
     var hg = [];
@@ -2058,16 +2127,33 @@
         }
       });
       // 6) cotas gerais: espessura e comprimento
-      vdim(xL - mm(7), Z(top3), Z(bot3), fmt(esp), xL, -1);
-      hdim(xL, xR, Z(bot3) + mm(8), fmt(len), Z(bot3), Z(bot3));
+      // medida do material cortado (de onde o corte entra até onde sai), não da caixa da peça
+      if (cr.length) {
+        function edgeU(uin, uout) { for (var it = 0; it < 30; it++) { var um2 = (uin + uout) / 2, q3 = P(um2, v); if (st.hAt(q3[0], q3[1]) != null) uin = um2; else uout = um2; } return uin; }   // borda exata do material
+        var uA = cr[0].i0 > 0 ? edgeU(U(cr[0].i0), U(cr[0].i0 - 1)) : a0, il = cr[cr.length - 1].i1, uB = il < NS ? edgeU(U(il), U(il + 1)) : a1;
+        var xc0 = Math.min(X(uA), X(uB)), xc1 = Math.max(X(uA), X(uB));
+        var xDraw = xc0; runs(behH).forEach(function (r) { xDraw = Math.min(xDraw, X(U(r.i0)), X(U(r.i1))); });   // espessura do lado de fora do desenho do corte
+        vdim(xDraw - mm(7), Z(top3), Z(bot3), fmt(esp), xDraw, -1);
+        hdim(xc0, xc1, Z(bot3) + mm(8), fmt(Math.round((uB - uA) * 10) / 10), Z(bot3), Z(bot3));
+      }
       // título
-      if (title) { g.fillStyle = INK; font(5, 700); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(title, xL, Z(top3) - mm(13)); }
+      if (title) { g.fillStyle = INK; font(5, 700); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(title, cr.length ? xc0 : xL, Z(top3) - mm(13)); }
       return xR;
     }
     var secTop = gy0 + mm(Lb.pH + GAPV) + mm(17);
-    section('h', cutA, lookA, tx(bx0), secTop, T('CORTE') + ' A-A');
     var colX2 = gx0 + mm(Lb.c1 + GAP), isoR;
-    if (TP === 4) {
+    if (!noCut && TP !== 5) section('h', cutA, lookA, tx(bx0), secTop, T('CORTE') + ' A-A');
+    if (TP === 5) {
+      var rowX = gx0 + Math.max(0, (Lb.W - (Lb.aWr + GAP + Lb.bWr + GAP + ISO_W)) / 2) * u * 0;
+      var xA = rowX + mm(LAB), xB = rowX + mm(Lb.aWr + GAP + LAB);
+      section('h', cutA, lookA, xA - (lookA < 0 ? (bx1 - extA[1]) : (extA[0] - bx0)) * S, secTop, T('CORTE') + ' A-A');
+      section('v', cutB, lookB, xB - (lookB > 0 ? (by1 - extB[1]) : (extB[0] - by0)) * S, secTop, T('CORTE') + ' B-B');
+      if (Lb.isoBelow) { var iy5 = secTop + mm(Lb.aH - 17 + GAPV); isoR = { x: area.x, y: iy5, w: area.w, h: tbTop - mm(5) - iy5 }; }
+      else { var ix5 = rowX + mm(Lb.aWr + GAP + Lb.bWr + GAP); isoR = { x: ix5, y: secTop - mm(17), w: FR - mm(6) - ix5, h: tbTop - mm(5) - (secTop - mm(17)) }; }
+    } else if (noCut) {
+      if (TP === 1) isoR = { x: colX2, y: gy0, w: FR - mm(8) - colX2, h: mm(Lb.pH) };
+      else { var iy0 = gy0 + mm(Lb.pH + GAPV); isoR = { x: area.x, y: iy0, w: area.w, h: tbTop - mm(5) - iy0 }; }
+    } else if (TP === 4) {
       var secTopB = secTop + mm(Lb.aH + GAPV);
       section('v', cutB, lookB, area.x + mm(LAB), secTopB, T('CORTE') + ' B-B');
       var ix = area.x + mm(Lb.bW + GAP); isoR = { x: ix, y: secTopB - mm(17), w: FR - mm(6) - ix, h: tbTop - mm(5) - (secTopB - mm(17)) };
@@ -2131,6 +2217,7 @@
       centerLine(sx - mm(1.5), sy, cxs + hL / 2 + mm(1.5), sy); centerLine(cxs, sy - hL / 2 - mm(1.5), cxs, sy + hL / 2 + mm(1.5));
       g.fillStyle = INK; font(2.4, 700); g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(T('1º diedro'), cxs + hL / 2 + mm(3), sy);
     })();
+    } finally { unstack(); }
     return c;
   }
   function exportPNG() { var a4 = renderA4(2480, 3508); if (a4) return a4.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); var c = renderSheet(2400, 1697); c.toBlob(function (b) { shareOrDownload(b, fileName('png')); }, 'image/png'); }

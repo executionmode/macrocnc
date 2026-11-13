@@ -312,7 +312,7 @@ body.cadmode { overflow: hidden; overscroll-behavior: none; }
 .cad-seg button.on { background: var(--ui-blue2); border-color: var(--ui-blue); color: #fff; }
 .cad-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
 .cad-f { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--ui-mut); }
-.cad-f input { width: 100%; background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 9px; padding: 9px 10px; font: 600 15px ui-monospace, Menlo, monospace; }
+.cad-f input, .cad-f select { width: 100%; background: #050b16; border: 1px solid var(--ui-line); color: var(--ui-text); border-radius: 9px; padding: 9px 10px; font: 600 15px ui-monospace, Menlo, monospace; }
 .cad-f input:focus { outline: 2px solid var(--ui-blue); outline-offset: -1px; }
 .cad-pbtn { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .cad-pbtn .ui-btn { flex: 1; min-height: 42px; padding: 8px 12px; }
