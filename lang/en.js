@@ -396,6 +396,7 @@ I18N.add({
   "Até o centro do raio": "To center of radius",
   "Até o centro": "To center",
   "Toque numa linha ou num ponto da peça.": "Tap a line or a point of the part.",
+  "Até o fim do raio": "To end of radius",
   "Linear": "Linear",
   "Linha horizontal": "Horizontal line",
   "Linha vertical": "Vertical line",

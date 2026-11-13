@@ -1186,7 +1186,7 @@
     setField('x', p.x - o.x); setField('y', p.y - o.y);
     preview();
   }
-  var zAsk = null, ZERO_OK = { 'ponta': 1, 'centro': 1, 'canto': 1, 'origem': 1, 'cruzamento': 1, 'no furo': 1, 'no círculo': 1, 'quadrante': 1 };
+  var zAsk = null, ZERO_OK = { 'ponta': 1, 'centro': 1, 'centro do furo': 1, 'canto': 1, 'origem': 1, 'cruzamento': 1 };   // só pontos que existem no desenho: nada de ponto solto em cima da linha ou do raio
   function nearPrim(sx, sy) {   // linha/arco mais perto do dedo
     var w = toW(sx, sy), tol = (touchMode ? 26 : 14) / view.s, best = null, bd = tol;
     doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; prims(e).forEach(function (p, pi) { if (p.cl) return; var d = distPrim(p, w[0], w[1]); if (d < bd) { bd = d; best = { e: e, pi: pi, p: p }; } }); });
@@ -1212,7 +1212,8 @@
       [[p.x1, p.y1], [p.x2, p.y2]].forEach(function (q) { var a = arcAt(q[0], q[1], p); if (a) add(q[0], q[1], T('Até o início do raio') + ' R' + fmt(a.r), 'ponta'); });
       [[p.x1, p.y1], [p.x2, p.y2]].forEach(function (q) { add(q[0], q[1], T('Até a ponta da linha'), 'ponta'); });
     } else if (p.k === 'a') {
-      [p.a0, p.a1].forEach(function (a) { add(p.x + p.r * Math.cos(a * D2R), p.y + p.r * Math.sin(a * D2R), T('Até o início do raio') + ' R' + fmt(p.r), 'ponta'); });
+      var E = [p.a0, p.a1].map(function (a) { return [p.x + p.r * Math.cos(a * D2R), p.y + p.r * Math.sin(a * D2R)]; }).sort(function (u, v) { return Math.abs(u[0] - v[0]) > 1e-6 ? u[0] - v[0] : v[1] - u[1]; });
+      add(E[0][0], E[0][1], T('Até o início do raio') + ' R' + fmt(p.r), 'ponta'); add(E[1][0], E[1][1], T('Até o fim do raio') + ' R' + fmt(p.r), 'ponta');
       add(p.x, p.y, T('Até o centro do raio') + ' R' + fmt(p.r), 'centro');
     } else if (p.k === 'c') add(p.x, p.y, T('Até o centro') + ' Ø' + fmt(p.r * 2), 'centro');
     return L;
@@ -1269,7 +1270,8 @@
     }
     if (dk === 'zero') {   // cota do zero da peça até um ponto que existe no desenho (nunca um ponto solto na linha)
       p = dimPick(sx, sy);
-      if (p.ent && ZERO_OK[p.nm]) { zAsk = null; askBox(); return zeroDims(p); }
+      var ps = toS(p.x, p.y), near = Math.hypot(ps[0] - sx, ps[1] - sy) < (touchMode ? 16 : 10);   // dedo bem em cima do ponto
+      if (near && ZERO_OK[p.nm]) { zAsk = null; askBox(); return zeroDims(p); }
       var hp = nearPrim(sx, sy); if (!hp) { zAsk = null; askBox(); draw(); return toast(T('Toque numa linha ou num ponto da peça.')); }
       zAsk = { e: hp.e, p: hp.p, opts: zeroOpts(hp) }; askBox(); draw(); return;
     }
@@ -1324,6 +1326,7 @@
   function hoverAt(sx, sy) {
     var noSnap = (tool === 'select' && !mode2) || editing || mode2 || tool === 'fillet';
     var p = noSnap ? null : (tool === 'dim' && (vals.dk === 'lin' || vals.dk === 'ord' || vals.dk === 'zero') && !(vals.dk === 'lin' && picks.length >= 2)) ? dimPick(sx, sy) : pickPoint(sx, sy);
+    if (p && tool === 'dim' && vals.dk === 'zero' && !ZERO_OK[p.nm]) p = null;   // no modo do zero só mostra os pontos que podem ser cotados
     snapHit = p && p.nm ? p : null;
     var w = p ? [p.x, p.y] : toW(sx, sy), r = rel(w[0], w[1]);
     hover = { x: w[0], y: w[1] };

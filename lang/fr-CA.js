@@ -396,6 +396,7 @@ I18N.add({
   "Até o centro do raio": "Jusqu'au centre du rayon",
   "Até o centro": "Jusqu'au centre",
   "Toque numa linha ou num ponto da peça.": "Touchez une ligne ou un point de la pièce.",
+  "Até o fim do raio": "Jusqu'à la fin du rayon",
   "Linear": "Linéaire",
   "Linha horizontal": "Ligne horizontale",
   "Linha vertical": "Ligne verticale",
