@@ -227,12 +227,13 @@
     }
     return null;
   }
-  function runSim(text) {
-    var sim = MacroSim.run(text), added = [], guard = 0, m;
+  function runSim(text, p) {
+    var cr = /G4[12]\b/.test(text) ? guessTool(text, p) / 2 : 0;   // com G41/G42 a simulação desloca pelo raio da fresa
+    var sim = MacroSim.run(text, { toolR: cr }), added = [], guard = 0, m;
     while (guard++ < 6 && sim.errors.length && (m = sim.errors[0].match(/Subprograma O(\d+) não encontrado/))) {
       var sub = librarySub(+m[1]); if (!sub) break;
       text += '\n' + sub.code; added.push('O' + sub.num + (sub.label ? ' (' + sub.label.toLowerCase() + ')' : ''));
-      sim = MacroSim.run(text);
+      sim = MacroSim.run(text, { toolR: cr });
     }
     if (added.length) sim.warnings.unshift('Para simular, usei o sub da biblioteca: ' + added.join(', ') + '.');
     sim.text = text;
@@ -240,7 +241,7 @@
   }
   function guessTool(text, p) {
     if (p && p.toolDia) return p.toolDia;
-    var c = String(text).match(/\((?:FRESA|BROCA) D(\d+\.?\d*)\)/);
+    var c = String(text).match(/[(\s-](?:FRESA|BROCA) D(\d+\.?\d*)\)/);
     if (c) return +c[1];
     var g = String(text).match(/G65\s*P\d+[^\n]*?\sT(\d*\.?\d+)/);
     if (g) return +g[1];
@@ -328,8 +329,8 @@
       if (self.f.shape.value === 'rect' && !(+self.f.lx.value > 0)) { self.f.lx.value = self.f.sd.value || 100; self.f.ly.value = self.f.sd.value || 100; }
     });
     el.querySelector('[data-a=anim]').addEventListener('click', function () { self.animate(); });
-    el.querySelector('[data-a=upd]').addEventListener('click', function () { self.manual = self.readStock(); self.saveStock(); self.rebuild(); toast('Bruto aplicado.'); });
-    el.querySelector('[data-a=auto]').addEventListener('click', function () { self.manual = null; self.saveStock(); self.rebuild(true); });
+    el.querySelector('[data-a=upd]').addEventListener('click', function () { self.manual = self.readStock(); self.saveStock(); if (/G4[12]\b/.test(self.text)) self.sim = runSim(self.text, self.simP()); self.rebuild(); toast('Bruto aplicado.'); });
+    el.querySelector('[data-a=auto]').addEventListener('click', function () { self.manual = null; self.saveStock(); if (/G4[12]\b/.test(self.text)) self.sim = runSim(self.text, self.simP()); self.rebuild(true); });
     el.querySelector('[data-a=top]').addEventListener('click', function () { self.setMode('3d'); self.view.el = 89; self.view.az = 0; self.draw(); });
     el.querySelector('[data-a=iso]').addEventListener('click', function () { self.setMode('3d'); self.view.el = 38; self.view.az = -35; self.draw(); });
     // gestos: 1 dedo gira (3D) ou move (XY); 2 dedos = zoom e mover
@@ -519,11 +520,12 @@
   };
   SimView.prototype.stockKey = function () { return 'stock2.' + (this.p ? this.p.id : progName(this.text, 'editor')); };
   SimView.prototype.saveStock = function () { store.set(this.stockKey(), this.manual); };
+  SimView.prototype.simP = function () { return this.manual && this.manual.toolDia > 0 ? { toolDia: this.manual.toolDia } : this.p; };
   SimView.prototype.load = function (text, p) {
     this.stop();
     this.text = text; this.p = p || null;
     this.manual = store.get(this.stockKey(), null);
-    this.sim = runSim(text);
+    this.sim = runSim(text, this.simP());
     this.tcum = null;
     this.renderListing();
     this.rebuild(true);
@@ -907,7 +909,7 @@
     try {
       var p = PROGRAMS.filter(function (x) { return x.id === id; })[0];
       var text = [p.main].concat((p.subs || []).filter(function (s, i) { return !p.subChoice || i === 0; }).map(function (s) { return s.code; })).join('\n');
-      var sim = runSim(text);
+      var sim = runSim(text, p);
       var fake = Object.create(SimView.prototype); fake.p = p; fake.text = text; fake.sim = sim; fake.manual = null; fake.hiRes = false;
       var o = SimView.prototype.opts.call(fake); o.res = 110;
       var st = Stock3D.build(sim, o); Stock3D.advance(st);

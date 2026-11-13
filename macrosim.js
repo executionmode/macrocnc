@@ -196,6 +196,37 @@
   }
 
   /* ---------- execução ---------- */
+  /* G41/G42: desloca o caminho programado pelo raio da ferramenta (lado esquerdo/direito do sentido do avanço).
+   * Bloco que liga (G41/G42): começa no ponto programado e termina já deslocado; bloco do G40: sai deslocado e termina no ponto programado. */
+  function compensate(segs, r) {
+    var i = 0;
+    while (i < segs.length) {
+      if (!segs[i].cc) { i++; continue; }
+      var j = i; while (j < segs.length && segs[j].cc && !(j > i && segs[j].ck === 'on')) j++;
+      var ch = segs.slice(i, j), side = ch[0].cc === 41 ? 1 : -1, N = [];
+      ch.forEach(function (q) { var dx = q.x2 - q.x1, dy = q.y2 - q.y1, L = Math.hypot(dx, dy); N.push(L > 1e-9 ? [-dy / L * side, dx / L * side] : null); });
+      function nAt(k, dir) { for (var m = k; m >= 0 && m < N.length; m += dir) if (N[m]) return N[m]; return null; }
+      var P = [];   // ponto deslocado no fim de cada segmento
+      for (var k = 0; k < ch.length; k++) {
+        var q = ch[k], a = N[k] || nAt(k, -1), b = nAt(k + 1, 1);
+        if (q.ck === 'off' && (k === ch.length - 1 || !N[k + 1])) { P.push([q.x2, q.y2]); continue; }
+        if (!a && !b) { P.push([q.x2, q.y2]); continue; }
+        if (!a) a = b; if (!b || (ch[k + 1] && ch[k + 1].ck === 'off' && false)) b = b || a;
+        var nextOff = k + 1 < ch.length && ch[k + 1].ck === 'off';
+        if (nextOff) b = a;   // o G40 sai pela normal do último elemento
+        var d = a[0] * b[0] + a[1] * b[1], mx, my;
+        if (d > -0.95) { var f = r / (1 + d); mx = (a[0] + b[0]) * f; my = (a[1] + b[1]) * f; } else { mx = a[0] * r; my = a[1] * r; }
+        P.push([q.x2 + mx, q.y2 + my]);
+      }
+      for (var k2 = 0; k2 < ch.length; k2++) {
+        var s0 = ch[k2], st0 = k2 === 0 ? (s0.ck === 'on' ? [s0.x1, s0.y1] : [s0.x1 + (N[0] || [0, 0])[0] * r, s0.y1 + (N[0] || [0, 0])[1] * r]) : P[k2 - 1];
+        s0.x1 = st0[0]; s0.y1 = st0[1]; s0.x2 = P[k2][0]; s0.y2 = P[k2][1];
+      }
+      // o movimento seguinte (sem compensação) sai de onde a ferramenta ficou
+      if (j < segs.length && !segs[j].cc && ch.length) { var last = ch[ch.length - 1]; if (Math.hypot(segs[j].x1 - last.x2, segs[j].y1 - last.y2) < r * 2 + 1e-6) { segs[j].x1 = last.x2; segs[j].y1 = last.y2; } }
+      i = j;
+    }
+  }
   function run(text, opts) {
     opts = opts || {};
     var maxBlocks = opts.maxBlocks || 400000, maxSegs = opts.maxSegs || 250000;
@@ -259,7 +290,7 @@
     }
     function seg(x1, y1, x2, y2, t, z, ln, z1) {
       if (res.segs.length < maxSegs) res.segs.push({ x1: x1, y1: y1, x2: x2, y2: y2, t: t, z: z, z1: z1 === undefined ? z : z1, ln: ln,
-        f: st.f, s: st.s, tool: st.tool, a: st.a, ox: st.g52x, oy: st.g52y, g: t === 'h' ? (st.canned || 81) : st.mode, prog: frame ? frame.prog.num : 0 });
+        f: st.f, s: st.s, tool: st.tool, a: st.a, ox: st.g52x, oy: st.g52y, g: t === 'h' ? (st.canned || 81) : st.mode, prog: frame ? frame.prog.num : 0, cc: st.ccOff ? ccPrev : (st.cc || 0), ck: st.ccOn ? 'on' : st.ccOff ? 'off' : '', cb: st.ccBlk });
       else warnOnce('segs', 'Caminho muito longo: o desenho mostra só o começo.');
     }
     function lineMove(nx, ny, nz, t, ln) {
@@ -289,7 +320,9 @@
       st.x = ex; st.y = ey; st.z = ez; trackZ(ez);
     }
 
+    var ccPrev = 0;
     function nc(line) {
+      st.ccBlk = (st.ccBlk || 0) + 1; ccPrev = st.cc || 0; st.ccOn = false; st.ccOff = false;
       var p = parseWords(line.s, ev), w = p.words, gs = p.gs;
       var motion = null, newCanned = false, skip = false, g52 = false, g68 = false, g65 = false;
       gs.forEach(function (g) {
@@ -303,7 +336,9 @@
         else if (g === 69) st.rot = 0;
         else if (g === 65) g65 = true;
         else if (g === 28 || g === 30 || g === 53 || g === 4 || g === 10 || g === 92) skip = true;
-        else if (g === 17 || g === 21 || g === 40 || g === 94 || g === 98 || g === 99 || g === 43 || g === 49 || (g >= 54 && g <= 59)) { /* modal sem efeito no desenho */ }
+        else if (g === 41 || g === 42) { if (st.cc !== g) { st.ccOn = true; } st.cc = g; }
+        else if (g === 40) { if (st.cc) st.ccOff = true; st.cc = 0; }
+        else if (g === 17 || g === 21 || g === 94 || g === 98 || g === 99 || g === 43 || g === 49 || (g >= 54 && g <= 59)) { /* modal sem efeito no desenho */ }
         else if (g === 18 || g === 19) warnOnce('plane', 'G18/G19 (outro plano) não é desenhado.');
         else if (g === 20) warnOnce('inch', 'G20 (polegada) não é tratado.');
       });
@@ -460,6 +495,7 @@
       if (e !== 'STOP') res.errors.push(e instanceof MacroError ? e.message : String(e && e.message || e));
     }
     res.vars = { common: common };
+    if (opts.toolR > 0) compensate(res.segs, opts.toolR);
     return res;
   }
 
