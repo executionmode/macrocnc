@@ -526,3 +526,8 @@ label.dp-fr > span { flex: 1 1 auto; }
 #view-pedir.plan-open .chat-row, #view-pedir.plan-open #chatKind, #view-pedir.plan-open .chat-opts .ctx { display: none; }
 #view-pedir.plan-open .chat-opts { justify-content: center; margin-bottom: 0; }
 #view-pedir.plan-open #drawPlan { padding-bottom: 90px; }
+.cad-zq { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 5; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 14px; background: rgba(8,17,32,.96); border: 1px solid #22c55e; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.cad-zq button { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--ui-line2); background: var(--ui-card); color: var(--ui-text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.cad-zq button:first-child { border-color: #22c55e; background: rgba(34,197,94,.14); }
+.cad-zq button b { font-family: ui-monospace, monospace; color: #86efac; white-space: nowrap; }
+.cad-zq .cad-zq-x { justify-content: center; background: transparent; color: var(--ui-muted, #94a3b8); }

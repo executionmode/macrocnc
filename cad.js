@@ -416,7 +416,7 @@
         '<button type="button" class="cad-b cad-bot" data-a="agent" aria-label="Agente">' + ic('bot') + '</button>' +
         '<button type="button" class="cad-b" data-a="menu" aria-label="Mais opções">' + ic('more') + '</button>' +
       '</div>' +
-      '<div class="cad-stage"><canvas id="cadCv"></canvas><div class="cad-xy notr" id="cadXY"></div><div class="cad-toast" id="cadToast"></div></div>' +
+      '<div class="cad-stage"><canvas id="cadCv"></canvas><div class="cad-xy notr" id="cadXY"></div><div class="cad-toast" id="cadToast"></div><div class="cad-zq hidden" id="cadZq"></div></div>' +
       '<div class="cad-panel hidden" id="cadPanel"></div>' +
       '<div class="cad-tools">' + TOOLS.map(function (t) { return '<button type="button" data-tool="' + t[0] + '">' + ic(t[2]) + '<span>' + t[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="cad-modal hidden" id="cadModal"><div class="cad-mbox"><div class="cad-mhead"><h2 id="cadMTitle"></h2><button type="button" class="cad-b" data-a="mclose" aria-label="Fechar">✕</button></div><div id="cadMBody"></div></div></div>' +
@@ -447,7 +447,7 @@
 
   function onClick(e) {
     var t = e.target.closest('[data-tool]'); if (t) { setTool(t.dataset.tool); return; }
-    var s = e.target.closest('[data-seg]'); if (s) { readPanel(); vals[s.dataset.seg] = s.dataset.v; picks = []; renderPanel(); preview(); return; }
+    var s = e.target.closest('[data-seg]'); if (s) { readPanel(); vals[s.dataset.seg] = s.dataset.v; picks = []; if (zAsk) { if (s.dataset.seg === 'oz') askBox(); else { zAsk = null; askBox(); } } renderPanel(); preview(); return; }
     var a = e.target.closest('[data-a]'); if (!a) return;
     var fn = ACTIONS[a.dataset.a];
     if (fn) fn(a);
@@ -534,7 +534,7 @@
 
   /* ---------- painel ---------- */
   function setTool(t) {
-    tool = t; editing = null; sel = null; picks = []; mode2 = null; if (t === 'rot') rotSel = [];
+    tool = t; editing = null; sel = null; picks = []; mode2 = null; zAsk = null; askBox(); if (t === 'rot') rotSel = [];
     el.host.querySelectorAll('[data-tool]').forEach(function (b) { b.classList.toggle('on', b.dataset.tool === t); });
     if (t === 'select') { vals = {}; closePanel(true); ghost = null; draw(); return; }
     var keep = vals._t === t ? vals : null;
@@ -1186,6 +1186,61 @@
     setField('x', p.x - o.x); setField('y', p.y - o.y);
     preview();
   }
+  var zAsk = null, ZERO_OK = { 'ponta': 1, 'centro': 1, 'canto': 1, 'origem': 1, 'cruzamento': 1, 'no furo': 1, 'no círculo': 1, 'quadrante': 1 };
+  function nearPrim(sx, sy) {   // linha/arco mais perto do dedo
+    var w = toW(sx, sy), tol = (touchMode ? 26 : 14) / view.s, best = null, bd = tol;
+    doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; prims(e).forEach(function (p, pi) { if (p.cl) return; var d = distPrim(p, w[0], w[1]); if (d < bd) { bd = d; best = { e: e, pi: pi, p: p }; } }); });
+    return best;
+  }
+  function refAt(x, y, pref) {   // ponto do desenho naquele lugar, ligado à entidade (a cota acompanha se o desenho mudar)
+    var best = null;
+    doc.ents.forEach(function (e) {
+      if (!vis(e) || e.t === 'dim') return;
+      snapPts(e).forEach(function (q, i) { if (Math.abs(q[0] - x) < 1e-4 && Math.abs(q[1] - y) < 1e-4 && (!best || (q[2] === pref && best.nm !== pref))) best = { x: q[0], y: q[1], nm: q[2], ref: { id: e.id, i: i }, ent: e }; });
+    });
+    return best || { x: x, y: y, nm: pref, ref: null };
+  }
+  function arcAt(x, y, not) {   // raio que começa/termina nesse ponto
+    var r = null;
+    doc.ents.forEach(function (e) { if (!vis(e) || e.t === 'dim') return; prims(e).forEach(function (p) { if (p === not || p.k !== 'a') return; [p.a0, p.a1].forEach(function (a) { if (Math.hypot(p.x + p.r * Math.cos(a * D2R) - x, p.y + p.r * Math.sin(a * D2R) - y) < 1e-3) r = r || p; }); }); });
+    return r;
+  }
+  function zeroOpts(hp) {
+    var p = hp.p, L = [];
+    function add(x, y, lab, pref) { if (!L.some(function (o) { return Math.hypot(o.x - x, o.y - y) < 1e-4; })) L.push({ x: x, y: y, lab: lab, pref: pref }); }
+    if (p.k === 'l') {
+      [[p.x1, p.y1], [p.x2, p.y2]].forEach(function (q) { var a = arcAt(q[0], q[1], p); if (a) add(q[0], q[1], T('Até o início do raio') + ' R' + fmt(a.r), 'ponta'); });
+      [[p.x1, p.y1], [p.x2, p.y2]].forEach(function (q) { add(q[0], q[1], T('Até a ponta da linha'), 'ponta'); });
+    } else if (p.k === 'a') {
+      [p.a0, p.a1].forEach(function (a) { add(p.x + p.r * Math.cos(a * D2R), p.y + p.r * Math.sin(a * D2R), T('Até o início do raio') + ' R' + fmt(p.r), 'ponta'); });
+      add(p.x, p.y, T('Até o centro do raio') + ' R' + fmt(p.r), 'centro');
+    } else if (p.k === 'c') add(p.x, p.y, T('Até o centro') + ' Ø' + fmt(p.r * 2), 'centro');
+    return L;
+  }
+  function zeroVal(o) { var r = rel(o.x, o.y); return vals.oz === 'h' ? 'X' + fmt(r[0], 2) : vals.oz === 'v' ? 'Y' + fmt(r[1], 2) : 'X' + fmt(r[0], 2) + ' Y' + fmt(r[1], 2); }
+  function askBox() {
+    var bx = el.host && el.host.querySelector('#cadZq'); if (!bx) return;
+    if (!zAsk) { bx.classList.add('hidden'); bx.innerHTML = ''; return; }
+    var O = doc.origin; zAsk.show = zAsk.opts.filter(function (o) { var dx = Math.abs(o.x - O.x) > 1e-6, dy = Math.abs(o.y - O.y) > 1e-6; return vals.oz === 'h' ? dx : vals.oz === 'v' ? dy : dx || dy; });
+    bx.innerHTML = zAsk.show.map(function (o, i) { return '<button type="button" data-zo="' + i + '"><span>' + esc(o.lab) + '</span><b class="notr">' + esc(zeroVal(o)) + '</b></button>'; }).join('') + '<button type="button" class="cad-zq-x" data-zo="x">' + esc(T('Cancelar')) + '</button>';
+    bx.classList.remove('hidden');
+    bx.onclick = function (ev) {
+      var b = ev.target.closest('[data-zo]'); if (!b) return;
+      var o = b.dataset.zo === 'x' ? null : zAsk.show[+b.dataset.zo]; zAsk = null; askBox();
+      if (o) zeroDims(refAt(o.x, o.y, o.pref)); else draw();
+    };
+  }
+  function zeroDims(p) {   // cria a(s) cota(s) do X0 Y0 até o ponto, empilhadas fora da peça
+    flashPick(p);
+    var o = doc.origin, b = bounds(doc.ents.filter(function (e) { return e.t !== 'dim' && vis(e); })), span = isFinite(b.x0) ? Math.max(b.x1 - b.x0, b.y1 - b.y0) : 100, st = Math.max(span * 0.07, 14 / view.s);
+    var zs = doc.ents.filter(function (e) { return e.t === 'dim' && e.zero; }), nh = zs.filter(function (e) { return e.o === 'h'; }).length, nv = zs.filter(function (e) { return e.o === 'v'; }).length;
+    var org = { x: o.x, y: o.y, ref: { org: 1 } }, okH = vals.oz !== 'v' && Math.abs(p.x - o.x) > 1e-6, okV = vals.oz !== 'h' && Math.abs(p.y - o.y) > 1e-6;
+    if (!okH && !okV) { draw(); return toast(T('Esse ponto é o próprio X0 Y0.')); }
+    pushUndo();
+    if (okH) addDim({ k: 'lin', o: 'h', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: p.x, y: Math.min(b.y0, o.y) - st * (nh + 1) } });
+    if (okV) addDim({ k: 'lin', o: 'v', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: Math.min(b.x0, o.x) - st * (nv + 1), y: p.y } });
+    save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto') + ')'); draw();
+  }
   function dimTap(sx, sy) {
     var dk = vals.dk, p;
     if (dk === 'lin') {
@@ -1212,16 +1267,11 @@
       addDim({ k: 'ang', l1: { ref: { id: a.e.id, pi: a.pi }, x1: a.p.x1, y1: a.p.y1, x2: a.p.x2, y2: a.p.y2 }, l2: { ref: { id: b.e.id, pi: b.pi }, x1: b.p.x1, y1: b.p.y1, x2: b.p.x2, y2: b.p.y2 }, t1: a.w, t2: b.w, rr: Math.hypot(w3[0] - I[0], w3[1] - I[1]) });
       picks = []; save(); toast(T('Cota criada.')); draw(); return;
     }
-    if (dk === 'zero') {   // cota do zero da peça até o ponto tocado, em X e/ou em Y, empilhadas fora da peça
-      p = dimPick(sx, sy); flashPick(p);
-      var o = doc.origin, b = bounds(doc.ents.filter(function (e) { return e.t !== 'dim' && vis(e); })), span = isFinite(b.x0) ? Math.max(b.x1 - b.x0, b.y1 - b.y0) : 100, st = Math.max(span * 0.07, 14 / view.s);
-      var zs = doc.ents.filter(function (e) { return e.t === 'dim' && e.zero; }), nh = zs.filter(function (e) { return e.o === 'h'; }).length, nv = zs.filter(function (e) { return e.o === 'v'; }).length;
-      var org = { x: o.x, y: o.y, ref: { org: 1 } }, made = 0;
-      if (!((vals.oz !== 'v' && Math.abs(p.x - o.x) > 1e-6) || (vals.oz !== 'h' && Math.abs(p.y - o.y) > 1e-6))) return toast(T('Esse ponto é o próprio X0 Y0.'));
-      pushUndo();
-      if (vals.oz !== 'v' && Math.abs(p.x - o.x) > 1e-6) { addDim({ k: 'lin', o: 'h', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: p.x, y: Math.min(b.y0, o.y) - st * (nh + 1) } }); made++; }
-      if (vals.oz !== 'h' && Math.abs(p.y - o.y) > 1e-6) { addDim({ k: 'lin', o: 'v', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: Math.min(b.x0, o.x) - st * (nv + 1), y: p.y } }); made++; }
-      save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); return;
+    if (dk === 'zero') {   // cota do zero da peça até um ponto que existe no desenho (nunca um ponto solto na linha)
+      p = dimPick(sx, sy);
+      if (p.ent && ZERO_OK[p.nm]) { zAsk = null; askBox(); return zeroDims(p); }
+      var hp = nearPrim(sx, sy); if (!hp) { zAsk = null; askBox(); draw(); return toast(T('Toque numa linha ou num ponto da peça.')); }
+      zAsk = { e: hp.e, p: hp.p, opts: zeroOpts(hp) }; askBox(); draw(); return;
     }
     if (dk === 'ord') { p = dimPick(sx, sy); flashPick(p); pushUndo(); addDim({ k: 'ord', p: cleanPt(p) }); save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); }
   }
@@ -1366,6 +1416,13 @@
     ctx.font = '600 ' + (11 * pxk) + 'px system-ui, sans-serif'; ctx.fillStyle = COL.org; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('X0 Y0', os[0] + 10 * pxk, os[1] - 9 * pxk);
     if (printMode) return;
     if (flash && !(tool === 'dim' && vals.dk === 'lin')) drawHl(flash);
+    if (zAsk && tool === 'dim') {   // linha escolhida em verde + os pontos que podem ser cotados
+      var zp = zAsk.p; ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 4; ctx.beginPath();
+      if (zp.k === 'l') { var z1 = toS(zp.x1, zp.y1), z2 = toS(zp.x2, zp.y2); ctx.moveTo(z1[0], z1[1]); ctx.lineTo(z2[0], z2[1]); }
+      else { var zc = toS(zp.x, zp.y); ctx.arc(zc[0], zc[1], zp.r * view.s, zp.k === 'a' ? -zp.a1 * D2R : 0, zp.k === 'a' ? -zp.a0 * D2R : 7); }
+      ctx.stroke();
+      (zAsk.show || zAsk.opts).forEach(function (o, i) { var q = toS(o.x, o.y); ctx.fillStyle = i ? '#86efac' : '#22c55e'; ctx.beginPath(); ctx.arc(q[0], q[1], 6, 0, 7); ctx.fill(); ctx.strokeStyle = '#03170b'; ctx.lineWidth = 1.5; ctx.stroke(); });
+    }
     if (snapHit) { var sp = toS(snapHit.x, snapHit.y); ctx.strokeStyle = COL.snap; ctx.lineWidth = 2; ctx.strokeRect(sp[0] - 6, sp[1] - 6, 12, 12); }
     else if (hover && (tool !== 'select' || mode2)) { var hp = toS(hover.x, hover.y); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(hp[0] - 8, hp[1]); ctx.lineTo(hp[0] + 8, hp[1]); ctx.moveTo(hp[0], hp[1] - 8); ctx.lineTo(hp[0], hp[1] + 8); ctx.stroke(); }
     if (mode2) { ctx.fillStyle = 'rgba(255,122,69,.95)'; ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(T(mode2 === 'calib' ? 'Calibrar: toque em 2 pontos' : mode2 === 'rotc' ? 'Toque no centro do giro' : 'Toque no zero da peça na foto'), W / 2, H - 14); }
