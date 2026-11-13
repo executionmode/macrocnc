@@ -157,6 +157,7 @@
 
   /* ---------- cotas ---------- */
   function resPt(p) {
+    if (p.ref && p.ref.org) { p.x = doc.origin.x; p.y = doc.origin.y; return [p.x, p.y]; }   // ponto zero da peça
     if (p.ref) { var e = byId(p.ref.id); if (e) { var s = snapPts(e)[p.ref.i]; if (s) { p.x = s[0]; p.y = s[1]; } } }
     return [p.x, p.y];
   }
@@ -331,7 +332,7 @@
     },
     dim: {
       title: 'Cota', hint: '',
-      seg: [['dk', [['lin', 'Linear'], ['dia', 'Diâmetro'], ['rad', 'Raio'], ['ang', 'Ângulo'], ['ord', 'Coordenada']]], ['o', [['h', 'Horizontal'], ['v', 'Vertical'], ['a', 'Alinhada']]]],
+      seg: [['dk', [['zero', 'Do X0 Y0'], ['lin', 'Linear'], ['dia', 'Diâmetro'], ['rad', 'Raio'], ['ang', 'Ângulo'], ['ord', 'Coordenada']]], ['o', [['h', 'Horizontal'], ['v', 'Vertical'], ['a', 'Alinhada']]], ['oz', [['xy', 'X e Y'], ['h', 'Só X'], ['v', 'Só Y']]]],
       fields: function () { return []; }
     },
     dimedit: { title: 'Cota', hint: '', fields: function () { return [['txt', 'Texto (vazio = medida; <> = medida)', '', 't']]; } },
@@ -350,12 +351,13 @@
       }
     }
   };
-  var SEG_DEF = { forma: 'ret', ref: 'canto', modo: 'pts', mode: 'um', med: 'faces', tipo: 'r', dk: 'lin', o: 'h', op: 'mov', alvo: 'este', copia: 'nao', mirax: 'v', ralvo: 'sel', rfuro: 'grupo', rcen: 'org' };
+  var SEG_DEF = { forma: 'ret', ref: 'canto', modo: 'pts', mode: 'um', med: 'faces', tipo: 'r', dk: 'lin', o: 'h', oz: 'xy', op: 'mov', alvo: 'este', copia: 'nao', mirax: 'v', ralvo: 'sel', rfuro: 'grupo', rcen: 'org' };
   var DIM_HINT = {
     lin: 'Toque no 1º ponto, no 2º ponto e depois onde a cota vai ficar.',
     dia: 'Toque num círculo, furo ou arco.', rad: 'Toque num círculo, furo ou arco.',
     ang: 'Toque na 1ª linha, na 2ª linha e depois onde a cota vai ficar.',
-    ord: 'Toque num ponto: mostra o X e o Y dele em relação à origem.'
+    ord: 'Toque num ponto: mostra o X e o Y dele em relação à origem.',
+    zero: 'Toque no ponto (início do raio, centro, canto): cota em X e Y a partir do X0 Y0.'
   };
 
   /* ---------- estado da tela ---------- */
@@ -556,6 +558,7 @@
     if (ed) h += '<p class="cad-hint notr">' + esc(describe(editing)) + '</p>';
     (F.seg || []).forEach(function (s) {
       if (t === 'dim' && s[0] === 'o' && vals.dk !== 'lin') return;
+      if (t === 'dim' && s[0] === 'oz' && vals.dk !== 'zero') return;
       if (t === 'xf' && s[0] === 'mirax' && vals.op !== 'mir') return;
       if (t === 'xf' && s[0] === 'alvo' && !editing) return;
       if (t === 'rot' && s[0] === 'rfuro' && vals.ralvo !== 'sel') return;
@@ -1057,7 +1060,7 @@
   /* ---------- toque na tela ---------- */
   function findSnap(sx, sy) {
     var R0 = touchMode ? 30 : 16, best = null, bd = R0;
-    function chk(x, y, nm, ref, ent) { var s = toS(x, y), d = Math.hypot(s[0] - sx, s[1] - sy); if (d < bd - 0.01) { bd = d; best = { x: x, y: y, nm: nm, ref: ref || null, ent: ent || null }; } }
+    function chk(x, y, nm, ref, ent) { var s = toS(x, y), d = Math.hypot(s[0] - sx, s[1] - sy) * (nm === 'meio' || nm === 'quadrante' ? 1.6 : 1); if (d < bd - 0.01) { bd = d; best = { x: x, y: y, nm: nm, ref: ref || null, ent: ent || null }; } }
     chk(doc.origin.x, doc.origin.y, 'origem');
     var lines = [], all = [];
     doc.ents.forEach(function (e) {
@@ -1209,6 +1212,17 @@
       addDim({ k: 'ang', l1: { ref: { id: a.e.id, pi: a.pi }, x1: a.p.x1, y1: a.p.y1, x2: a.p.x2, y2: a.p.y2 }, l2: { ref: { id: b.e.id, pi: b.pi }, x1: b.p.x1, y1: b.p.y1, x2: b.p.x2, y2: b.p.y2 }, t1: a.w, t2: b.w, rr: Math.hypot(w3[0] - I[0], w3[1] - I[1]) });
       picks = []; save(); toast(T('Cota criada.')); draw(); return;
     }
+    if (dk === 'zero') {   // cota do zero da peça até o ponto tocado, em X e/ou em Y, empilhadas fora da peça
+      p = dimPick(sx, sy); flashPick(p);
+      var o = doc.origin, b = bounds(doc.ents.filter(function (e) { return e.t !== 'dim' && vis(e); })), span = isFinite(b.x0) ? Math.max(b.x1 - b.x0, b.y1 - b.y0) : 100, st = Math.max(span * 0.07, 14 / view.s);
+      var zs = doc.ents.filter(function (e) { return e.t === 'dim' && e.zero; }), nh = zs.filter(function (e) { return e.o === 'h'; }).length, nv = zs.filter(function (e) { return e.o === 'v'; }).length;
+      var org = { x: o.x, y: o.y, ref: { org: 1 } }, made = 0;
+      if (!((vals.oz !== 'v' && Math.abs(p.x - o.x) > 1e-6) || (vals.oz !== 'h' && Math.abs(p.y - o.y) > 1e-6))) return toast(T('Esse ponto é o próprio X0 Y0.'));
+      pushUndo();
+      if (vals.oz !== 'v' && Math.abs(p.x - o.x) > 1e-6) { addDim({ k: 'lin', o: 'h', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: p.x, y: Math.min(b.y0, o.y) - st * (nh + 1) } }); made++; }
+      if (vals.oz !== 'h' && Math.abs(p.y - o.y) > 1e-6) { addDim({ k: 'lin', o: 'v', zero: 1, p1: cleanPt(org), p2: cleanPt(p), q: { x: Math.min(b.x0, o.x) - st * (nv + 1), y: p.y } }); made++; }
+      save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); return;
+    }
     if (dk === 'ord') { p = dimPick(sx, sy); flashPick(p); pushUndo(); addDim({ k: 'ord', p: cleanPt(p) }); save(); toast(T('Cota criada.') + ' (' + T(p.nm || 'ponto livre') + ')'); draw(); }
   }
 
@@ -1259,7 +1273,7 @@
   function clampS(s) { return Math.max(0.005, Math.min(400, s)); }
   function hoverAt(sx, sy) {
     var noSnap = (tool === 'select' && !mode2) || editing || mode2 || tool === 'fillet';
-    var p = noSnap ? null : (tool === 'dim' && (vals.dk === 'lin' || vals.dk === 'ord') && !(vals.dk === 'lin' && picks.length >= 2)) ? dimPick(sx, sy) : pickPoint(sx, sy);
+    var p = noSnap ? null : (tool === 'dim' && (vals.dk === 'lin' || vals.dk === 'ord' || vals.dk === 'zero') && !(vals.dk === 'lin' && picks.length >= 2)) ? dimPick(sx, sy) : pickPoint(sx, sy);
     snapHit = p && p.nm ? p : null;
     var w = p ? [p.x, p.y] : toW(sx, sy), r = rel(w[0], w[1]);
     hover = { x: w[0], y: w[1] };
