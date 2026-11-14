@@ -256,8 +256,9 @@
     el.innerHTML =
       '<div class="simmain">' +
       '<div class="simleft">' +
-      '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D (relevo)</button><button type="button" data-v="xy">Caminho XY</button></div>' +
-      '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas></div>' +
+      '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div>' +
+      '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas>' +
+      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button></div>' +
       '<div class="progress"><div></div></div>' +
       '<div class="row wrap simbar">' +
       '<button type="button" class="btn primary" data-a="anim">▶ Animar</button>' +
@@ -394,6 +395,7 @@
     el.querySelector('[data-a=rewind]').addEventListener('click', function () { self.rewind(); });
     el.querySelector('[data-a=stockbtn]').addEventListener('click', function () { el.querySelector('.stockpanel').classList.toggle('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); });
     el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); });
+    el.querySelector('[data-a=setup]').addEventListener('click', function () { self.openSetup(); });
     el.querySelector('[data-a=fixbtn]').addEventListener('click', function () { var fp = el.querySelector('.fixpanel'); fp.classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); if (!fp.classList.contains('hidden')) fp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
     // fixação: adicionar, editar, girar, remover e arrastar no 3D
     this.fixCat = 'morsas';
@@ -526,7 +528,7 @@
     var pb0 = this.el.querySelector('[data-a=pause]'); if (pb0) { pb0.disabled = true; pb0.textContent = '⏸ Pausar'; }
     this.mode = m;
     this.el.querySelectorAll('.simtabs button').forEach(function (x) { x.classList.toggle('on', x.dataset.v === m); });
-    this.c3.classList.toggle('hidden', m !== '3d' || !!this.v3); this.cg.classList.toggle('hidden', m !== '3d' || !this.v3); this.cxy.classList.toggle('hidden', m === '3d');
+    this.c3.classList.toggle('hidden', m !== '3d' || !!this.v3 || (this.glWanted() && !this.glFailed)); this.cg.classList.toggle('hidden', m !== '3d' || !this.v3); this.cxy.classList.toggle('hidden', m === '3d');
     // mantém o ponto da usinagem ao trocar de vista
     var total = this.sim.segs.length, idx;
     if (m === 'xy') { idx = this.st ? this.st.idx : 0; this.xyIdx = idx >= total ? null : idx; }
@@ -609,6 +611,7 @@
   };
   SimView.prototype.fixChanged = function (quick) {
     store.set(this.fixKey(), this.fix);
+    var sb = this.el.querySelector('.setupbtn'); if (sb) sb.textContent = this.fix.length ? T('Setup') + ' (' + this.fix.length + ')' : T('Montar setup');
     this.v3st = null;
     if (quick) { this.st = Stock3D.build(this.sim, this.opts()); this.st.fixSel = this.fixSel; var s0 = this.sim.segs[0]; if (s0) this.st.tool = { x: s0.x2, y: s0.y2, z: s0.z }; this.draw(true); return; }
     this.renderFix(); this.rebuild(false);
@@ -666,8 +669,11 @@
     this.sim = runSim(text, this.simP());
     this.tcum = null;
     this.renderListing();
+    if (this.glWanted() && !this.glFailed && !this.v3) this.c3.classList.add('hidden');
     this.rebuild(true);
     this.initGL();
+    var fp = this.el.querySelector('.fixpanel'); if (!this.fix.length) { fp.classList.remove('hidden'); this.renderFix(); } 
+    this.el.querySelector('.setupbtn').textContent = this.fix.length ? T('Setup') + ' (' + this.fix.length + ')' : T('Montar setup');
   };
   // bruto pelas medidas da macro (letras do G65) ou do paramétrico (variáveis #)
   function programStock(p, text) {
@@ -794,18 +800,26 @@
     this.updatePanel(0);
   };
   // 3D realista (WebGL) quando o aparelho permite; senão o relevo simples
+  SimView.prototype.glWanted = function () { return !!(window.Sim3D && Sim3D.webglOk() && !store.get('sim.simple', false)); };
   SimView.prototype.initGL = function () {
-    var self = this;
-    if (this.v3 || this.glTried || !window.Sim3D || !Sim3D.webglOk() || store.get('sim.simple', false)) return;
-    this.glTried = true;
+    var self = this, ld = this.el.querySelector('.glload');
+    if (this.v3 || this.glTried || !this.glWanted()) return;
+    this.glTried = true; ld.classList.remove('hidden');
+    function fail() { self.glFailed = true; ld.classList.add('hidden'); self.setMode(self.mode); self.draw(true); }
     Sim3D.load('vendor/three-bundle.js').then(function () {
-      try { self.v3 = new Sim3D.Viewer(self.cg); } catch (e) { self.v3 = null; return; }
-      self.v3st = null; self.setMode(self.mode); self.draw(true); self.renderFix();
-    }).catch(function () {});
+      try { self.v3 = new Sim3D.Viewer(self.cg); } catch (e) { self.v3 = null; fail(); return; }
+      ld.classList.add('hidden'); self.v3st = null; self.setMode(self.mode); self.draw(true); self.renderFix();
+    }).catch(fail);
+  };
+  // montar o setup: abre o catálogo de fixação embaixo do 3D
+  SimView.prototype.openSetup = function () {
+    var fp = this.el.querySelector('.fixpanel');
+    fp.classList.remove('hidden'); this.el.querySelector('.stockpanel').classList.add('hidden'); this.el.querySelector('.msgpanel').classList.add('hidden');
+    this.renderFix(); setTimeout(function () { fp.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60);
   };
   SimView.prototype.render3 = function (showTool) {
     var st = this.st; if (!st) return;
-    if (!this.v3) { Stock3D.render(this.c3, st, this.view, showTool); return; }
+    if (!this.v3) { if (this.glWanted() && !this.glFailed) return; Stock3D.render(this.c3, st, this.view, showTool); return; }
     var v = this.v3, cv = this.cg, W = cv.clientWidth || 600, H = cv.clientHeight || Math.round(W * 0.75);
     if (this.v3st !== st) { v.setup(st, this.fix); this.v3st = st; }
     else v.updateStock(st);

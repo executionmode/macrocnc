@@ -242,9 +242,18 @@
       idx.push(a, b, d, a, d, c);
     }
     // paredes nas bordas (vértices próprios: canto vivo)
-    var wallTop = [], self = this;
+    var wallTop = [], wallN = [], self = this;
+    // normal horizontal suave pela forma do bruto (contorno em escada fica liso, sem listras)
+    function nrm(k) {
+      var ki = k % nx, kj = (k - ki) / nx, gx = 0, gy = 0;
+      for (var dj = -4; dj <= 4; dj++) for (var di = -4; di <= 4; di++) {
+        var qi = ki + di, qj = kj + dj; if (qi < 0 || qj < 0 || qi >= nx || qj >= ny) continue;
+        if (ins[qj * nx + qi]) { var wgt = Math.exp(-(di * di + dj * dj) / 8); gx += di * wgt; gy += dj * wgt; }
+      }
+      var gl = Math.hypot(gx, gy) || 1; return [-gx / gl, 0, gy / gl];   // para fora do material (three z = -Y)
+    }
     function wall(ka, kb) {
-      var i0 = n; P.push(x0 + (ka % nx) * cell, st.h[ka], -(y0 + Math.floor(ka / nx) * cell)); P.push(x0 + (kb % nx) * cell, st.h[kb], -(y0 + Math.floor(kb / nx) * cell));
+      var i0 = n, na = nrm(ka), nb = nrm(kb); wallN.push([i0, na], [i0 + 1, nb], [i0 + 2, nb], [i0 + 3, na]); P.push(x0 + (ka % nx) * cell, st.h[ka], -(y0 + Math.floor(ka / nx) * cell)); P.push(x0 + (kb % nx) * cell, st.h[kb], -(y0 + Math.floor(kb / nx) * cell));
       P.push(x0 + (kb % nx) * cell, bot, -(y0 + Math.floor(kb / nx) * cell)); P.push(x0 + (ka % nx) * cell, bot, -(y0 + Math.floor(ka / nx) * cell));
       wallTop.push([i0, ka], [i0 + 1, kb]); n += 4;
       idx.push(i0, i0 + 2, i0 + 3, i0, i0 + 1, i0 + 2);   // virada para fora
@@ -263,7 +272,7 @@
     g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3));
     g.setIndex(idx);
     var m = new THREE.Mesh(g, mats().stock); m.castShadow = true; m.receiveShadow = true;
-    this.stock = m; this.topN = topN; this.wallTop = wallTop; this.nTop = topN.length; this.world.add(m);
+    this.stock = m; this.topN = topN; this.wallTop = wallTop; this.wallN = wallN; this.nTop = topN.length; this.world.add(m);
     var bgeo = new THREE.PlaneGeometry((nx - 1) * cell, (ny - 1) * cell); bgeo.rotateX(Math.PI / 2);
     this.stockKey = st.h; this.updateStock(st, true);
   };
@@ -282,7 +291,10 @@
       var vb = vi % 2 === 0 ? vi + 3 : vi + 1; col[vb * 3] = 0.18; col[vb * 3 + 1] = 0.18; col[vb * 3 + 2] = 0.19;
     }
     g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true;
-    g.computeVertexNormals(); g.computeBoundingSphere();
+    g.computeVertexNormals();
+    var nm = g.attributes.normal.array, WN = this.wallN;
+    for (var q = 0; q < WN.length; q++) { var v3 = WN[q][0] * 3, nn = WN[q][1]; nm[v3] = nn[0]; nm[v3 + 1] = nn[1]; nm[v3 + 2] = nn[2]; }
+    g.attributes.normal.needsUpdate = true; g.computeBoundingSphere();
   };
   // fresa de topo com hélices, haste, pinça e porta-ferramenta (ponta em y = 0)
   function toolGroup(D, shape) {
