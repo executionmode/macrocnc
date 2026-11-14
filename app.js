@@ -412,6 +412,15 @@
       if (b.dataset.fx === 'del') { self.fix.splice(i, 1); self.fixSel = null; }
       else if (b.dataset.fx === 'rot') it.ang = ((+it.ang || 0) + 90) % 360;
       else if (b.dataset.fx === 'inv') it.inv = +it.inv === 1 ? 0 : 1;
+      else if (b.dataset.fx === 'dup') {   // mais um igual, ao lado (dá para pôr quantos quiser)
+        var cp = JSON.parse(JSON.stringify(it)), aR = ((+it.ang || 0) + 90) * Math.PI / 180, dd = Math.max(45, (+it.w || +it.e || 40) + 15);
+        cp.x = r1(+it.x + Math.cos(aR) * dd); cp.y = r1(+it.y + Math.sin(aR) * dd); self.fix.push(cp); self.fixSel = self.fix.length - 1;
+        toast(T('Duplicado. Encoste no item no 3D e arraste até o lugar.'));
+      }
+      else if (b.dataset.fx === 'size') {   // medida pronta do taco / calço
+        var sz = b.dataset.v.split('x').map(Number); it.e = sz[0]; it.h = sz[1]; if (it.type === 'taco') it.L = sz[0];
+        if (b.dataset.all) self.fix.forEach(function (f) { if (f.type === it.type) { f.e = it.e; f.h = it.h; if (f.type === 'taco') f.L = it.L; } });
+      }
       else if (b.dataset.fx === 'free') { self.freeFix(i, true); }
       else if (b.dataset.fx === 'sel') self.fixSel = self.fixSel === i ? null : i;
       self.fixChanged();
@@ -580,7 +589,11 @@
     var si = (this.st && this.st.stockInfo) || { shape: 'rect', lx: 100, ly: 100, cx: 0, cy: 0, top: 0, bottom: -20 }, rd = si.shape === 'round';
     var LX = rd ? si.d : si.lx, LY = rd ? si.d : si.ly, H = si.top - si.bottom, it;
     if (type === 'morsa') it = { type: type, v: 2, x: si.cx, y: si.cy, ang: 0, a: r1(LY), w: r1(Math.max(120, Math.min(200, LX + 40))), zt: r1(si.top - Math.min(10, H * 0.4)), zb: si.bottom };
-    else if (type === 'garra') it = { type: type, x: r1(si.cx - LX / 2 + 15), y: si.cy, ang: 180, L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
+    else if (type === 'garra') {   // cada garra nova vai para um lado da peça: esquerda, direita, frente, fundo (depois repete mais para o lado)
+      var ng = this.fix.filter(function (f) { return f.type === 'garra'; }).length, sd = ng % 4, rnd = Math.floor(ng / 4), off = rnd ? (rnd % 2 ? 1 : -1) * Math.ceil(rnd / 2) * 45 : 0;
+      var GX = [si.cx - LX / 2 + 15, si.cx + LX / 2 - 15, si.cx + off, si.cx + off][sd], GY = [si.cy + off, si.cy + off, si.cy - LY / 2 + 15, si.cy + LY / 2 - 15][sd];
+      it = { type: type, x: r1(GX), y: r1(GY), ang: [180, 0, 270, 90][sd], L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
+    }
     else if (type === 'placa' || type === 'placa4') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
     else if (type === 'taco') {   // um em cada canto embaixo da peça (o próximo vai para o canto seguinte)
       var nt = this.fix.filter(function (f) { return f.type === 'taco'; }).length % 4, cxs = [-1, 1, 1, -1][nt], cys = [-1, -1, 1, 1][nt];
@@ -633,10 +646,15 @@
     box.innerHTML = this.fix.map(function (it, i) {
       cnt[it.type] = (cnt[it.type] || 0) + 1; if (!FIXF[it.type]) return '';
       return '<div class="fixitem' + (self.fixSel === i ? ' on' : '') + '" data-fi="' + i + '"><div class="row"><b>' + esc(T(FIXNAME[it.type])) + ' ' + cnt[it.type] + '</b><span class="sp"></span>' +
-        '<button type="button" class="btn sm" data-fx="sel">' + esc(T(self.fixSel === i ? 'Selecionado' : 'Selecionar')) + '</button><button type="button" class="btn sm" data-fx="rot">' + esc(T('Girar 90°')) + '</button>' +
+        '<button type="button" class="btn sm" data-fx="sel">' + esc(T(self.fixSel === i ? 'Selecionado' : 'Selecionar')) + '</button><button type="button" class="btn sm" data-fx="rot">' + esc(T('Girar 90°')) + '</button><button type="button" class="btn sm" data-fx="dup">' + esc(T('Duplicar')) + '</button>' +
         (it.type === 'placa' || it.type === 'placa4' ? '<button type="button" class="btn sm' + (+it.inv === 1 ? ' primary' : '') + '" data-fx="inv">' + esc(T(+it.inv === 1 ? 'Castanhas invertidas' : 'Inverter castanhas')) + '</button>' : '') +
         (it.type === 'placa' || it.type === 'placa4' || it.type === 'morsa' ? '<button type="button" class="btn sm" data-fx="free">' + esc(T('Liberar a usinagem')) + '</button>' : '') +
         '<button type="button" class="btn sm danger" data-fx="del">' + esc(T('Remover')) + '</button></div>' +
+        (it.type === 'taco' || it.type === 'calco' ? '<div class="fixsizes"><span>' + esc(T(it.type === 'taco' ? 'Tarugo' : 'Calço')) + '</span>' +
+          (it.type === 'taco' ? ['25x25', '30x30', '40x40', '50x50', '60x60'] : ['8x20', '10x25', '12x30', '15x40', '20x50']).map(function (z) {
+            var on = it.type === 'taco' ? (+it.e + 'x' + +it.h) === z : (+it.e + 'x' + +it.h) === z;
+            return '<button type="button" class="btn sm' + (on ? ' primary' : '') + '" data-fx="size" data-v="' + z + '">' + z.replace('x', ' x ') + '</button>';
+          }).join('') + (self.fix.filter(function (f) { return f.type === it.type; }).length > 1 ? '<button type="button" class="btn sm" data-fx="size" data-all="1" data-v="' + (+it.e) + 'x' + (+it.h) + '">' + esc(T('Usar em todos')) + '</button>' : '') + '</div>' : '') +
         '<div class="grid2">' + FIXF[it.type].map(function (f) { return '<label class="field"><span>' + esc(T(f[1])) + '</span><input class="input" inputmode="decimal" data-fk="' + f[0] + '" value="' + (it[f[0]] != null ? String(it[f[0]]) : '') + '"></label>'; }).join('') + '</div></div>';
     }).join('');
   };
@@ -863,9 +881,10 @@
     var v = this.v3, cv = this.cg, W = cv.clientWidth || 600, H = cv.clientHeight || Math.round(W * 0.75);
     if (this.v3st !== st) { v.setup(st, this.fix); this.v3st = st; }
     else v.updateStock(st);
-    v.setTool(st.tool, st.D, st.toolShape, showTool || !!st.fixStop);
+    var fpv = this.el.querySelector('.fixpanel'), setup = fpv && !fpv.classList.contains('hidden') && !this.animRunning;
+    v.setTool(st.tool, st.D, st.toolShape, (showTool || !!st.fixStop) && !(setup && !st.fixStop));   // montando o setup: fuso e fresa saem da frente
     v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.setHit(st.fixStop);
-    var fpv = this.el.querySelector('.fixpanel'); v.setGhost(fpv && !fpv.classList.contains('hidden') && this.fix.length && !this.animRunning);   // montando o setup: peça transparente
+    v.setGhost(setup && this.fix.length);   // montando o setup: peça transparente
     v.render(this.view, W, H);
   };
   SimView.prototype.draw = function (showTool) {
