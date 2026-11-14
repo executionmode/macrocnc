@@ -1,9 +1,9 @@
 /* Service worker — deixa o app funcionando offline.
  * Ao publicar uma versão nova, mude CACHE (ex.: macro-cnc-v22) para os aparelhos baixarem tudo de novo.
  */
-const CACHE = 'macro-cnc-v89';
+const CACHE = 'macro-cnc-v90';
 const ASSETS = [
-  './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './i18n.js', './lang/en.js', './lang/fr-CA.js', './programs.en.js', './programs.fr-CA.js', './training.en.js', './training.fr-CA.js', './img/pfoot.en.jpg', './img/pfoot.fr-CA.jpg', './config.js', './programs.js', './training.js', './gcode.js', './macrosim.js', './stock3d.js', './sim3d.js', './vendor/three-bundle.js', './assistant.js', './cad.js', './plan.js', './app.js', './manifest.json',
+  './', './index.html', './styles.css', './theme.css', './art.js', './img/splash.jpg', './img/hero.jpg', './img/m_programas.jpg', './img/m_param.jpg', './img/m_treino.jpg', './img/m_meus.jpg', './img/m_editor.jpg', './img/m_desenho.jpg', './img/m_pedir.jpg', './img/home.jpg', './img/exemplos.jpg', './img/param.jpg', './img/avatar.jpg', './img/pfoot.jpg', './img/logo.jpg', './i18n.js', './lang/en.js', './lang/fr-CA.js', './programs.en.js', './programs.fr-CA.js', './training.en.js', './training.fr-CA.js', './img/pfoot.en.jpg', './img/pfoot.fr-CA.jpg', './config.js', './programs.js', './training.js', './gcode.js', './macrosim.js', './stock3d.js', './sim3d.js', './vendor/three-bundle.js', './assistant.js', './cad.js', './plan.js', './app.js', './manifest.json',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png'
 ];
 

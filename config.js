@@ -3,7 +3,7 @@
  * Assim, quem instalar o app já usa o assistente sem configurar nada.
  */
 window.APP_CONFIG = {
-  version: '3.28.9',
+  version: '3.29.0',
   proxyUrl: '',                 // ex.: 'https://macro-cnc-proxy.seunome.workers.dev'
   model: 'claude-sonnet-5-5',
   sheetAuthor: 'Leandro Marcus',   // nome que sai em 'Desenho' e 'Aprovado' na folha A4 (cada pessoa pode trocar em Exportar)

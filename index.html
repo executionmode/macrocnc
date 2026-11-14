@@ -18,13 +18,15 @@
 </head>
 <body>
   <!-- ABERTURA -->
-  <div id="splash" class="splash">
+  <div id="splash" class="splash lm">
+    <i class="lm-stripe s1"></i><i class="lm-stripe s2"></i>
     <div class="splash-art"><img src="img/splash.jpg" alt=""></div>
     <div class="splash-shade"></div>
     <div class="splash-content">
-      <img class="logo-img" src="img/logo.jpg" alt="Macro CNC" style="width:250px">
-      <p class="splash-tag">Programação inteligente<br>para o seu CNC</p>
-      <div class="splash-bar"><div></div></div>
+      <div class="lm-logo notr">LM CNC <b>LAB</b></div>
+      <p class="lm-tag">Programação CNC • Macros • Parametrizados</p>
+      <i class="lm-glow"></i>
+      <div class="lm-spin"></div>
       <p class="splash-load">Carregando...</p>
     </div>
   </div>
@@ -32,24 +34,31 @@
   <main>
     <!-- INÍCIO -->
     <section id="view-home" class="view active">
-      <div class="home-hero">
-        <div class="hero-art"><img src="img/home.jpg" alt=""></div>
-        <div class="hero-shade"></div>
-        <button id="btnConfig" class="hero-gear" type="button" aria-label="Configurações"></button>
-        <button class="lang-pill hero-lang notr" type="button" data-sheet="idioma" aria-label="Idioma"><span data-icon="globe"></span><b class="lang-code">PT</b></button>
-        <div class="home-welcome"><h1>Bem-vindo!</h1><p>Seu assistente de programação FANUC</p></div>
+      <header class="lm-head">
+        <button id="btnConfig" class="ui-ico" type="button" aria-label="Configurações"><span data-icon="menu"></span></button>
+        <div class="lm-logo sm notr">LM CNC <b>LAB</b></div>
+        <button class="lang-pill notr" type="button" data-sheet="idioma" aria-label="Idioma"><span data-icon="globe"></span><b class="lang-code">PT</b></button>
+      </header>
+      <div class="lm-hero">
+        <img src="img/hero.jpg" alt="">
+        <i class="lm-stripe s3"></i>
+        <div class="lm-hero-txt">
+          <div class="lm-logo md notr">LM CNC <b>LAB</b></div>
+          <p>Programação CNC • Macros • Parametrizados</p>
+          <button type="button" class="lm-cta" data-go="exemplos">Começar a explorar <span data-icon="chev"></span></button>
+        </div>
       </div>
       <div class="ui-pad">
-        <div class="menu">
-          <button type="button" class="menu-item" data-go="programas" data-cat="macro"><span class="mi-ico" data-icon="list"></span><span class="mi-txt"><b>Programas</b><small>Macros G65 e exemplos</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="paramintro"><span class="mi-ico" data-icon="cog"></span><span class="mi-txt"><b>Parametrizados</b><small>Variáveis e cálculos</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="treinamento"><span class="mi-ico" data-icon="cap"></span><span class="mi-txt"><b>Treinamento</b><small>Macros do zero, passo a passo</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="meus"><span class="mi-ico" data-icon="box"></span><span class="mi-txt"><b>Meus Programas</b><small>Biblioteca pessoal</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="editor"><span class="mi-ico" data-icon="edit"></span><span class="mi-txt"><b>Editor de Programa</b><small>Escrever, conferir e simular</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="desenho"><span class="mi-ico" data-icon="draw"></span><span class="mi-txt"><b>Desenho</b><small>Desenhar a peça com medidas e furos</small></span><span class="mi-chev" data-icon="chev"></span></button>
-          <button type="button" class="menu-item" data-go="pedir"><span class="mi-ico" data-icon="chat"></span><span class="mi-txt"><b>Pedir Programa</b><small>O assistente monta no seu padrão</small></span><span class="mi-chev" data-icon="chev"></span></button>
+        <h2 class="lm-sec">Nossos Módulos</h2>
+        <div class="mgrid">
+          <button type="button" class="mcard" data-go="programas" data-cat="macro"><img src="img/m_programas.jpg" alt="" loading="lazy"><span>Programas</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard" data-go="paramintro"><img src="img/m_param.jpg" alt="" loading="lazy"><span>Parametrizados</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard" data-go="treinamento"><img src="img/m_treino.jpg" alt="" loading="lazy"><span>Treinamento</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard" data-go="meus"><img src="img/m_meus.jpg" alt="" loading="lazy"><span>Meus Programas</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard" data-go="editor"><img src="img/m_editor.jpg" alt="" loading="lazy"><span>Editor de Programa</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard" data-go="desenho"><img src="img/m_desenho.jpg" alt="" loading="lazy"><span>Desenho</span><i data-icon="chev"></i></button>
+          <button type="button" class="mcard wide" data-go="pedir"><img src="img/m_pedir.jpg" alt="" loading="lazy"><span>Pedir Programa</span><i data-icon="chev"></i></button>
         </div>
-        <button type="button" class="ui-btn primary wide" data-go="exemplos"><span data-icon="play"></span> Começar a explorar</button>
       </div>
     </section>
 

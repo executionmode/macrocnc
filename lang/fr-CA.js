@@ -480,6 +480,8 @@ I18N.add({
   "Tirante": "Tirant",
   "da ponta": "depuis la pointe",
   "Tirante (da ponta)": "Tirant (depuis la pointe)",
+  "Nossos Módulos": "Nos modules",
+  "Programação CNC • Macros • Parametrizados": "Programmation CNC • Macros • Paramétriques",
   "Linear": "Linéaire",
   "Linha horizontal": "Ligne horizontale",
   "Linha vertical": "Ligne verticale",

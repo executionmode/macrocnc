@@ -480,6 +480,8 @@ I18N.add({
   "Tirante": "Stud",
   "da ponta": "from the tip",
   "Tirante (da ponta)": "Stud (from tip)",
+  "Nossos Módulos": "Our Modules",
+  "Programação CNC • Macros • Parametrizados": "CNC Programming • Macros • Parametric",
   "Linear": "Linear",
   "Linha horizontal": "Horizontal line",
   "Linha vertical": "Vertical line",

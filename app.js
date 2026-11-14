@@ -115,9 +115,9 @@
   paintArt();
   (function splash() {
     var sp = $('#splash'); if (!sp) return;
-    var bar = sp.querySelector('.splash-bar div'), t0 = performance.now(), dur = 1300;
+    var bar = sp.querySelector('.splash-bar div'), t0 = performance.now(), dur = 1800;
     (function tick(t) {
-      var k = Math.min(1, ((t || performance.now()) - t0) / dur); bar.style.width = (k * 100).toFixed(0) + '%';
+      var k = Math.min(1, ((t || performance.now()) - t0) / dur); if (bar) bar.style.width = (k * 100).toFixed(0) + '%';
       if (k < 1) requestAnimationFrame(tick); else { sp.classList.add('out'); setTimeout(function () { sp.remove(); }, 450); }
     })();
   })();
