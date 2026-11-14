@@ -670,27 +670,32 @@ window.PROGRAMS = [
   "num": 36,
   "title": "Contorno aberto da peça (raios R15 e R220)",
   "status": "revisado",
-  "desc": "Contorno externo aberto com G41: sobe a lateral, faz os dois R15, o raio R220 e os chanfros 2x45°, descendo 2,5 por nível até a profundidade final. Entra e sai por fora em Y-20.",
-  "main": "%\nO0036 (CONTORNO ABERTO DA PECA - FRESA D28) ;\nG21 G40 G90 G94 ;\nG54 ;\n#1 = 0 (Z ATUAL - COMECA NA FACE) ;\n#2 = 2.5 (INCREMENTO EM Z POR NIVEL) ;\n#3 = -52.5 (PROFUNDIDADE FINAL) ;\n#4 = 1 (NUMERO DA FERRAMENTA) ;\nT#4 ;\nM6 ;\nS1400 M3 ;\nG0 G43 H#4 Z100. ;\nG0 X0 Y-20. ;\nM8 ;\nG0 Z5. ;\nN10 (INICIO DE CADA NIVEL) ;\n#1 = #1 - #2 ;\nG1 Z#1 F500 ;\nG1 G41 D#4 X0 Y0 F1000 ;\nG1 X0 Y95. ;\nG2 X15. Y110. I15. J0 ;\nG1 X27. Y110. ;\nG2 X39. Y104. I0 J-15. ;\nG3 X215. Y16. I176. J132. ;\nG1 X248. Y16. ;\nG1 X250. Y14. ;\nG1 X250. Y2. ;\nG1 X248. Y0 ;\nG1 G40 X248. Y-20. ;\nG0 X0 Y-20. ;\nIF [#1 GT #3] GOTO 10 ;\nG0 Z100. ;\nM9 ;\nG53 H0 Z0 ;\nM30 ;\n%",
+  "desc": "Contorno externo aberto com G41: sobe a lateral, faz os dois R15, o raio R220 e os chanfros 2x45°, descendo 2,5 por nível até a profundidade final. Entra e sai por fora a 1,5 x o raio da fresa e sobe a Z100. a cada nível.",
+  "main": "%\nO0036 (CONTORNO ABERTO DA PECA) ;\nG21 G40 G90 G94 ;\nG54 ;\n#1 = 0 (Z ATUAL - COMECA NA FACE) ;\n#2 = 2.5 (INCREMENTO EM Z POR NIVEL) ;\n#3 = -52.5 (PROFUNDIDADE FINAL) ;\n#4 = 50 (DIAMETRO DA FERRAMENTA) ;\n#5 = #4 / 2 (RAIO DA FERRAMENTA) ;\n#6 = #5 * 1.5 (DISTANCIA DE ENTRADA E SAIDA - 1.5 X RAIO) ;\n#7 = 1 (NUMERO DA FERRAMENTA) ;\nT#7 ;\nM6 ;\nS1400 M3 ;\nG0 G43 H#7 Z100. ;\nG0 X-#5 Y-#6 ;\nM8 ;\nG0 Z5. ;\nN10 (INICIO DE CADA NIVEL) ;\n#1 = #1 - #2 ;\nG0 Z[#1 + 1] ;\nG1 Z#1 F500 ;\nG1 G41 D#7 X0 Y0 F2000 ;\nG1 X0 Y95. ;\nG2 X15. Y110. I15. J0 ;\nG1 X27. Y110. ;\nG2 X39. Y104. I0 J-15. ;\nG3 X215. Y16. I176. J132. ;\nG1 X248. Y16. ;\nG1 X250. Y14. ;\nG1 X250. Y2. ;\nG1 X248. Y0 ;\nG1 G40 X[248 + #5] Y-#6 ;\nG0 Z100. ;\nG0 X-#5 Y-#6 ;\nIF [#1 GT #3] GOTO 10 ;\nG0 Z100. ;\nM9 ;\nG53 H0 Z0 ;\nM30 ;\n%",
   "edit": [
    2,
    3,
-   4
+   4,
+   7
   ],
   "labels": {
    "1": "Z atual (começa na face)",
    "2": "Incremento em Z por nível",
    "3": "Profundidade final",
-   "4": "Número da ferramenta"
+   "4": "Diâmetro da ferramenta",
+   "5": "Raio da ferramenta (calculado)",
+   "6": "Distância de entrada e saída (1,5 x raio)",
+   "7": "Número da ferramenta"
   },
   "notes": [
-   "Usa compensação G41 D#4: o raio da fresa (D28 = 14) tem que estar no corretor D da ferramenta.",
-   "A profundidade precisa ser múltipla do incremento (52,5 / 2,5 = 21 níveis)."
+   "Usa compensação G41 D#7: o raio da fresa (D50 = 25) tem que estar no corretor D da ferramenta.",
+   "A profundidade precisa ser múltipla do incremento (52,5 / 2,5 = 21 níveis).",
+   "A entrada e a saída ficam a 1,5 x o raio da fresa (#6), calculadas pelo diâmetro em #4."
   ],
-  "toolDia": 28,
+  
   "stock": "rect",
   "top": 0,
-  "stockExpr": "({shape:'rect', lx:256, ly:113, cx:125, cy:56.5, top:0, bottom:V[3]-5, tool:28})"
+  "stockExpr": "({shape:'rect', lx:256, ly:113, cx:125, cy:56.5, top:0, bottom:V[3]-5, tool:V[4]})"
  }
 ];
 window.RULES = [
