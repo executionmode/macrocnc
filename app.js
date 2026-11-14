@@ -256,7 +256,7 @@
     el.innerHTML =
       '<div class="simmain">' +
       '<div class="simleft">' +
-      '<div class="simtop"><div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div><button type="button" class="setupbtn" data-a="setup">Montar setup</button></div>' +
+      '<div class="simtop"><div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div><button type="button" class="setupbtn" data-a="setup">Montar setup</button><button type="button" class="savedbtn" data-a="saved" aria-label="Setups salvos"><span data-icon="star"></span></button></div>' +
       '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas>' +
       '<div class="glload hidden">Carregando 3D…</div><div class="dragpos hidden"></div>' +
       '<div class="fixtools hidden"><b class="ftname"></b><button type="button" data-ft="rot">Girar 90°</button><button type="button" data-ft="dup">Duplicar</button><button type="button" data-ft="edit">Medidas</button><button type="button" data-ft="del" class="del">Excluir</button><button type="button" data-ft="x" class="x">✕</button></div></div>' +
@@ -405,6 +405,8 @@
     el.querySelector('[data-a=stockbtn]').addEventListener('click', function () { el.querySelector('.stockpanel').classList.toggle('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); });
     el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); self.setSetupOn(false); });
     el.querySelector('[data-a=setup]').addEventListener('click', function () { if (self.setupOn) self.closeSetup(); else self.openSetup(); });
+    el.querySelector('[data-a=saved]').addEventListener('click', function () { self.openSaved(); });
+    paintArt(el);
     // barra do item escolhido, em cima do 3D: girar, duplicar, medidas, excluir
     el.querySelector('.fixtools').addEventListener('click', function (e) {
       var b = e.target.closest('[data-ft]'); if (!b) return; var i = self.fixSel, it = self.fix[i];
@@ -676,6 +678,56 @@
           }).join('') + (self.fix.filter(function (f) { return f.type === it.type; }).length > 1 ? '<button type="button" class="btn sm" data-fx="size" data-all="1" data-v="' + (+it.e) + 'x' + (+it.h) + '">' + esc(T('Usar em todos')) + '</button>' : '') + '</div>' : '') +
         '<div class="grid2">' + FIXF[it.type].map(function (f) { return '<label class="field"><span>' + esc(T(f[1])) + '</span><input class="input" inputmode="decimal" data-fk="' + f[0] + '" value="' + (it[f[0]] != null ? String(it[f[0]]) : '') + '"></label>'; }).join('') + '</div></div>';
     }).join('');
+  };
+  /* setups salvos: os que o usuário salvou com nome + o último setup de cada programa */
+  function progLabel(key) {
+    var id = key.replace(/^fix2\./, ''), p = PROGRAMS.filter(function (x) { return x.id === id; })[0];
+    if (!p) return id;
+    var m = String(p.main || p.code || '').match(/O(\d{1,4})/);
+    return (m ? 'O' + pad4(m[1]) : (p.num ? 'O' + pad4(p.num) : '')) + ' – ' + T(p.title || id);
+  }
+  SimView.prototype.savedList = function () {
+    var own = store.get('setups', []) || [], last = [], me = this.fixKey();
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i); if (k.indexOf('mcnc.fix2.') !== 0 || /\.t$/.test(k)) continue;
+        var key = k.slice(5), fx = store.get(key, []); if (!fx || !fx.length || key === me) continue;
+        last.push({ key: key, name: progLabel(key), fix: fx, tab: store.get(key + '.t', null) || [0, 0] });
+      }
+    } catch (e) {}
+    last.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+    return { own: own, last: last };
+  };
+  SimView.prototype.openSaved = function () {
+    var self = this, L = this.savedList(), n0 = progName(this.text, this.p ? progLabel('fix2.' + this.p.id) : 'Setup');
+    function row(x, i, kind) {
+      var dt = x.at ? new Date(x.at).toLocaleDateString() : '';
+      return '<div class="svrow"><span class="svtxt"><b>' + esc(x.name) + '</b><small>' + x.fix.length + ' ' + esc(T(x.fix.length === 1 ? 'item' : 'itens')) + (dt ? ' · ' + dt : '') + '</small></span>' +
+        '<button type="button" class="ui-btn sm primary" data-sv="use" data-k="' + kind + '" data-i="' + i + '">' + esc(T('Usar')) + '</button>' +
+        (kind === 'own' ? '<button type="button" class="ui-btn sm" data-sv="del" data-i="' + i + '" aria-label="' + esc(T('Excluir')) + '">✕</button>' : '') + '</div>';
+    }
+    var h = '<div class="svsave"><input class="ui-input" id="svName" value="' + esc(n0) + '" placeholder="' + esc(T('Nome do setup')) + '"><button type="button" class="ui-btn primary" data-sv="save"' + (this.fix.length ? '' : ' disabled') + '>' + esc(T('Salvar este setup')) + '</button></div>';
+    if (L.own.length) h += '<h3 class="svh">' + esc(T('Salvos')) + '</h3>' + L.own.map(function (x, i) { return row(x, i, 'own'); }).join('');
+    if (L.last.length) h += '<h3 class="svh">' + esc(T('Último setup de cada programa')) + '</h3>' + L.last.map(function (x, i) { return row(x, i, 'last'); }).join('');
+    if (!L.own.length && !L.last.length) h += '<p class="hint">' + esc(T('Nenhum setup salvo ainda.')) + '</p>';
+    openSheet(T('Setups salvos'), h);
+    var body = $('#sheetBody');
+    body.onclick = function (e) {
+      var b = e.target.closest('[data-sv]'); if (!b) return;
+      var act = b.dataset.sv, own = store.get('setups', []) || [];
+      if (act === 'save') {
+        var nm = ($('#svName').value || '').trim() || n0;
+        var ex = own.filter(function (x) { return x.name === nm; })[0], rec = { name: nm, fix: JSON.parse(JSON.stringify(self.fix)), tab: (self.tabOff || [0, 0]).slice(), at: Date.now() };
+        if (ex) own[own.indexOf(ex)] = rec; else own.unshift(rec);
+        store.set('setups', own); toast(T('Setup salvo.')); self.openSaved(); return;
+      }
+      if (act === 'del') { own.splice(+b.dataset.i, 1); store.set('setups', own); self.openSaved(); return; }
+      if (act === 'use') {
+        var src = (b.dataset.k === 'own' ? L.own : L.last)[+b.dataset.i]; if (!src) return;
+        self.fix = JSON.parse(JSON.stringify(src.fix)); self.tabOff = (src.tab || [0, 0]).slice(); self.fixSel = null; self.partSel = false;
+        closeSheet(); self.fixChanged(); toast(T('Setup aplicado.'));
+      }
+    };
   };
   SimView.prototype.fixChanged = function (quick) {
     store.set(this.fixKey(), this.fix); store.set(this.fixKey() + '.t', this.tabOff || [0, 0]);

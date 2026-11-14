@@ -614,3 +614,14 @@ label.dp-fr > span { flex: 1 1 auto; }
 .mcard.wide::after { background: linear-gradient(90deg, rgba(3,7,15,0) 30%, rgba(3,7,15,.6) 60%); }
 .mcard.wide span { left: 50%; bottom: auto; top: 50%; transform: translateY(-50%); }
 .mcard.wide i { bottom: auto; top: 50%; transform: translateY(-50%); }
+
+.simtop .savedbtn { flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(96,165,250,.6); background: #13233a; color: #fbbf24; cursor: pointer; padding: 0; }
+.simtop .savedbtn .ic { width: 20px; height: 20px; }
+.svsave { display: grid; gap: 8px; margin-bottom: 8px; }
+.svsave .ui-input { margin: 0; }
+.svh { font-size: 14px; color: var(--ui-mut); margin: 14px 0 6px; font-weight: 600; }
+.svrow { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--ui-line2, #2b3a4d); border-radius: 12px; margin-bottom: 8px; background: #08111f; }
+.svtxt { flex: 1 1 auto; min-width: 0; }
+.svtxt b { display: block; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svtxt small { color: var(--ui-mut); font-size: 12px; }
+.ui-btn.sm { padding: 7px 12px; font-size: 13px; width: auto; }
