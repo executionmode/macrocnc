@@ -578,7 +578,7 @@
   SimView.prototype.addFix = function (type) {
     var si = (this.st && this.st.stockInfo) || { shape: 'rect', lx: 100, ly: 100, cx: 0, cy: 0, top: 0, bottom: -20 }, rd = si.shape === 'round';
     var LX = rd ? si.d : si.lx, LY = rd ? si.d : si.ly, H = si.top - si.bottom, it;
-    if (type === 'morsa') it = { type: type, x: si.cx, y: si.cy, ang: 0, a: r1(LX), w: r1(Math.max(120, Math.min(200, LY + 40))), zt: r1(si.top - Math.min(10, H * 0.4)), zb: si.bottom };
+    if (type === 'morsa') it = { type: type, v: 2, x: si.cx, y: si.cy, ang: 0, a: r1(LY), w: r1(Math.max(120, Math.min(200, LX + 40))), zt: r1(si.top - Math.min(10, H * 0.4)), zb: si.bottom };
     else if (type === 'garra') it = { type: type, x: r1(si.cx - LX / 2 + 15), y: si.cy, ang: 180, L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
     else if (type === 'placa' || type === 'placa4') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
     else if (type === 'blocov') it = { type: type, x: si.cx, y: si.cy, ang: 0, L: r1(Math.min(100, Math.max(40, LX * 0.5))), w: 70, h: 50, zt: si.bottom };
@@ -691,7 +691,8 @@
     this.stop();
     this.text = text; this.p = p || null;
     this.manual = store.get(this.stockKey(), null);
-    this.fix = store.get(this.fixKey(), null) || []; this.fixSel = null; this.setFixDrag(false, true);
+    this.fix = store.get(this.fixKey(), null) || []; this.fixSel = null;
+    this.fix.forEach(function (it) { if (it.type === 'morsa' && it.v !== 2) { it.ang = (((+it.ang || 0) - 90) % 360 + 360) % 360; it.v = 2; } });   // morsa salva antes: mantém a mesma posição no novo ângulo 0 this.setFixDrag(false, true);
     this.sim = runSim(text, this.simP());
     this.tcum = null;
     this.renderListing();

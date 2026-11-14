@@ -75,6 +75,8 @@
     g.add(mesh(cyl(15, 15, 3, 32), M.steel, u, zTop, -v));
     g.add(mesh(hex(14, 12), M.dark, u, zTop + 3, -v));
   }
+  // morsa: ângulo 0 = mordentes apertando em Y, corpo e fuso ao longo de X (posição de trabalho na mesa)
+  function ANG0(it) { return it.type === 'morsa' ? 90 : 0; }
   var BUILD = {
     morsa: function (it, M, zTable) {
       var g = new THREE.Group(), A = Math.max(1, +it.a || 100), W = Math.max(40, +it.w || 150), zt = +it.zt, zb = +it.zb;
@@ -215,7 +217,7 @@
     (fixtures || []).forEach(function (it, i) {
       var b = BUILD[it.type]; if (!b) return;
       var g = b(it, M, zT);
-      g.position.set(+it.x || 0, 0, -(+it.y || 0)); g.rotation.y = (+it.ang || 0) * Math.PI / 180;
+      g.position.set(+it.x || 0, 0, -(+it.y || 0)); g.rotation.y = ((+it.ang || 0) + ANG0(it)) * Math.PI / 180;
       g.userData.fix = i; g.traverse(function (o) { o.userData.fix = i; if (o.isMesh) o.userData.mat0 = o.material; });
       w.add(g); self.fixG[i] = g;
     });
