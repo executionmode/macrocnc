@@ -360,6 +360,7 @@
       });
       cv.addEventListener('pointermove', function (e) {
         if (self.fixDragging && (cv === self.c3 || cv === self.cg) && Object.keys(pts).length === 1) { pts[e.pointerId] = { x: e.clientX, y: e.clientY }; self.fixMove(e); return; }
+        if (self.tap && Math.hypot(e.clientX - self.tap.x, e.clientY - self.tap.y) >= 8) self.tap = null;
         if (!pts[e.pointerId] || !g0) return;
         pts[e.pointerId] = { x: e.clientX, y: e.clientY };
         var ids = Object.keys(pts), v = self.view;
@@ -375,7 +376,14 @@
         }
         redraw();
       });
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { cv.addEventListener(ev, function (e) { delete pts[e.pointerId]; if (self.fixDragging) self.fixDrop(); gestureStart(); }); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { cv.addEventListener(ev, function (e) {
+        delete pts[e.pointerId]; if (self.fixDragging) self.fixDrop();
+        var tp = self.tap; self.tap = null;   // toque rápido: na peça escolhe a peça, no vazio tira a escolha
+        if (ev === 'pointerup' && tp && cv === self.cg && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 8) {
+          if (tp.kind === 'part') { self.partSel = true; self.fixSel = null; } else { self.partSel = false; self.fixSel = null; }
+          self.renderFix(); self.draw(true);
+        }
+        gestureStart(); }); });
       cv.addEventListener('wheel', function (e) { e.preventDefault(); self.zoomBy(e.deltaY < 0 ? 1.2 : 1 / 1.2); }, { passive: false });
       cv.addEventListener('dblclick', function () { self.zoomBy(2); });
     });
@@ -400,7 +408,7 @@
     // barra do item escolhido, em cima do 3D: girar, duplicar, medidas, excluir
     el.querySelector('.fixtools').addEventListener('click', function (e) {
       var b = e.target.closest('[data-ft]'); if (!b) return; var i = self.fixSel, it = self.fix[i];
-      if (b.dataset.ft === 'x' || !it) { self.fixSel = null; self.fixChanged(); return; }
+      if (b.dataset.ft === 'x' || !it) { self.fixSel = null; self.partSel = false; self.renderFix(); self.draw(true); return; }
       if (b.dataset.ft === 'edit') { self.openSetup(); setTimeout(function () { var c = el.querySelector('.fixitem[data-fi="' + i + '"]'); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 120); return; }
       var btn = el.querySelector('.fixitem[data-fi="' + i + '"] [data-fx="' + (b.dataset.ft === 'del' ? 'del' : b.dataset.ft) + '"]');
       if (btn) btn.click();
@@ -586,7 +594,7 @@
   var THUMBS = {};
   var FIXF = {
     morsa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['a', 'Abertura'], ['w', 'Largura dos mordentes'], ['zt', 'Topo dos mordentes Z'], ['zb', 'Apoio da peça Z']],
-    garra: [['x', 'Ponta da garra X'], ['y', 'Ponta da garra Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['e', 'Espessura'], ['zp', 'Apoio na peça Z'], ['zb', 'Mesa Z']],
+    garra: [['x', 'Ponta da garra X'], ['y', 'Ponta da garra Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['e', 'Espessura'], ['zp', 'Apoio na peça Z'], ['zb', 'Mesa Z'], ['t', 'Tirante (da ponta)']],
     placa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
     placa4: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
     taco: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['e', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']],
@@ -650,7 +658,7 @@
   SimView.prototype.renderFix = function () {
     if (this.renderCards) this.renderCards();
     var ftl = this.el.querySelector('.fixtools'), its = this.fix[this.fixSel];
-    if (ftl) { ftl.classList.toggle('hidden', !its); if (its) ftl.querySelector('.ftname').textContent = T(FIXNAME[its.type]); }
+    if (ftl) { ftl.classList.toggle('hidden', !its && !this.partSel); ftl.classList.toggle('part', !its && !!this.partSel); ftl.querySelector('.ftname').textContent = its ? T(FIXNAME[its.type]) : T('Peça'); }
     var self = this, box = this.el.querySelector('.fixlist'), n = this.fix.length;
     this.el.querySelector('.fixcount').textContent = n ? '(' + n + ')' : '';
     var cnt = {};
@@ -670,7 +678,7 @@
     }).join('');
   };
   SimView.prototype.fixChanged = function (quick) {
-    store.set(this.fixKey(), this.fix);
+    store.set(this.fixKey(), this.fix); store.set(this.fixKey() + '.t', this.tabOff || [0, 0]);
     var sb = this.el.querySelector('.setupbtn'); if (sb) sb.textContent = this.fix.length ? T('Setup') + ' (' + this.fix.length + ')' : T('Montar setup');
     this.v3st = null;
     if (quick) { this.st = Stock3D.build(this.sim, this.opts()); this.st.fixSel = this.fixSel; var s0 = this.sim.segs[0]; if (s0) this.st.tool = { x: s0.x2, y: s0.y2, z: s0.z }; this.draw(true); return; }
@@ -697,14 +705,21 @@
     if (this.v3) {
       var r0 = this.cg.getBoundingClientRect(), W0 = this.cg.clientWidth, H0 = this.cg.clientHeight, u0 = e.clientX - r0.left, w0 = e.clientY - r0.top;
       var hp = this.v3.pick(u0, w0, W0, H0);
-      if (!hp || !this.fix[hp.item]) {   // montando o setup: arrastar a peça (a fixação fica, a peça muda de lugar em cima dela)
+      this.tap = { x: e.clientX, y: e.clientY, kind: 'empty' };
+      if (!hp || !this.fix[hp.item]) {   // a peça: toque escolhe, arrastar muda de lugar na mesa (a fixação e a mesa ficam)
         var fpv = this.el.querySelector('.fixpanel');
-        if (fpv.classList.contains('hidden') || !this.fix.length) return;
         var hs = this.v3.pickStock(u0, w0, W0, H0); if (!hs) return;
+        this.tap.kind = 'part';
+        if (!this.partSel && (fpv.classList.contains('hidden') || !this.fix.length)) return;
         var ps = this.v3.onPlane(u0, w0, W0, H0, hs.z); if (!ps) return;
-        this.fixDragging = { stock: true, z: hs.z, p0: ps, xy: this.fix.map(function (f) { return [f.x, f.y]; }), gl: true }; return;
+        this.partSel = true; this.fixSel = null; this.tap = null;
+        this.fixDragging = { part: true, z: hs.z, p0: ps, dx: 0, dy: 0, gl: true }; this.v3.mark(null, null); this.v3.markPart(true); this.renderFix(); return;
       }
       var p0 = this.v3.onPlane(u0, w0, W0, H0, hp.z), itg = this.fix[hp.item]; if (!p0) return;
+      this.tap = null; this.partSel = false; this.v3.markPart(false);
+      if (hp.stud && itg.type === 'garra') {   // tirante do grampo: anda só dentro do rasgo
+        this.fixSel = hp.item; this.fixDragging = { stud: true, i: hp.item, z: hp.z, p0: p0, t0: Sim3D.studU(itg), gl: true }; this.v3.mark(this.fixSel, null); this.render3(true); this.renderFix(); return;
+      }
       this.fixSel = hp.item; this.fixDragging = { i: hp.item, z: hp.z, p0: p0, x0: itg.x, y0: itg.y, gl: true }; this.v3.mark(this.fixSel, null); this.render3(true); this.renderFix(); return;
     }
     // anda do alto para baixo até achar um pedaço da fixação embaixo do dedo
@@ -718,13 +733,20 @@
     }
   };
   SimView.prototype.fixMove = function (e) {
-    var d = this.fixDragging, it = d.stock ? null : this.fix[d.i]; if (!it && !d.stock) return;
-    if (d.stock && this.v3) {   // a peça anda: na tela a peça fica e a fixação vai para o outro lado (mesmo efeito)
+    var d = this.fixDragging, it = d.part ? null : this.fix[d.i]; if (!it && !d.part) return;
+    if (this.v3 && (d.part || d.stud)) {
       var rs = this.cg.getBoundingClientRect(), qs = this.v3.onPlane(e.clientX - rs.left, e.clientY - rs.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!qs) return;
-      var dx = Math.round(qs[0] - d.p0[0]), dy = Math.round(qs[1] - d.p0[1]), v3 = this.v3, self = this;
-      this.fix.forEach(function (f, i) { f.x = r1(d.xy[i][0] - dx); f.y = r1(d.xy[i][1] - dy); var g = v3.fixG[i]; if (g) { g.position.set(f.x, 0, -f.y); g.updateMatrixWorld(true); } });
-      var dps = this.el.querySelector('.dragpos'); if (dps) { dps.textContent = T('Peça') + '  ΔX ' + dx + '  ΔY ' + dy; dps.classList.remove('hidden'); }
-      v3.mark(this.fixSel, null); v3.render(this.view, this.cg.clientWidth, this.cg.clientHeight); return;
+      var mx = qs[0] - d.p0[0], my = qs[1] - d.p0[1], dps = this.el.querySelector('.dragpos');
+      if (d.part) {   // a peça anda em cima da mesa; ao soltar quem muda é a fixação e a mesa (o zero do programa é a peça)
+        d.dx = Math.round(mx); d.dy = Math.round(my); this.v3.movePart(d.dx, d.dy);
+        if (dps) { dps.textContent = T('Peça') + '  ΔX ' + d.dx + '  ΔY ' + d.dy; dps.classList.remove('hidden'); }
+      } else {        // tirante: só ao longo da barra do grampo
+        var a = ((+it.ang || 0) + 180) * Math.PI / 180, L = Math.max(30, +it.L || 100);
+        var t = Math.round(Math.max(L * 0.22 + 9, Math.min(L * 0.75 - 9, d.t0 + mx * Math.cos(a) + my * Math.sin(a))));
+        it.t = t; this.v3.moveStud(d.i, t); this.v3.mark(this.fixSel, null);
+        if (dps) { dps.textContent = T('Tirante') + '  ' + t + ' mm ' + T('da ponta'); dps.classList.remove('hidden'); }
+      }
+      this.v3.render(this.view, this.cg.clientWidth, this.cg.clientHeight); return;
     }
     if (d.gl && this.v3) {   // no 3D realista só move o item; a grade é refeita ao soltar
       var r0 = this.cg.getBoundingClientRect(), q = this.v3.onPlane(e.clientX - r0.left, e.clientY - r0.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!q) return;
@@ -737,7 +759,13 @@
     it.x = r1(d.x0 + p[0] - d.p0[0]); it.y = r1(d.y0 + p[1] - d.p0[1]);
     var self = this; if (!this.fixRaf) this.fixRaf = requestAnimationFrame(function () { self.fixRaf = 0; self.fixChanged(true); });
   };
-  SimView.prototype.fixDrop = function () { this.fixDragging = null; var dp = this.el.querySelector('.dragpos'); if (dp) dp.classList.add('hidden'); this.fixChanged(); };
+  SimView.prototype.fixDrop = function () {
+    var d = this.fixDragging;
+    if (d && d.part) {   // peça solta no lugar: fixação e mesa vão para o lado contrário (mesma posição relativa)
+      if (this.v3) this.v3.movePart(0, 0);
+      if (d.dx || d.dy) { this.fix.forEach(function (f) { f.x = r1(+f.x - d.dx); f.y = r1(+f.y - d.dy); }); this.tabOff = [this.tabOff[0] - d.dx, this.tabOff[1] - d.dy]; }
+    }
+    this.fixDragging = null; var dp = this.el.querySelector('.dragpos'); if (dp) dp.classList.add('hidden'); this.fixChanged(); };
   SimView.prototype.showDragPos = function (it) {   // X Y do item enquanto arrasta (de 1 em 1 mm)
     var dp = this.el.querySelector('.dragpos'); if (!dp) return;
     dp.textContent = T(FIXNAME[it.type]) + '  X ' + it.x + '  Y ' + it.y; dp.classList.remove('hidden');
@@ -747,7 +775,7 @@
     this.stop();
     this.text = text; this.p = p || null;
     this.manual = store.get(this.stockKey(), null);
-    this.fix = store.get(this.fixKey(), null) || []; this.fixSel = null;
+    this.fix = store.get(this.fixKey(), null) || []; this.fixSel = null; this.partSel = false; this.tabOff = store.get(this.fixKey() + '.t', null) || [0, 0];
     // itens salvos antes da mudança do ângulo 0 (morsa +90°, grampo +180°): continuam na mesma posição
     this.fix.forEach(function (it) {
       if (it.type === 'morsa' && it.v !== 2) { it.ang = (((+it.ang || 0) - 90) % 360 + 360) % 360; it.v = 2; }
@@ -909,11 +937,11 @@
     var st = this.st; if (!st) return;
     if (!this.v3) { if (this.glWanted() && !this.glFailed) return; Stock3D.render(this.c3, st, this.view, showTool); return; }
     var v = this.v3, cv = this.cg, W = cv.clientWidth || 600, H = cv.clientHeight || Math.round(W * 0.75);
-    if (this.v3st !== st) { v.setup(st, this.fix); this.v3st = st; }
+    if (this.v3st !== st) { v.setup(st, this.fix, this.tabOff); this.v3st = st; }
     else v.updateStock(st);
     var fpv = this.el.querySelector('.fixpanel'), setup = fpv && !fpv.classList.contains('hidden') && !this.animRunning;
     v.setTool(st.tool, st.D, st.toolShape, (showTool || !!st.fixStop) && !(setup && !st.fixStop));   // montando o setup: fuso e fresa saem da frente
-    v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.setHit(st.fixStop);
+    v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.markPart(!!this.partSel && this.fixSel == null); v.setHit(st.fixStop);
     v.setGhost(setup && this.fix.length);   // montando o setup: peça transparente
     v.render(this.view, W, H);
   };

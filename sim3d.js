@@ -76,6 +76,7 @@
     g.add(mesh(hex(14, 12), M.dark, u, zTop + 3, -v));
   }
   // morsa: ângulo 0 = mordentes apertando em Y, corpo e fuso ao longo de X (posição de trabalho na mesa)
+  function studU(it) { var L = Math.max(30, +it.L || 100), t = it.t != null && it.t !== '' ? +it.t : L * 0.45; return Math.max(L * 0.22 + 9, Math.min(L * 0.75 - 9, t)); }
   function ANG0(it) { return it.type === 'morsa' ? 90 : it.type === 'garra' ? 180 : 0; }   // grampo: ângulo 0 = barra para -X, ponta apertando para +X
   var BUILD = {
     morsa: function (it, M, zTable) {
@@ -117,7 +118,8 @@
       // bloco escalonado (calço de degraus) embaixo da ponta de trás
       var steps = Math.max(2, Math.min(6, Math.round(hb / 12))), sh = hb / steps;
       for (var i = 0; i < steps; i++) g.add(mesh(cbox(34 - i * 4, sh, w + 6, 0.8), M.oxide, L - 10 + i * 2, zTable + i * sh, 0));
-      tNutStud(g, uS, 0, zTable, zp + e, M);
+      var sg = new THREE.Group(); sg.userData.stud = true; tNutStud(sg, 0, 0, zTable, zp + e, M);   // tirante: anda dentro do rasgo
+      sg.position.x = studU(it); sg.traverse(function (o) { o.userData.stud = true; }); g.add(sg); g.userData.studG = sg;
       return g;
     },
     placa: function (it, M, zTable) { return chuck(it, M, zTable, 3); },
@@ -189,7 +191,8 @@
     this.ray = new THREE.Raycaster();
     mats();
   }
-  Viewer.prototype.setup = function (st, fixtures) {
+  Viewer.prototype.setup = function (st, fixtures, off) {   // off: quanto a mesa e a fixação andaram (peça arrastada); a câmera fica na mesa
+    off = off || [0, 0];
     var M = mats(), w = this.world;
     while (w.children.length) { var c = w.children.pop(); if (c !== this.hitDot && c !== this.tool) c.traverse && c.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); }
     if (this.tool) { this.tool = null; this.toolKey = ''; }
@@ -212,9 +215,9 @@
       var ya = Math.max(cy - TD / 2, yy - pitch + sw / 2), yb = Math.min(cy + TD / 2, yy - sw / 2);
       if (yb - ya > 2) tg.add(mesh(cbox(TW, 30, yb - ya, 1.5), M.table, cx, zT - 30, -(ya + yb) / 2));
     }
-    w.add(tg);
     // parede do fundo e laterais da máquina
-    var back = mesh(new THREE.PlaneGeometry(TW * 1.6, 900), M.wall, cx, zT + 300, -(cy + TD / 2 + 220)); back.receiveShadow = true; back.castShadow = false; w.add(back);
+    var back = mesh(new THREE.PlaneGeometry(TW * 1.6, 900), M.wall, cx, zT + 300, -(cy + TD / 2 + 220)); back.receiveShadow = true; back.castShadow = false; tg.add(back);
+    tg.position.set(off[0], 0, -off[1]); w.add(tg); this.tableG = tg;
     // bruto
     this.buildStock(st);
     // fixação
@@ -229,7 +232,7 @@
     // ferramenta
     this.tool = null; this.toolKey = '';
     // luz e enquadramento
-    this.center = new THREE.Vector3(cx, (st.top + st.bottom) / 2, -cy); this.span = Math.max(span, st.top - st.bottom, 60);
+    this.center = new THREE.Vector3(cx + off[0], (st.top + st.bottom) / 2, -(cy + off[1])); this.span = Math.max(span, st.top - st.bottom, 60);
     var L = this.sun, d = this.span * 2.2;
     L.position.set(cx - d * 0.6, st.top + d * 1.4, -cy + d * 0.9); L.target.position.copy(this.center);
     var cam = L.shadow.camera; cam.left = -d; cam.right = d; cam.top = d; cam.bottom = -d; cam.near = 1; cam.far = d * 6; cam.updateProjectionMatrix();
@@ -355,6 +358,17 @@
       var bh = new THREE.BoxHelper(g, q[1]); bh.material.depthTest = false; bh.material.transparent = true; bh.renderOrder = 10; w.add(bh); self.marks.push(bh);
     });
   };
+  Viewer.prototype.movePart = function (dx, dy) {   // peça sendo arrastada (só a imagem; ao soltar a fixação e a mesa é que mudam)
+    if (this.stock) { this.stock.position.set(dx, 0, -dy); this.stock.updateMatrixWorld(true); }
+    if (this.tool) this.tool.visible = false;
+    if (this.partMark) this.partMark.update();
+  };
+  Viewer.prototype.markPart = function (on) {   // contorno da peça escolhida
+    if (this.partMark) { this.world.remove(this.partMark); this.partMark.geometry.dispose(); this.partMark = null; }
+    if (!on || !this.stock) return;
+    var bh = new THREE.BoxHelper(this.stock, 0x38bdf8); bh.material.depthTest = false; bh.material.transparent = true; bh.renderOrder = 10; this.world.add(bh); this.partMark = bh;
+  };
+  Viewer.prototype.moveStud = function (i, u) { var g = this.fixG[i], sg = g && g.userData.studG; if (sg) { sg.position.x = u; g.updateMatrixWorld(true); } };
   Viewer.prototype.render = function (view, W, H) {
     var R = this.renderer;
     if (this.cv.width !== Math.round(W * R.getPixelRatio()) || this.cv.height !== Math.round(H * R.getPixelRatio())) R.setSize(W, H, false);
@@ -373,7 +387,7 @@
     var objs = this.fixG.filter(Boolean), ghost = mats().stock.transparent, hit = this.ray.intersectObjects(objs, true)[0];
     if (!hit) return null;
     if (!ghost && this.stock) { var hs = this.ray.intersectObject(this.stock, false)[0]; if (hs && hs.distance < hit.distance - 0.5) return null; }   // a peça está na frente
-    return { item: hit.object.userData.fix, x: hit.point.x, y: -hit.point.z, z: hit.point.y };
+    return { item: hit.object.userData.fix, stud: !!hit.object.userData.stud, x: hit.point.x, y: -hit.point.z, z: hit.point.y };
   };
   Viewer.prototype.pickStock = function (u, v, W, H) {   // toque na peça
     if (!this.stock) return null;
@@ -403,5 +417,5 @@
     g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
     return url;
   }
-  root.Sim3D = { load: load, webglOk: webglOk, Viewer: Viewer, thumb: thumb, types: function () { return Object.keys(BUILD); } };
+  root.Sim3D = { studU: function (it) { return studU(it); }, load: load, webglOk: webglOk, Viewer: Viewer, thumb: thumb, types: function () { return Object.keys(BUILD); } };
 })(this);

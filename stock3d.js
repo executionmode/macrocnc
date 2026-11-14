@@ -23,7 +23,7 @@
         box(A / 2 + 36, 0, 36, W / 2, zb - 2, zt, 1);
         box(A / 2 + 72 + 74, 0, 74, 16, zs - 16, zs + 16, 1);
       } else if (it.type === 'garra') {   // barra com rasgo, bloco escalonado, prisioneiro e porca
-        var L = Math.max(30, +it.L || 100), e = Math.max(6, +it.e || 16), wg = Math.max(10, +it.w || 30), zp = +it.zp, zb2 = +it.zb, us = L * 0.45;
+        var L = Math.max(30, +it.L || 100), e = Math.max(6, +it.e || 16), wg = Math.max(10, +it.w || 30), zp = +it.zp, zb2 = +it.zb, us = Math.max(L * 0.22 + 9, Math.min(L * 0.75 - 9, it.t != null && it.t !== '' ? +it.t : L * 0.45));
         box(L / 2, 0, L / 2, wg / 2, zp, zp + e, 2);
         box(L - 10, 0, 17, wg / 2 + 3, zb2, zp, 2);
         cyl(us, 0, 8, zb2 - 22, zp + e + 21, 3);
