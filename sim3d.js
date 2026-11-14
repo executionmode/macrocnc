@@ -35,7 +35,7 @@
       table: S({ color: 0x8c939b, metalness: 0.85, roughness: 0.36 }),
       slot: S({ color: 0x3c4249, metalness: 0.7, roughness: 0.55 }),
       wall: S({ color: 0x59606a, metalness: 0.6, roughness: 0.5 }),
-      stock: S({ vertexColors: true, metalness: 0.6, roughness: 0.42 }),
+      stock: S({ vertexColors: true, metalness: 0.45, roughness: 0.5 }),   // peça mais escura que a fixação (contraste)
       flute: S({ color: 0xd0d5db, metalness: 0.95, roughness: 0.22 }),
       hit: S({ color: 0xe23b3b, metalness: 0.3, roughness: 0.4, emissive: 0x501010 }),
       sel: S({ color: 0xf59e0b, metalness: 0.4, roughness: 0.35, emissive: 0x3a2400 })
@@ -282,15 +282,15 @@
     var g = this.stock.geometry, pos = g.attributes.position.array, col = g.attributes.color.array, h = st.h, h0 = st.h0, top = st.top, zr = Math.max(1, top - st.bottom);
     for (var t = 0; t < this.nTop; t++) {
       var k = this.topN[t], z = h[k]; pos[t * 3 + 1] = z;
-      var cut = z < h0[k] - 0.01, c = cut ? 0.62 - 0.12 * Math.min(1, (top - z) / zr) : 0.2;
-      col[t * 3] = cut ? c : 0.2; col[t * 3 + 1] = cut ? c + 0.01 : 0.2; col[t * 3 + 2] = cut ? c + 0.03 : 0.21;
+      var cut = z < h0[k] - 0.01, c = cut ? 0.3 - 0.06 * Math.min(1, (top - z) / zr) : 0.1;
+      col[t * 3] = cut ? c : 0.1; col[t * 3 + 1] = cut ? c + 0.01 : 0.1; col[t * 3 + 2] = cut ? c + 0.02 : 0.11;
     }
     var WT = this.wallTop;
     for (var w = 0; w < WT.length; w++) {
       var vi = WT[w][0], kk = WT[w][1]; pos[vi * 3 + 1] = h[kk];
-      var cutW = h[kk] < h0[kk] - 0.01, cw = cutW ? 0.58 : 0.2;
+      var cutW = h[kk] < h0[kk] - 0.01, cw = cutW ? 0.28 : 0.1;
       col[vi * 3] = cw; col[vi * 3 + 1] = cw; col[vi * 3 + 2] = cw - (cutW ? 0 : 0.03);
-      var vb = vi % 2 === 0 ? vi + 3 : vi + 1; col[vb * 3] = 0.18; col[vb * 3 + 1] = 0.18; col[vb * 3 + 2] = 0.19;
+      var vb = vi % 2 === 0 ? vi + 3 : vi + 1; col[vb * 3] = 0.09; col[vb * 3 + 1] = 0.09; col[vb * 3 + 2] = 0.1;
     }
     g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true;
     g.computeVertexNormals();
