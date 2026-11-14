@@ -6,6 +6,49 @@
 (function (root) {
   'use strict';
 
+  /* ---------- fixação (morsa, garras com tirante e porca, placa de 3 castanhas, calços) ----------
+   * Cada item vira sólidos simples (caixas giradas e cilindros) em coordenadas da máquina.
+   * Na grade eles guardam topo, fundo e cor; a fresa que encostar neles para a simulação. */
+  var FIXCOL = { 1: [61, 90, 128], 2: [104, 114, 126], 3: [150, 158, 168], 4: [70, 76, 86], 5: [84, 92, 102], 6: [124, 133, 144], 7: [168, 160, 120] };
+  function fixSolids(items) {
+    var S = [];
+    (items || []).forEach(function (it, idx) {
+      var a = (+it.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), X = +it.x || 0, Y = +it.y || 0;
+      function box(u, v, hu, hv, z0, z1, col) { S.push({ k: 'b', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, ca: ca, sa: sa, hu: hu, hv: hv, z0: z0, z1: z1, col: col, id: idx }); }
+      function cyl(u, v, r, z0, z1, col) { S.push({ k: 'c', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, r: r, z0: z0, z1: z1, col: col, id: idx }); }
+      if (it.type === 'morsa') {   // dois mordentes (abertura no eixo u) e a base entre eles
+        var A = Math.max(1, +it.a || 100), W = Math.max(10, +it.w || 150), t = 25, zt = +it.zt, zb = +it.zb;
+        box(-(A / 2 + t / 2), 0, t / 2, W / 2, zb - 40, zt, 1);
+        box(A / 2 + t / 2, 0, t / 2, W / 2, zb - 40, zt, 1);
+        box(0, 0, A / 2, W / 2, zb - 40, zb, 1);
+      } else if (it.type === 'garra') {   // ponta da garra em (x, y), barra indo para fora (u), tirante, porca e calço de apoio atrás
+        var L = Math.max(30, +it.L || 100), e = Math.max(4, +it.e || 16), wg = Math.max(8, +it.w || 30), zp = +it.zp, zb2 = +it.zb, us = L * 0.45;
+        box(L / 2, 0, L / 2, wg / 2, zp, zp + e, 2);
+        box(L - 11, 0, 11, wg / 2, zb2 - 40, zp, 2);
+        cyl(us, 0, 8, zb2 - 40, zp + e + 30, 3);
+        cyl(us, 0, 13, zp + e, zp + e + 14, 4);
+      } else if (it.type === 'placa') {   // corpo redondo e 3 castanhas a 120°
+        var Dp = Math.max(40, +it.D || 200), zf = +it.zf, hj = Math.max(3, +it.hj || 25), rg = Math.max(1, +it.rg || 50), lj = 45, wj = 32;
+        cyl(0, 0, Dp / 2, zf - 60, zf, 5);
+        for (var q = 0; q < 3; q++) { var aq = q * 2 * Math.PI / 3; 
+          var ux = Math.cos(aq), uy = Math.sin(aq), cxj = X + (ux * ca - uy * sa) * (rg + lj / 2), cyj = Y + (ux * sa + uy * ca) * (rg + lj / 2), aa = a + aq;
+          S.push({ k: 'b', cx: cxj, cy: cyj, ca: Math.cos(aa), sa: Math.sin(aa), hu: lj / 2, hv: wj / 2, z0: zf, z1: zf + hj, col: 6, id: idx }); }
+      } else if (it.type === 'calco') {   // calço / paralelo embaixo da peça
+        var Lc = Math.max(5, +it.L || 100), ec = Math.max(2, +it.e || 10), hc = Math.max(2, +it.h || 30), ztc = +it.zt;
+        box(0, 0, Lc / 2, ec / 2, ztc - hc, ztc, 7);
+      }
+    });
+    S.forEach(function (q) {
+      if (q.k === 'c') { q.x0 = q.cx - q.r; q.x1 = q.cx + q.r; q.y0 = q.cy - q.r; q.y1 = q.cy + q.r; }
+      else { var ex = Math.abs(q.ca) * q.hu + Math.abs(q.sa) * q.hv, ey = Math.abs(q.sa) * q.hu + Math.abs(q.ca) * q.hv; q.x0 = q.cx - ex; q.x1 = q.cx + ex; q.y0 = q.cy - ey; q.y1 = q.cy + ey; }
+    });
+    return S;
+  }
+  function inSolid(q, x, y) {
+    if (q.k === 'c') return (x - q.cx) * (x - q.cx) + (y - q.cy) * (y - q.cy) <= q.r * q.r;
+    var dx = x - q.cx, dy = y - q.cy, u = dx * q.ca + dy * q.sa, v = -dx * q.sa + dy * q.ca;
+    return Math.abs(u) <= q.hu && Math.abs(v) <= q.hv;
+  }
   function build(sim, o) {
     o = o || {};
     var D = Math.max(0.1, +o.toolDia || 10), r = D / 2;
@@ -50,10 +93,18 @@
       }
     }
     var bottom = man && isFinite(man.bottom) && +man.bottom < top ? +man.bottom : bottomAuto;
-    var span = Math.max(maxX - minX, maxY - minY);
+    // a grade cobre o bruto e a fixação; o bruto continua com as medidas dele
+    var sMinX = minX, sMaxX = maxX, sMinY = minY, sMaxY = maxY, FS = fixSolids(o.fixtures);
+    var gMinX = minX, gMaxX = maxX, gMinY = minY, gMaxY = maxY;
+    FS.forEach(function (q) { gMinX = Math.min(gMinX, q.x0); gMaxX = Math.max(gMaxX, q.x1); gMinY = Math.min(gMinY, q.y0); gMaxY = Math.max(gMaxY, q.y1); });
+    var span = Math.max(gMaxX - gMinX, gMaxY - gMinY);
     var cell = span / res;
     cell = Math.max(cell, D / 40, 0.05);
-    var nx = Math.max(2, Math.ceil((maxX - minX) / cell) + 1), ny = Math.max(2, Math.ceil((maxY - minY) / cell) + 1);
+    if (FS.length) {   // grade alinhada com a borda do bruto
+      minX = sMinX - Math.ceil((sMinX - gMinX) / cell - 1e-9) * cell; minY = sMinY - Math.ceil((sMinY - gMinY) / cell - 1e-9) * cell;
+      maxX = Math.max(gMaxX, minX + cell); maxY = Math.max(gMaxY, minY + cell);
+    }
+    var nx = Math.max(2, Math.ceil((maxX - minX) / cell - 1e-9) + 1), ny = Math.max(2, Math.ceil((maxY - minY) / cell - 1e-9) + 1);
     // ferramenta: topo reto (dz = 0) ou cônica (fresa 90°: sobe 1 a cada 1 de raio a partir da ponta plana)
     var shape3 = o.toolShape || null, tipR = shape3 && shape3.type === 'v' ? Math.max(0, (+shape3.tipD || 0) / 2) : 0;
     var cotHalf = shape3 && shape3.type === 'v' ? 1 / Math.tan(((+shape3.angle || 90) / 2) * Math.PI / 180) : 0;
@@ -70,7 +121,7 @@
     var h = new Float32Array(nx * ny), inside = new Uint8Array(nx * ny);
     for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
       var k = j * nx + i, x = minX + i * cell, y = minY + j * cell;
-      var inS = shape !== 'round' || Math.hypot(x - cx, y - cy) <= R + cell * 0.5;
+      var inS = shape !== 'round' ? (!FS.length || (x >= sMinX - cell * 0.5 && x <= sMaxX + cell * 0.5 && y >= sMinY - cell * 0.5 && y <= sMaxY + cell * 0.5)) : Math.hypot(x - cx, y - cy) <= R + cell * 0.5;
       inside[k] = inS ? 1 : 0; h[k] = top;
       if (layers && shape === 'round') {
         var rho = Math.hypot(x - cx, y - cy), zt = null;
@@ -94,10 +145,28 @@
         }
       }
     });
+    // fixação na grade: topo, fundo, cor e qual item
+    var fT = null, fB = null, fc = null, fid = null, fMaxTop = -Infinity, fBox = null, vTop = top, vBot = bottom;
+    if (FS.length) {
+      fT = new Float32Array(nx * ny); fB = new Float32Array(nx * ny); fc = new Uint8Array(nx * ny); fid = new Int16Array(nx * ny).fill(-1);
+      fBox = [Infinity, Infinity, -Infinity, -Infinity];
+      FS.forEach(function (q) {
+        var i0 = Math.max(0, Math.floor((q.x0 - minX) / cell)), i1 = Math.min(nx - 1, Math.ceil((q.x1 - minX) / cell)), j0 = Math.max(0, Math.floor((q.y0 - minY) / cell)), j1 = Math.min(ny - 1, Math.ceil((q.y1 - minY) / cell));
+        for (var jj = j0; jj <= j1; jj++) for (var ii = i0; ii <= i1; ii++) {
+          var xx = minX + ii * cell, yy = minY + jj * cell; if (!inSolid(q, xx, yy)) continue;
+          var kk = jj * nx + ii;
+          if (!fc[kk]) { fT[kk] = q.z1; fB[kk] = q.z0; fc[kk] = q.col; fid[kk] = q.id; }
+          else { if (q.z1 > fT[kk]) { fT[kk] = q.z1; fc[kk] = q.col; fid[kk] = q.id; } if (q.z0 < fB[kk]) fB[kk] = q.z0; }
+        }
+        fMaxTop = Math.max(fMaxTop, q.z1); vTop = Math.max(vTop, q.z1); vBot = Math.min(vBot, q.z0);
+        fBox[0] = Math.min(fBox[0], q.x0); fBox[1] = Math.min(fBox[1], q.y0); fBox[2] = Math.max(fBox[2], q.x1); fBox[3] = Math.max(fBox[3], q.y1);
+      });
+    }
     return {
+      fT: fT, fB: fB, fc: fc, fid: fid, fMaxTop: fMaxTop, fBox: fBox, fixStop: null, vTop: vTop, vBot: vBot,
       exp: exp, h0: new Float32Array(h),
       sim: sim, D: D, r: r, top: top, bottom: bottom,
-      stockInfo: { shape: shape, d: Math.round(R * 2 * 100) / 100, lx: Math.round((maxX - minX) * 100) / 100, ly: Math.round((maxY - minY) * 100) / 100, cx: Math.round((shape === 'round' ? cx : (minX + maxX) / 2) * 100) / 100, cy: Math.round((shape === 'round' ? cy : (minY + maxY) / 2) * 100) / 100, top: top, bottom: Math.round(bottom * 100) / 100 },
+      stockInfo: { shape: shape, d: Math.round(R * 2 * 100) / 100, lx: Math.round((sMaxX - sMinX) * 100) / 100, ly: Math.round((sMaxY - sMinY) * 100) / 100, cx: Math.round((shape === 'round' ? cx : (sMinX + sMaxX) / 2) * 100) / 100, cy: Math.round((shape === 'round' ? cy : (sMinY + sMaxY) / 2) * 100) / 100, top: top, bottom: Math.round(bottom * 100) / 100 },
       x0: minX, y0: minY, cell: cell, nx: nx, ny: ny, h: h, inside: inside, disc: disc, toolShape: shape3, tipR: tipR,
       idx: 0, collisions: [], tool: null, shape: shape
     };
@@ -124,11 +193,38 @@
     return false;
   }
 
-  // aplica os próximos n segmentos (ou todos)
+  // a fresa (da ponta até 200 mm acima) encosta em algum item da fixação?
+  function fixHits(st, x, y, z) {
+    if (!st.fc || z >= st.fMaxTop - 0.05) return false;
+    var b = st.fBox, r = st.r; if (x < b[0] - r || x > b[2] + r || y < b[1] - r || y > b[3] + r) return false;
+    var ci = Math.round((x - st.x0) / st.cell), cj = Math.round((y - st.y0) / st.cell), d = st.disc, nx = st.nx, ny = st.ny;
+    for (var q = 0; q < d.length; q += 3) {
+      var i = ci + d[q], j = cj + d[q + 1];
+      if (i < 0 || j < 0 || i >= nx || j >= ny) continue;
+      var k = j * nx + i; if (st.fc[k] && st.fT[k] > z + d[q + 2] + 0.05 && st.fB[k] < z + 200) return st.fid[k] + 1;
+    }
+    return false;
+  }
+  // aplica os próximos n segmentos (ou todos); para no bloco que bater na fixação
   function advance(st, n) {
+    if (st.fixStop) return true;
     var segs = st.sim.segs, end = n == null ? segs.length : Math.min(segs.length, st.idx + n);
     for (; st.idx < end; st.idx++) {
       var s = segs[st.idx];
+      if (st.fc) {
+        var lenF = Math.hypot(s.x2 - s.x1, s.y2 - s.y1, s.z - s.z1), stF = Math.max(1, Math.ceil(lenF / (st.cell * 0.7)));
+        for (var fq = 0; fq <= stF; fq++) {
+          var tf = fq / stF, xf = s.x1 + (s.x2 - s.x1) * tf, yf = s.y1 + (s.y2 - s.y1) * tf, zf = s.t === 'h' ? s.z1 + (s.z - s.z1) * tf : s.z1 + (s.z - s.z1) * tf;
+          if (s.t === 'h') { xf = s.x2; yf = s.y2; }
+          var hitF = fixHits(st, xf, yf, zf);
+          if (hitF) {
+            st.fixStop = { ln: s.ln, x: xf, y: yf, z: zf, item: hitF - 1 };
+            st.collisions.push({ ln: s.ln, x: xf, y: yf, z: zf, fix: true, item: hitF - 1 });
+            st.tool = { x: xf, y: yf, z: zf }; st.idx++;
+            return true;
+          }
+        }
+      }
       if (s.t === 'h') { stamp(st, s.x2, s.y2, s.z); st.tool = { x: s.x2, y: s.y2, z: s.z1 }; continue; }
       var len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1), steps = Math.max(1, Math.ceil(len / (st.cell * 0.7)));
       if (s.t === 'r') {
@@ -171,7 +267,7 @@
     // enquadramento
     var corners = [[x0, y0], [x0 + (nx - 1) * cell, y0], [x0, y0 + (ny - 1) * cell], [x0 + (nx - 1) * cell, y0 + (ny - 1) * cell]];
     var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
-    corners.forEach(function (p) { [st.top, st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
+    corners.forEach(function (p) { [st.vTop != null ? st.vTop : st.top, st.vBot != null ? st.vBot : st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
     var sc = Math.min((W - 30) / (bx1 - bx0), (H - 30) / (by1 - by0)) * (view.zoom || 1);
     var ox = W / 2 - (bx0 + bx1) / 2 * sc + (view.panX || 0), oy = H / 2 - (by0 + by1) / 2 * sc + (view.panY || 0);
     var cullPad = cell * sc * 2 + 30;
@@ -304,6 +400,35 @@
       var topB = body(z0 + L, z0 + L + L * 0.5, r * 1.25, r * 2.1, '#2a313a', '#8b96a3', '#c3ccd6');
       c.fillStyle = '#5d6874'; poly(topB); c.fill();
     }
+    var fT = st.fT, fB = st.fB, fc = st.fc, fidA = st.fid;
+    function fIn(q) { return fc && q >= 0 && q + nx + 1 < fc.length && fc[q] && fc[q + 1] && fc[q + nx] && fc[q + nx + 1]; }
+    function fixRGB(q) {
+      if (st.fixSel != null && fidA[q] === st.fixSel) return [245, 158, 11];
+      if (st.fixStop && fidA[q] === st.fixStop.item) return [220, 60, 60];
+      var cc = FIXCOL[fc[q]] || FIXCOL[2]; return prn ? [cc[0] * 0.7 + 60, cc[1] * 0.7 + 60, cc[2] * 0.7 + 60] : cc;
+    }
+    function fwall(xa, ya, za, xb, yb, zb, zba, zbb, shade, rgb) {
+      if (za <= zba + 1e-6 && zb <= zbb + 1e-6) return;
+      var a = S(xa, ya, za), b = S(xb, yb, zb), b2 = S(xb, yb, zbb), a2 = S(xa, ya, zba);
+      c.fillStyle = 'rgb(' + Math.round(rgb[0] * shade * 0.78) + ',' + Math.round(rgb[1] * shade * 0.78) + ',' + Math.round(rgb[2] * shade * 0.78) + ')';
+      c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(b2[0], b2[1]); c.lineTo(a2[0], a2[1]); c.closePath(); c.fill();
+      c.strokeStyle = c.fillStyle; c.lineWidth = 0.6; c.stroke();
+    }
+    function fixCell(k) {   // um pedaço da fixação: paredes onde ela acaba (ou desce para um vizinho mais baixo) e o topo
+      var ii = k % nx, jj = (k - ii) / nx, xa = x0 + ii * cell, ya = y0 + jj * cell, xb = xa + cell, yb = ya + cell, rgb = fixRGB(k);
+      var t00 = fT[k], t10 = fT[k + 1], t01 = fT[k + nx], t11 = fT[k + nx + 1], b00 = fB[k], b10 = fB[k + 1], b01 = fB[k + nx], b11 = fB[k + nx + 1];
+      // vizinho também da fixação divide os mesmos cantos: sem parede entre eles
+      if (vYm && !fIn(k - nx)) fwall(xa, ya, t00, xb, ya, t10, b00, b10, 1.1, rgb);
+      if (vYp && !fIn(k + nx)) fwall(xa, yb, t01, xb, yb, t11, b01, b11, 0.8, rgb);
+      if (vXm && !fIn(k - 1)) fwall(xa, ya, t00, xa, yb, t01, b00, b01, 0.95, rgb);
+      if (vXp && !fIn(k + 1)) fwall(xb, ya, t10, xb, yb, t11, b10, b11, 0.9, rgb);
+      var dzx = (t10 + t11 - t00 - t01) / (2 * cell), dzy = (t01 + t11 - t00 - t10) / (2 * cell), nl = Math.sqrt(dzx * dzx + dzy * dzy + 1);
+      var f = 0.45 + 0.55 * Math.max(0, (-dzx * Lw[0] - dzy * Lw[1] + Lw[2]) / nl);
+      c.fillStyle = 'rgb(' + Math.round(rgb[0] * f) + ',' + Math.round(rgb[1] * f) + ',' + Math.round(rgb[2] * f) + ')';
+      var p1 = S(xa, ya, t00), p2 = S(xb, ya, t10), p3 = S(xb, yb, t11), p4 = S(xa, yb, t01);
+      c.beginPath(); c.moveTo(p1[0], p1[1]); c.lineTo(p2[0], p2[1]); c.lineTo(p3[0], p3[1]); c.lineTo(p4[0], p4[1]); c.closePath(); c.fill();
+      c.strokeStyle = c.fillStyle; c.lineWidth = 0.6; c.stroke();
+    }
     for (var o = 0; o < order.length; o++) {
       var k = order[o];
       if (toolPending) {
@@ -311,9 +436,9 @@
         var cdep = (x0 + (kci + 0.5) * cell - midX) * sa + (y0 + (kcj + 0.5) * cell - midY) * ca;
         if (cdep < toolDep) drawTool();
       }
-      if (!ins[k] || !ins[k + 1] || !ins[k + nx] || !ins[k + nx + 1]) {
-        continue;
-      }
+      var fHere = fIn(k), sHere = ins[k] && ins[k + 1] && ins[k + nx] && ins[k + nx + 1];
+      if (!sHere) { if (fHere) fixCell(k); continue; }
+      if (fHere && (fT[k] + fT[k + 1] + fT[k + nx] + fT[k + nx + 1]) / 4 <= (h[k] + h[k + 1] + h[k + nx] + h[k + nx + 1]) / 4 + 0.01) fHere = false;   // embaixo da peça: não aparece
       var ii = k % nx, jj = (k - ii) / nx;
       var xa = x0 + ii * cell, ya = y0 + jj * cell, xb = xa + cell, yb = ya + cell;
       var h00 = h[k], h10 = h[k + 1], h01 = h[k + nx], h11 = h[k + nx + 1];
@@ -339,11 +464,13 @@
       var p1 = S(xa, ya, h00), p2 = S(xb, ya, h10), p3 = S(xb, yb, h11), p4 = S(xa, yb, h01);
       c.beginPath(); c.moveTo(p1[0], p1[1]); c.lineTo(p2[0], p2[1]); c.lineTo(p3[0], p3[1]); c.lineTo(p4[0], p4[1]); c.closePath(); c.fill();
       c.strokeStyle = c.fillStyle; c.lineWidth = prn ? 1.4 : 0.6; c.stroke();
+      if (fHere) fixCell(k);   // garra em cima da peça
     }
     if (toolPending) drawTool();
     // colisões
     st.collisions.forEach(function (cl) {
-      var p = S(cl.x, cl.y, cl.z); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(p[0], p[1], 6, 0, 7); c.fill();
+      var p = S(cl.x, cl.y, cl.z); c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(p[0], p[1], cl.fix ? 9 : 6, 0, 7); c.fill();
+      if (cl.fix) { c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); }
     });
     c.fillStyle = '#94a3b3'; c.font = '11px system-ui';
     if (st.label !== '' && !prn) c.fillText(st.label != null ? st.label : (window.T || String)('1 dedo gira · 2 dedos zoom e move · fresa ' + (Math.round(st.D * 100) / 100) + ' mm · bruto no topo Z' + st.top), 10, H - 8);
@@ -358,7 +485,7 @@
     function P(x, y, z) { var dx = x - midX, dy = y - midY, xr = dx * ca - dy * sa, yr = dx * sa + dy * ca; return [xr, -(yr * se + z * ce), yr * ce - z * se]; }
     var corners = [[x0, y0], [x0 + (nx - 1) * cell, y0], [x0, y0 + (ny - 1) * cell], [x0 + (nx - 1) * cell, y0 + (ny - 1) * cell]];
     var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
-    corners.forEach(function (p) { [st.top, st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
+    corners.forEach(function (p) { [st.vTop != null ? st.vTop : st.top, st.vBot != null ? st.vBot : st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
     var sc = Math.min((W - 30) / (bx1 - bx0), (H - 30) / (by1 - by0)) * (view.zoom || 1);
     var ox = W / 2 - (bx0 + bx1) / 2 * sc + (view.panX || 0), oy = H / 2 - (by0 + by1) / 2 * sc + (view.panY || 0);
     return function (x, y, z) { var q = P(x, y, z); return [ox + q[0] * sc, oy + q[1] * sc, q[2]]; };
@@ -372,7 +499,7 @@
     function P(x, y, z) { var dx = x - midX, dy = y - midY, xr = dx * ca - dy * sa, yr = dx * sa + dy * ca; return [xr, -(yr * se + z * ce)]; }
     var corners = [[x0, y0], [x0 + (nx - 1) * cell, y0], [x0, y0 + (ny - 1) * cell], [x0 + (nx - 1) * cell, y0 + (ny - 1) * cell]];
     var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
-    corners.forEach(function (p) { [st.top, st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
+    corners.forEach(function (p) { [st.vTop != null ? st.vTop : st.top, st.vBot != null ? st.vBot : st.bottom].forEach(function (z) { var q = P(p[0], p[1], z); bx0 = Math.min(bx0, q[0]); bx1 = Math.max(bx1, q[0]); by0 = Math.min(by0, q[1]); by1 = Math.max(by1, q[1]); }); });
     var sc = Math.min((W - 30) / (bx1 - bx0), (H - 30) / (by1 - by0)) * (view.zoom || 1);
     var ox = W / 2 - (bx0 + bx1) / 2 * sc + (view.panX || 0), oy = H / 2 - (by0 + by1) / 2 * sc + (view.panY || 0);
     var L = Math.hypot((nx - 1) * cell, (ny - 1) * cell, st.top - st.bottom) / 2 + 5;
@@ -390,5 +517,5 @@
       return null;
     };
   }
-  root.Stock3D = { build: build, advance: advance, render: render, projector: projector, picker: picker };
+  root.Stock3D = { fixSolids: fixSolids, inSolid: inSolid, build: build, advance: advance, render: render, projector: projector, picker: picker };
 })(this);
