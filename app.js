@@ -256,9 +256,9 @@
     el.innerHTML =
       '<div class="simmain">' +
       '<div class="simleft">' +
-      '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div>' +
+      '<div class="simtop"><div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div><button type="button" class="setupbtn" data-a="setup">Montar setup</button></div>' +
       '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas>' +
-      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button><div class="dragpos hidden"></div>' +
+      '<div class="glload hidden">Carregando 3D…</div><div class="dragpos hidden"></div>' +
       '<div class="fixtools hidden"><b class="ftname"></b><button type="button" data-ft="rot">Girar 90°</button><button type="button" data-ft="dup">Duplicar</button><button type="button" data-ft="edit">Medidas</button><button type="button" data-ft="del" class="del">Excluir</button><button type="button" data-ft="x" class="x">✕</button></div></div>' +
       '<div class="progress"><div></div></div>' +
       '<div class="row wrap simbar">' +
@@ -403,8 +403,8 @@
     el.querySelector('[data-a=stopsim]').addEventListener('click', function () { self.halt(); });
     el.querySelector('[data-a=rewind]').addEventListener('click', function () { self.rewind(); });
     el.querySelector('[data-a=stockbtn]').addEventListener('click', function () { el.querySelector('.stockpanel').classList.toggle('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); });
-    el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); });
-    el.querySelector('[data-a=setup]').addEventListener('click', function () { self.openSetup(); });
+    el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); self.setSetupOn(false); });
+    el.querySelector('[data-a=setup]').addEventListener('click', function () { if (self.setupOn) self.closeSetup(); else self.openSetup(); });
     // barra do item escolhido, em cima do 3D: girar, duplicar, medidas, excluir
     el.querySelector('.fixtools').addEventListener('click', function (e) {
       var b = e.target.closest('[data-ft]'); if (!b) return; var i = self.fixSel, it = self.fix[i];
@@ -413,7 +413,7 @@
       var btn = el.querySelector('.fixitem[data-fi="' + i + '"] [data-fx="' + (b.dataset.ft === 'del' ? 'del' : b.dataset.ft) + '"]');
       if (btn) btn.click();
     });
-    el.querySelector('[data-a=fixbtn]').addEventListener('click', function () { var fp = el.querySelector('.fixpanel'); fp.classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); if (!fp.classList.contains('hidden')) fp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+    el.querySelector('[data-a=fixbtn]').addEventListener('click', function () { var fp = el.querySelector('.fixpanel'); fp.classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); self.setSetupOn(!fp.classList.contains('hidden')); if (!fp.classList.contains('hidden')) fp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
     // fixação: adicionar, editar, girar, remover e arrastar no 3D
     this.fixCat = 'morsas';
     el.querySelectorAll('[data-fc]').forEach(function (b) { b.addEventListener('click', function () { self.fixCat = b.dataset.fc; el.querySelectorAll('[data-fc]').forEach(function (x) { x.classList.toggle('on', x === b); }); self.renderCards(); }); });
@@ -484,7 +484,7 @@
       // começa do início, parado
       this.stop(); this.total = total; this.acc = 0;
       if (this.mode === 'xy') this.xyIdx = 0; else { this.st = Stock3D.build(this.sim, this.opts()); this.xyIdx = null; }
-      this.animRunning = true;
+      this.setSetupOn(false); this.animRunning = true;
       var pb = this.el.querySelector('[data-a=pause]'); pb.disabled = false;
     }
     this.paused = true; this.stop();
@@ -710,7 +710,7 @@
         var fpv = this.el.querySelector('.fixpanel');
         var hs = this.v3.pickStock(u0, w0, W0, H0); if (!hs) return;
         this.tap.kind = 'part';
-        if (!this.partSel && (fpv.classList.contains('hidden') || !this.fix.length)) return;
+        if (!this.partSel && (!this.setupOn || !this.fix.length)) return;
         var ps = this.v3.onPlane(u0, w0, W0, H0, hs.z); if (!ps) return;
         this.partSel = true; this.fixSel = null; this.tap = null;
         this.fixDragging = { part: true, z: hs.z, p0: ps, dx: 0, dy: 0, gl: true }; this.v3.mark(null, null); this.v3.markPart(true); this.renderFix(); return;
@@ -788,7 +788,7 @@
     if (this.glWanted() && !this.glFailed && !this.v3) this.c3.classList.add('hidden');
     this.rebuild(true);
     this.initGL();
-    var fp = this.el.querySelector('.fixpanel'); if (!this.fix.length) { fp.classList.remove('hidden'); this.renderFix(); } 
+    var fp = this.el.querySelector('.fixpanel'); this.setupOn = false; if (!this.fix.length) { fp.classList.remove('hidden'); this.setupOn = true; this.renderFix(); } else fp.classList.add('hidden'); var sbn = this.el.querySelector('.setupbtn'); if (sbn) sbn.classList.toggle('on', !!this.setupOn); 
     this.el.querySelector('.setupbtn').textContent = this.fix.length ? T('Setup') + ' (' + this.fix.length + ')' : T('Montar setup');
   };
   // bruto pelas medidas da macro (letras do G65) ou do paramétrico (variáveis #)
@@ -928,8 +928,13 @@
     }).catch(fail);
   };
   // montar o setup: abre o catálogo de fixação embaixo do 3D
+  SimView.prototype.setSetupOn = function (on) {   // editando o setup: peça clara/transparente e fuso fora da frente; fora disso a peça fica escura
+    on = !!on; var b = this.el.querySelector('.setupbtn'); if (b) b.classList.toggle('on', on);
+    if (this.setupOn === on) return; this.setupOn = on; this.draw(true);
+  };
+  SimView.prototype.closeSetup = function () { this.el.querySelector('.fixpanel').classList.add('hidden'); this.setSetupOn(false); };
   SimView.prototype.openSetup = function () {
-    var fp = this.el.querySelector('.fixpanel');
+    var fp = this.el.querySelector('.fixpanel'); this.setSetupOn(true);
     fp.classList.remove('hidden'); this.el.querySelector('.stockpanel').classList.add('hidden'); this.el.querySelector('.msgpanel').classList.add('hidden');
     this.renderFix(); setTimeout(function () { fp.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60);
   };
@@ -939,7 +944,7 @@
     var v = this.v3, cv = this.cg, W = cv.clientWidth || 600, H = cv.clientHeight || Math.round(W * 0.75);
     if (this.v3st !== st) { v.setup(st, this.fix, this.tabOff); this.v3st = st; }
     else v.updateStock(st);
-    var fpv = this.el.querySelector('.fixpanel'), setup = fpv && !fpv.classList.contains('hidden') && !this.animRunning;
+    var setup = !!this.setupOn && !this.animRunning;
     v.setTool(st.tool, st.D, st.toolShape, (showTool || !!st.fixStop) && !(setup && !st.fixStop));   // montando o setup: fuso e fresa saem da frente
     v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.markPart(!!this.partSel && this.fixSel == null); v.setHit(st.fixStop);
     v.setGhost(setup && this.fix.length);   // montando o setup: peça transparente
@@ -978,7 +983,7 @@
     this.total = this.sim.segs.length; this.acc = 0;
     if (this.mode === 'xy') this.xyIdx = 0;
     else { this.st = Stock3D.build(this.sim, this.opts()); this.xyIdx = null; }
-    this.animRunning = true; this.paused = false;
+    this.setSetupOn(false); this.animRunning = true; this.paused = false;
     var pb = this.el.querySelector('[data-a=pause]'); pb.disabled = false; pb.textContent = '⏸ Pausar';
     this.loop();
   };
