@@ -152,10 +152,10 @@
     for (var j = 0; j < n; j++) {
       var a = j / n * Math.PI * 2, jg = new THREE.Group();
       jg.add(mesh(cbox(Math.max(10, R - rg + 6), 6, wj + 8, 0.5), M.dark, (R + rg) / 2 - 3, -6, 0));   // rasgo
-      var s = Math.max(8, lj / 3);
+      var s = Math.max(8, lj / 3), inv = +it.inv === 1;   // normal: degraus subindo para fora; invertida: a parte alta aperta a peça
       jg.add(mesh(cbox(lj, hj * 0.45, wj, 1), M.steel, rg + lj / 2, 0, 0));
-      jg.add(mesh(cbox(lj - s, hj * 0.75, wj, 1), M.steel, rg + s + (lj - s) / 2, 0, 0));
-      jg.add(mesh(cbox(lj - 2 * s, hj, wj, 1), M.steel, rg + 2 * s + (lj - 2 * s) / 2, 0, 0));
+      jg.add(mesh(cbox(lj - s, hj * 0.75, wj, 1), M.steel, inv ? rg + (lj - s) / 2 : rg + s + (lj - s) / 2, 0, 0));
+      jg.add(mesh(cbox(lj - 2 * s, hj, wj, 1), M.steel, inv ? rg + (lj - 2 * s) / 2 : rg + 2 * s + (lj - 2 * s) / 2, 0, 0));
       jg.position.y = zf; jg.rotation.y = a; g.add(jg);
     }
     tNutStud(g, R + 40, 0, zTable, zTable + 26, M); g.add(mesh(cbox(44, 26, 44, 2), M.dark, R + 40, zTable, 0));

@@ -411,6 +411,8 @@
       var b = e.target.closest('[data-fx]'); if (!b) return; var i = +b.closest('[data-fi]').dataset.fi, it = self.fix[i]; if (!it) return;
       if (b.dataset.fx === 'del') { self.fix.splice(i, 1); self.fixSel = null; }
       else if (b.dataset.fx === 'rot') it.ang = ((+it.ang || 0) + 90) % 360;
+      else if (b.dataset.fx === 'inv') it.inv = +it.inv === 1 ? 0 : 1;
+      else if (b.dataset.fx === 'free') { self.freeFix(i, true); }
       else if (b.dataset.fx === 'sel') self.fixSel = self.fixSel === i ? null : i;
       self.fixChanged();
     });
@@ -582,7 +584,9 @@
     else if (type === 'blocov') it = { type: type, x: si.cx, y: si.cy, ang: 0, L: r1(Math.min(100, Math.max(40, LX * 0.5))), w: 70, h: 50, zt: si.bottom };
     else it = { type: 'calco', x: si.cx, y: r1(si.cy - LY / 4), ang: 0, L: r1(LX + 20), e: 10, h: 30, zt: si.bottom };
     this.fix.push(it); this.fixSel = this.fix.length - 1;
+    var fr = type === 'morsa' || type === 'placa' || type === 'placa4' ? this.freeFix(this.fix.length - 1, false) : 'ok';
     this.fixChanged();
+    if (fr !== 'ok') return;
     toast('Adicionado. Ligue "Arrastar no 3D" e arraste até o lugar, ou digite a posição.');
   };
   function defItem(type) {   // item no tamanho padrão, só para a miniatura do catálogo
@@ -597,6 +601,25 @@
         '<b>' + esc(T(FIXNAME[t])) + '</b><small>' + esc(T(FIXDESC[t])) + '</small><span class="fixplus">' + esc(T('Adicionar à mesa')) + '</span></button>';
     }).join('');
   };
+  // abaixa os mordentes / castanhas até a fresa passar livre (a parte usinada fica de fora da fixação)
+  SimView.prototype.freeFix = function (i, say) {
+    var it = this.fix[i], self = this; if (!it || !this.sim) return;
+    var chuck = it.type === 'placa' || it.type === 'placa4', base = chuck ? +it.zf : +it.zb;
+    function topOf(o) { return chuck ? +o.zf + (+o.hj || 0) : +o.zt; }
+    function setTop(o, v) { if (chuck) o.hj = r1(v - o.zf); else o.zt = r1(v); }
+    function ok(v) {
+      var c = JSON.parse(JSON.stringify(it)); setTop(c, v);
+      var o = self.opts(); o.fixtures = [c]; o.res = 140;
+      var st = Stock3D.build(self.sim, o); Stock3D.advance(st); return !st.fixStop;
+    }
+    var hi = topOf(it), lo = base + 4;
+    if (ok(hi)) { if (say !== false) toast(T('A usinagem já está livre.')); return 'ok'; }
+    if (!ok(lo)) { setTop(it, lo); toast(T('A fresa desce até perto da base da peça: não sobra altura para prender sem bater. Use calço, castanha invertida ou outra fixação.')); return 'fail'; }
+    for (var k = 0; k < 8; k++) { var m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
+    setTop(it, Math.max(base + 4, Math.floor(lo * 2) / 2 - 1));
+    toast(T(chuck ? 'Castanhas abaixadas para deixar a usinagem livre.' : 'Mordentes abaixados para deixar a usinagem livre.'));
+    return 'low';
+  };
   SimView.prototype.renderFix = function () {
     if (this.renderCards) this.renderCards();
     var self = this, box = this.el.querySelector('.fixlist'), n = this.fix.length;
@@ -605,7 +628,10 @@
     box.innerHTML = this.fix.map(function (it, i) {
       cnt[it.type] = (cnt[it.type] || 0) + 1; if (!FIXF[it.type]) return '';
       return '<div class="fixitem' + (self.fixSel === i ? ' on' : '') + '" data-fi="' + i + '"><div class="row"><b>' + esc(T(FIXNAME[it.type])) + ' ' + cnt[it.type] + '</b><span class="sp"></span>' +
-        '<button type="button" class="btn sm" data-fx="sel">' + esc(T(self.fixSel === i ? 'Selecionado' : 'Selecionar')) + '</button><button type="button" class="btn sm" data-fx="rot">' + esc(T('Girar 90°')) + '</button><button type="button" class="btn sm danger" data-fx="del">' + esc(T('Remover')) + '</button></div>' +
+        '<button type="button" class="btn sm" data-fx="sel">' + esc(T(self.fixSel === i ? 'Selecionado' : 'Selecionar')) + '</button><button type="button" class="btn sm" data-fx="rot">' + esc(T('Girar 90°')) + '</button>' +
+        (it.type === 'placa' || it.type === 'placa4' ? '<button type="button" class="btn sm' + (+it.inv === 1 ? ' primary' : '') + '" data-fx="inv">' + esc(T(+it.inv === 1 ? 'Castanhas invertidas' : 'Inverter castanhas')) + '</button>' : '') +
+        (it.type === 'placa' || it.type === 'placa4' || it.type === 'morsa' ? '<button type="button" class="btn sm" data-fx="free">' + esc(T('Liberar a usinagem')) + '</button>' : '') +
+        '<button type="button" class="btn sm danger" data-fx="del">' + esc(T('Remover')) + '</button></div>' +
         '<div class="grid2">' + FIXF[it.type].map(function (f) { return '<label class="field"><span>' + esc(T(f[1])) + '</span><input class="input" inputmode="decimal" data-fk="' + f[0] + '" value="' + (it[f[0]] != null ? String(it[f[0]]) : '') + '"></label>'; }).join('') + '</div></div>';
     }).join('');
   };

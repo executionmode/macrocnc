@@ -32,9 +32,14 @@
         var Dp = Math.max(60, +it.D || 200), Rp = Dp / 2, zf = +it.zf, hj = Math.max(4, +it.hj || 25), rg = Math.max(2, +it.rg || 50), nj = it.type === 'placa4' ? 4 : 3;
         var lj = Math.min(Rp - rg - 2, 52), wj = Math.min(34, Rp * 0.28);
         cyl(0, 0, Rp, zf - 74, zf, 5);
+        var sj = Math.max(8, lj / 3), invj = +it.inv === 1;
         for (var q = 0; q < nj; q++) {
-          var aq = q / nj * 2 * Math.PI, ux = Math.cos(aq), uy = Math.sin(aq), rc = rg + lj / 2, aa = a + aq;
-          S.push({ k: 'b', cx: X + (ux * ca - uy * sa) * rc, cy: Y + (ux * sa + uy * ca) * rc, ca: Math.cos(aa), sa: Math.sin(aa), hu: lj / 2, hv: wj / 2, z0: zf, z1: zf + hj, col: 6, id: idx });
+          var aq = q / nj * 2 * Math.PI, ux = Math.cos(aq), uy = Math.sin(aq), aa = a + aq;
+          // três degraus da castanha (normal: alto por fora; invertida: alto junto da peça)
+          [[0, lj, 0.45], [invj ? 0 : sj, invj ? lj - sj : lj, 0.75], [invj ? 0 : 2 * sj, invj ? lj - 2 * sj : lj, 1]].forEach(function (st3) {
+            var rc = rg + (st3[0] + st3[1]) / 2;
+            S.push({ k: 'b', cx: X + (ux * ca - uy * sa) * rc, cy: Y + (ux * sa + uy * ca) * rc, ca: Math.cos(aa), sa: Math.sin(aa), hu: (st3[1] - st3[0]) / 2, hv: wj / 2, z0: zf, z1: zf + hj * st3[2], col: 6, id: idx });
+          });
         }
       } else if (it.type === 'calco') {   // calço / paralelo
         var Lc = Math.max(5, +it.L || 100), ec = Math.max(2, +it.e || 10), hc = Math.max(2, +it.h || 30), ztc = +it.zt;
