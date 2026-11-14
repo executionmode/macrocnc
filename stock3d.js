@@ -41,6 +41,9 @@
             S.push({ k: 'b', cx: X + (ux * ca - uy * sa) * rc, cy: Y + (ux * sa + uy * ca) * rc, ca: Math.cos(aa), sa: Math.sin(aa), hu: (st3[1] - st3[0]) / 2, hv: wj / 2, z0: zf, z1: zf + hj * st3[2], col: 6, id: idx });
           });
         }
+      } else if (it.type === 'taco') {   // taco de apoio embaixo da peça
+        var Lt = Math.max(5, +it.L || 40), et = Math.max(5, +it.e || 40), ht = Math.max(2, +it.h || 40), ztt = +it.zt;
+        box(0, 0, Lt / 2, et / 2, ztt - ht, ztt, 7);
       } else if (it.type === 'calco') {   // calço / paralelo
         var Lc = Math.max(5, +it.L || 100), ec = Math.max(2, +it.e || 10), hc = Math.max(2, +it.h || 30), ztc = +it.zt;
         box(0, 0, Lc / 2, ec / 2, ztc - hc, ztc, 7);

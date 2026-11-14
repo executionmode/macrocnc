@@ -258,7 +258,7 @@
       '<div class="simleft">' +
       '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div>' +
       '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas>' +
-      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button></div>' +
+      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button><div class="dragpos hidden"></div></div>' +
       '<div class="progress"><div></div></div>' +
       '<div class="row wrap simbar">' +
       '<button type="button" class="btn primary" data-a="anim">▶ Animar</button>' +
@@ -314,9 +314,9 @@
       '<div class="simpanel fixpanel hidden"><h2>Fixação da peça</h2>' +
       '<div class="seg fixtabs"><button type="button" data-fc="morsas" class="on">Morsas</button><button type="button" data-fc="grampos">Grampos</button><button type="button" data-fc="placas">Placas</button><button type="button" data-fc="disp">Dispositivos</button></div>' +
       '<div class="fixcards"></div>' +
-      '<div class="row wrap"><button type="button" class="btn" data-a="fixdrag">Arrastar no 3D: desligado</button></div>' +
+      '<div class="row wrap"><button type="button" class="btn" data-a="fixdrag">Vista de cima para posicionar</button></div>' +
       '<div class="fixlist"></div></div>';
-    this.P = {};
+    this.P = {}; window.__sim = this;
     el.querySelectorAll('[data-p]').forEach(function (n) { self.P[n.dataset.p] = n; });
     this.lst = el.querySelector('.lst');
     this.el = el; this.c3 = el.querySelector('.plot3d'); this.cxy = el.querySelector('.plot'); this.cg = el.querySelector('.glv');
@@ -355,7 +355,7 @@
       cv.style.touchAction = 'none';
       cv.addEventListener('pointerdown', function (e) {
         pts[e.pointerId] = { x: e.clientX, y: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} gestureStart();
-        if ((cv === self.c3 || cv === self.cg) && self.fixDrag && Object.keys(pts).length === 1) self.fixGrab(e);
+        if (Object.keys(pts).length === 1 && ((cv === self.cg && self.v3) || (cv === self.c3 && self.fixDrag))) self.fixGrab(e);
       });
       cv.addEventListener('pointermove', function (e) {
         if (self.fixDragging && (cv === self.c3 || cv === self.cg) && Object.keys(pts).length === 1) { pts[e.pointerId] = { x: e.clientX, y: e.clientY }; self.fixMove(e); return; }
@@ -562,15 +562,16 @@
   SimView.prototype.saveStock = function () { store.set(this.stockKey(), this.manual); };
   /* ---------- fixação ---------- */
   SimView.prototype.fixKey = function () { return 'fix2.' + (this.p ? this.p.id : progName(this.text, 'editor')); };
-  var FIXNAME = { morsa: 'Morsa de precisão', garra: 'Grampo escalonado', placa: 'Placa de 3 castanhas', placa4: 'Placa de 4 castanhas', calco: 'Calço paralelo', blocov: 'Bloco em V' };
-  var FIXCAT = { morsas: ['morsa'], grampos: ['garra'], placas: ['placa', 'placa4'], disp: ['calco', 'blocov'] };
-  var FIXDESC = { morsa: 'Mordentes, fuso e manivela, presa na mesa', garra: 'Bloco de degraus, barra, prisioneiro e porca T', placa: 'Castanhas escalonadas', placa4: 'Castanhas escalonadas', calco: 'Embaixo da peça', blocov: 'Para peça redonda' };
+  var FIXNAME = { morsa: 'Morsa de precisão', garra: 'Grampo escalonado', placa: 'Placa de 3 castanhas', placa4: 'Placa de 4 castanhas', calco: 'Calço paralelo', blocov: 'Bloco em V', taco: 'Taco de apoio' };
+  var FIXCAT = { morsas: ['morsa'], grampos: ['garra'], placas: ['placa', 'placa4'], disp: ['taco', 'calco', 'blocov'] };
+  var FIXDESC = { morsa: 'Mordentes, fuso e manivela, presa na mesa', garra: 'Bloco de degraus, barra, prisioneiro e porca T', placa: 'Castanhas escalonadas', placa4: 'Castanhas escalonadas', calco: 'Embaixo da peça', blocov: 'Para peça redonda', taco: 'Tarugo 40 x 40 embaixo da peça' };
   var THUMBS = {};
   var FIXF = {
     morsa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['a', 'Abertura'], ['w', 'Largura dos mordentes'], ['zt', 'Topo dos mordentes Z'], ['zb', 'Apoio da peça Z']],
     garra: [['x', 'Ponta da garra X'], ['y', 'Ponta da garra Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['e', 'Espessura'], ['zp', 'Apoio na peça Z'], ['zb', 'Mesa Z']],
     placa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
     placa4: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
+    taco: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['e', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']],
     blocov: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']],
     calco: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['e', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']]
   };
@@ -581,17 +582,21 @@
     if (type === 'morsa') it = { type: type, v: 2, x: si.cx, y: si.cy, ang: 0, a: r1(LY), w: r1(Math.max(120, Math.min(200, LX + 40))), zt: r1(si.top - Math.min(10, H * 0.4)), zb: si.bottom };
     else if (type === 'garra') it = { type: type, x: r1(si.cx - LX / 2 + 15), y: si.cy, ang: 180, L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
     else if (type === 'placa' || type === 'placa4') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
+    else if (type === 'taco') {   // um em cada canto embaixo da peça (o próximo vai para o canto seguinte)
+      var nt = this.fix.filter(function (f) { return f.type === 'taco'; }).length % 4, cxs = [-1, 1, 1, -1][nt], cys = [-1, -1, 1, 1][nt];
+      it = { type: type, x: r1(si.cx + cxs * Math.max(0, LX / 2 - 25)), y: r1(si.cy + cys * Math.max(0, LY / 2 - 25)), ang: 0, L: 40, e: 40, h: 40, zt: si.bottom };
+    }
     else if (type === 'blocov') it = { type: type, x: si.cx, y: si.cy, ang: 0, L: r1(Math.min(100, Math.max(40, LX * 0.5))), w: 70, h: 50, zt: si.bottom };
     else it = { type: 'calco', x: si.cx, y: r1(si.cy - LY / 4), ang: 0, L: r1(LX + 20), e: 10, h: 30, zt: si.bottom };
     this.fix.push(it); this.fixSel = this.fix.length - 1;
     var fr = type === 'morsa' || type === 'placa' || type === 'placa4' ? this.freeFix(this.fix.length - 1, false) : 'ok';
     this.fixChanged();
     if (fr !== 'ok') return;
-    toast('Adicionado. Ligue "Arrastar no 3D" e arraste até o lugar, ou digite a posição.');
+    toast('Adicionado. Encoste no item no 3D e arraste até o lugar, ou digite a posição.');
   };
   function defItem(type) {   // item no tamanho padrão, só para a miniatura do catálogo
-    var b = { morsa: { a: 90, w: 150, zt: 30, zb: 0 }, garra: { L: 100, w: 30, e: 16, zp: 30, zb: 0 }, placa: { D: 200, rg: 40, hj: 25, zf: 0 }, placa4: { D: 200, rg: 40, hj: 25, zf: 0 }, calco: { L: 150, e: 12, h: 35, zt: 0 }, blocov: { L: 80, w: 70, h: 50, zt: 0 } }[type];
-    var o = { type: type, x: 0, y: 0, ang: 0, zT: type === 'morsa' ? -73 : type === 'placa' || type === 'placa4' ? -86 : type === 'garra' ? 0 : type === 'calco' ? -35 : -50 }; for (var k in b) o[k] = b[k]; return o;
+    var b = { taco: { L: 40, e: 40, h: 40, zt: 0 }, morsa: { a: 90, w: 150, zt: 30, zb: 0 }, garra: { L: 100, w: 30, e: 16, zp: 30, zb: 0 }, placa: { D: 200, rg: 40, hj: 25, zf: 0 }, placa4: { D: 200, rg: 40, hj: 25, zf: 0 }, calco: { L: 150, e: 12, h: 35, zt: 0 }, blocov: { L: 80, w: 70, h: 50, zt: 0 } }[type];
+    var o = { type: type, x: 0, y: 0, ang: 0, zT: type === 'morsa' ? -73 : type === 'placa' || type === 'placa4' ? -86 : type === 'garra' ? 0 : type === 'calco' ? -35 : type === 'taco' ? -40 : -50 }; for (var k in b) o[k] = b[k]; return o;
   }
   SimView.prototype.renderCards = function () {
     var box = this.el.querySelector('.fixcards'), gl = !!this.v3;
@@ -644,8 +649,11 @@
   };
   SimView.prototype.setFixDrag = function (on, silent) {
     this.fixDrag = !!on; this.fixDragging = null;
-    var b = this.el && this.el.querySelector('[data-a=fixdrag]'); if (b) { b.textContent = T(on ? 'Arrastar no 3D: ligado' : 'Arrastar no 3D: desligado'); b.classList.toggle('primary', !!on); }
-    if (on && !silent) { this.setMode('3d'); this.view.el = 89; this.view.az = 0; this.draw(true); toast('Toque e arraste a fixação. Vista de cima ligada.'); }
+    var b = this.el && this.el.querySelector('[data-a=fixdrag]'); if (b) { b.textContent = T(on ? 'Vista de cima: ligada' : 'Vista de cima para posicionar'); b.classList.toggle('primary', !!on); }
+    if (silent) return;
+    this.setMode('3d');
+    if (on) { this.view.el = 89; this.view.az = 0; toast('Encoste no item e arraste até o lugar.'); } else { this.view.el = 38; this.view.az = -35; }
+    this.draw(true);
   };
   // ponto da tela -> X Y na altura z (mesma câmera do 3D)
   SimView.prototype.screenXY = function (e, z) {
@@ -677,15 +685,20 @@
     var d = this.fixDragging, it = this.fix[d.i]; if (!it) return;
     if (d.gl && this.v3) {   // no 3D realista só move o item; a grade é refeita ao soltar
       var r0 = this.cg.getBoundingClientRect(), q = this.v3.onPlane(e.clientX - r0.left, e.clientY - r0.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!q) return;
-      it.x = r1(d.x0 + q[0] - d.p0[0]); it.y = r1(d.y0 + q[1] - d.p0[1]);
-      var g = this.v3.fixG[d.i]; if (g) g.position.set(it.x, 0, -it.y);
+      it.x = Math.round(d.x0 + q[0] - d.p0[0]); it.y = Math.round(d.y0 + q[1] - d.p0[1]);
+      var g = this.v3.fixG[d.i]; if (g) { g.position.set(it.x, 0, -it.y); g.updateMatrixWorld(true); }
+      this.v3.mark(this.fixSel, null); this.showDragPos(it);
       this.v3.render(this.view, this.cg.clientWidth, this.cg.clientHeight); return;
     }
     var p = this.screenXY(e, d.z); if (!p) return;
     it.x = r1(d.x0 + p[0] - d.p0[0]); it.y = r1(d.y0 + p[1] - d.p0[1]);
     var self = this; if (!this.fixRaf) this.fixRaf = requestAnimationFrame(function () { self.fixRaf = 0; self.fixChanged(true); });
   };
-  SimView.prototype.fixDrop = function () { this.fixDragging = null; this.fixChanged(); };
+  SimView.prototype.fixDrop = function () { this.fixDragging = null; var dp = this.el.querySelector('.dragpos'); if (dp) dp.classList.add('hidden'); this.fixChanged(); };
+  SimView.prototype.showDragPos = function (it) {   // X Y do item enquanto arrasta (de 1 em 1 mm)
+    var dp = this.el.querySelector('.dragpos'); if (!dp) return;
+    dp.textContent = T(FIXNAME[it.type]) + '  X ' + it.x + '  Y ' + it.y; dp.classList.remove('hidden');
+  };
   SimView.prototype.simP = function () { return this.manual && this.manual.toolDia > 0 ? { toolDia: this.manual.toolDia } : this.p; };
   SimView.prototype.load = function (text, p) {
     this.stop();
@@ -852,6 +865,7 @@
     else v.updateStock(st);
     v.setTool(st.tool, st.D, st.toolShape, showTool || !!st.fixStop);
     v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.setHit(st.fixStop);
+    var fpv = this.el.querySelector('.fixpanel'); v.setGhost(fpv && !fpv.classList.contains('hidden') && this.fix.length && !this.animRunning);   // montando o setup: peça transparente
     v.render(this.view, W, H);
   };
   SimView.prototype.draw = function (showTool) {

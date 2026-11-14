@@ -122,6 +122,11 @@
     },
     placa: function (it, M, zTable) { return chuck(it, M, zTable, 3); },
     placa4: function (it, M, zTable) { return chuck(it, M, zTable, 4); },
+    taco: function (it, M) {   // taco / tarugo de apoio (ex.: 40 x 40) embaixo da peça
+      var g = new THREE.Group(), L = Math.max(5, +it.L || 40), e = Math.max(5, +it.e || 40), h = Math.max(2, +it.h || 40), zt = +it.zt;
+      g.add(mesh(cbox(L, h, e, 1.2), M.steel, 0, zt - h, 0));
+      return g;
+    },
     calco: function (it, M) {
       var g = new THREE.Group(), L = Math.max(5, +it.L || 100), e = Math.max(2, +it.e || 10), h = Math.max(2, +it.h || 30), zt = +it.zt;
       g.add(mesh(cbox(L, h, e, 0.5), M.ground, 0, zt - h, 0));
@@ -196,7 +201,7 @@
       if (it.type === 'morsa') zT = Math.min(zT, +it.zb - 73);
       else if (it.type === 'garra') zT = Math.min(zT, +it.zb);
       else if (it.type === 'placa' || it.type === 'placa4') zT = Math.min(zT, +it.zf - Math.max(40, Math.min(110, 60)) - 26);
-      else if (it.type === 'calco' || it.type === 'blocov') zT = Math.min(zT, +it.zt - (+it.h || 30));
+      else if (it.type === 'calco' || it.type === 'blocov' || it.type === 'taco') zT = Math.min(zT, +it.zt - (+it.h || 30));
     });
     this.zTable = zT;
     // mesa com rasgos em T (rasgos ao longo de X, a cada 100 mm)
@@ -331,6 +336,11 @@
     this.tool.visible = !!(show && T);
     if (T) this.tool.position.set(T.x, T.z, -T.y);
   };
+  Viewer.prototype.setGhost = function (on) {   // peça transparente para ver e pegar o que está embaixo dela
+    var m = mats().stock; on = !!on; if (m.transparent === on) return;
+    m.transparent = on; m.opacity = on ? 0.38 : 1; m.depthWrite = !on; m.needsUpdate = true;
+    if (this.stock) this.stock.castShadow = !on;
+  };
   Viewer.prototype.setHit = function (p) {   // ponto vermelho onde a fresa bateu
     if (!this.hitDot) { this.hitDot = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xff2a2a })); this.world.add(this.hitDot); }
     if (this.hitDot.parent !== this.world) this.world.add(this.hitDot);
@@ -360,8 +370,9 @@
   // item de fixação embaixo do dedo e o ponto 3D tocado
   Viewer.prototype.pick = function (u, v, W, H) {
     this.ray.setFromCamera(new THREE.Vector2(u / W * 2 - 1, -(v / H) * 2 + 1), this.cam);
-    var objs = this.fixG.filter(Boolean), hit = this.ray.intersectObjects(objs, true)[0];
+    var objs = this.fixG.filter(Boolean), ghost = mats().stock.transparent, hit = this.ray.intersectObjects(objs, true)[0];
     if (!hit) return null;
+    if (!ghost && this.stock) { var hs = this.ray.intersectObject(this.stock, false)[0]; if (hs && hs.distance < hit.distance - 0.5) return null; }   // a peça está na frente
     return { item: hit.object.userData.fix, x: hit.point.x, y: -hit.point.z, z: hit.point.y };
   };
   // ponto da tela -> X Y na altura z
