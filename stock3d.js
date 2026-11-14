@@ -16,26 +16,32 @@
       var a = (+it.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), X = +it.x || 0, Y = +it.y || 0;
       function box(u, v, hu, hv, z0, z1, col) { S.push({ k: 'b', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, ca: ca, sa: sa, hu: hu, hv: hv, z0: z0, z1: z1, col: col, id: idx }); }
       function cyl(u, v, r, z0, z1, col) { S.push({ k: 'c', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, r: r, z0: z0, z1: z1, col: col, id: idx }); }
-      if (it.type === 'morsa') {   // dois mordentes (abertura no eixo u) e a base entre eles
-        var A = Math.max(1, +it.a || 100), W = Math.max(10, +it.w || 150), t = 25, zt = +it.zt, zb = +it.zb;
-        box(-(A / 2 + t / 2), 0, t / 2, W / 2, zb - 40, zt, 1);
-        box(A / 2 + t / 2, 0, t / 2, W / 2, zb - 40, zt, 1);
-        box(0, 0, A / 2, W / 2, zb - 40, zb, 1);
-      } else if (it.type === 'garra') {   // ponta da garra em (x, y), barra indo para fora (u), tirante, porca e calço de apoio atrás
-        var L = Math.max(30, +it.L || 100), e = Math.max(4, +it.e || 16), wg = Math.max(8, +it.w || 30), zp = +it.zp, zb2 = +it.zb, us = L * 0.45;
+      if (it.type === 'morsa') {   // mesmas medidas do 3D: corpo, mordente fixo, mordente móvel, fuso e manivela
+        var A = Math.max(1, +it.a || 100), W = Math.max(40, +it.w || 150), zt = +it.zt, zb = +it.zb, Lb = A + 2 * 32 + 140, cU = 35, zs = zb - 55 * 0.35;
+        box(cU, 0, Lb / 2, W / 2, zb - 73, zb, 1);
+        box(-(A / 2 + 31), 0, 31, W / 2, zb - 2, zt, 1);
+        box(A / 2 + 36, 0, 36, W / 2, zb - 2, zt, 1);
+        box(A / 2 + 72 + 74, 0, 74, 16, zs - 16, zs + 16, 1);
+      } else if (it.type === 'garra') {   // barra com rasgo, bloco escalonado, prisioneiro e porca
+        var L = Math.max(30, +it.L || 100), e = Math.max(6, +it.e || 16), wg = Math.max(10, +it.w || 30), zp = +it.zp, zb2 = +it.zb, us = L * 0.45;
         box(L / 2, 0, L / 2, wg / 2, zp, zp + e, 2);
-        box(L - 11, 0, 11, wg / 2, zb2 - 40, zp, 2);
-        cyl(us, 0, 8, zb2 - 40, zp + e + 30, 3);
-        cyl(us, 0, 13, zp + e, zp + e + 14, 4);
-      } else if (it.type === 'placa') {   // corpo redondo e 3 castanhas a 120°
-        var Dp = Math.max(40, +it.D || 200), zf = +it.zf, hj = Math.max(3, +it.hj || 25), rg = Math.max(1, +it.rg || 50), lj = 45, wj = 32;
-        cyl(0, 0, Dp / 2, zf - 60, zf, 5);
-        for (var q = 0; q < 3; q++) { var aq = q * 2 * Math.PI / 3; 
-          var ux = Math.cos(aq), uy = Math.sin(aq), cxj = X + (ux * ca - uy * sa) * (rg + lj / 2), cyj = Y + (ux * sa + uy * ca) * (rg + lj / 2), aa = a + aq;
-          S.push({ k: 'b', cx: cxj, cy: cyj, ca: Math.cos(aa), sa: Math.sin(aa), hu: lj / 2, hv: wj / 2, z0: zf, z1: zf + hj, col: 6, id: idx }); }
-      } else if (it.type === 'calco') {   // calço / paralelo embaixo da peça
+        box(L - 10, 0, 17, wg / 2 + 3, zb2, zp, 2);
+        cyl(us, 0, 8, zb2 - 22, zp + e + 21, 3);
+        cyl(us, 0, 15, zp + e, zp + e + 15, 4);
+      } else if (it.type === 'placa' || it.type === 'placa4') {   // corpo e castanhas escalonadas
+        var Dp = Math.max(60, +it.D || 200), Rp = Dp / 2, zf = +it.zf, hj = Math.max(4, +it.hj || 25), rg = Math.max(2, +it.rg || 50), nj = it.type === 'placa4' ? 4 : 3;
+        var lj = Math.min(Rp - rg - 2, 52), wj = Math.min(34, Rp * 0.28);
+        cyl(0, 0, Rp, zf - 74, zf, 5);
+        for (var q = 0; q < nj; q++) {
+          var aq = q / nj * 2 * Math.PI, ux = Math.cos(aq), uy = Math.sin(aq), rc = rg + lj / 2, aa = a + aq;
+          S.push({ k: 'b', cx: X + (ux * ca - uy * sa) * rc, cy: Y + (ux * sa + uy * ca) * rc, ca: Math.cos(aa), sa: Math.sin(aa), hu: lj / 2, hv: wj / 2, z0: zf, z1: zf + hj, col: 6, id: idx });
+        }
+      } else if (it.type === 'calco') {   // calço / paralelo
         var Lc = Math.max(5, +it.L || 100), ec = Math.max(2, +it.e || 10), hc = Math.max(2, +it.h || 30), ztc = +it.zt;
         box(0, 0, Lc / 2, ec / 2, ztc - hc, ztc, 7);
+      } else if (it.type === 'blocov') {   // bloco em V (até o fundo do V)
+        var Lv = Math.max(10, +it.L || 80), wv = Math.max(20, +it.w || 70), hv = Math.max(15, +it.h || 50), ztv = +it.zt, dv = Math.min(hv * 0.55, wv * 0.4);
+        box(0, 0, Lv / 2, wv / 2, ztv - hv, ztv - dv, 7);
       }
     });
     S.forEach(function (q) {

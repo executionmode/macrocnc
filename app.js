@@ -257,7 +257,7 @@
       '<div class="simmain">' +
       '<div class="simleft">' +
       '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D (relevo)</button><button type="button" data-v="xy">Caminho XY</button></div>' +
-      '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot hidden"></canvas></div>' +
+      '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas></div>' +
       '<div class="progress"><div></div></div>' +
       '<div class="row wrap simbar">' +
       '<button type="button" class="btn primary" data-a="anim">▶ Animar</button>' +
@@ -311,14 +311,14 @@
       '<p class="hint stockmode"></p></div>' +
       '<div class="simpanel msgpanel hidden"><h2>Mensagens da simulação</h2><div class="stats"></div><div class="simmsgs"></div></div>' +
       '<div class="simpanel fixpanel hidden"><h2>Fixação da peça</h2>' +
-      '<div class="row wrap fixadd"><button type="button" class="btn" data-fadd="morsa">+ Morsa</button><button type="button" class="btn" data-fadd="garra">+ Garra com tirante</button>' +
-      '<button type="button" class="btn" data-fadd="placa">+ Placa 3 castanhas</button><button type="button" class="btn" data-fadd="calco">+ Calço</button></div>' +
+      '<div class="seg fixtabs"><button type="button" data-fc="morsas" class="on">Morsas</button><button type="button" data-fc="grampos">Grampos</button><button type="button" data-fc="placas">Placas</button><button type="button" data-fc="disp">Dispositivos</button></div>' +
+      '<div class="fixcards"></div>' +
       '<div class="row wrap"><button type="button" class="btn" data-a="fixdrag">Arrastar no 3D: desligado</button></div>' +
       '<div class="fixlist"></div></div>';
     this.P = {};
     el.querySelectorAll('[data-p]').forEach(function (n) { self.P[n.dataset.p] = n; });
     this.lst = el.querySelector('.lst');
-    this.el = el; this.c3 = el.querySelector('.plot3d'); this.cxy = el.querySelector('.plot');
+    this.el = el; this.c3 = el.querySelector('.plot3d'); this.cxy = el.querySelector('.plot'); this.cg = el.querySelector('.glv');
     this.bar = el.querySelector('.progress > div'); this.stats = el.querySelector('.stats'); this.msgs = el.querySelector('.simmsgs');
     this.f = {};
     el.querySelectorAll('[data-k]').forEach(function (i) { self.f[i.dataset.k] = i; });
@@ -350,20 +350,20 @@
         g0 = { n: 2, d: Math.hypot(a1.x - b1.x, a1.y - b1.y) || 1, mx: (a1.x + b1.x) / 2, my: (a1.y + b1.y) / 2, z: v.zoom, px: v.panX, py: v.panY };
       }
     }
-    [this.c3, this.cxy].forEach(function (cv) {
+    [this.c3, this.cxy, this.cg].forEach(function (cv) {
       cv.style.touchAction = 'none';
       cv.addEventListener('pointerdown', function (e) {
         pts[e.pointerId] = { x: e.clientX, y: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (er) {} gestureStart();
-        if (cv === self.c3 && self.fixDrag && Object.keys(pts).length === 1) self.fixGrab(e);
+        if ((cv === self.c3 || cv === self.cg) && self.fixDrag && Object.keys(pts).length === 1) self.fixGrab(e);
       });
       cv.addEventListener('pointermove', function (e) {
-        if (self.fixDragging && cv === self.c3 && Object.keys(pts).length === 1) { pts[e.pointerId] = { x: e.clientX, y: e.clientY }; self.fixMove(e); return; }
+        if (self.fixDragging && (cv === self.c3 || cv === self.cg) && Object.keys(pts).length === 1) { pts[e.pointerId] = { x: e.clientX, y: e.clientY }; self.fixMove(e); return; }
         if (!pts[e.pointerId] || !g0) return;
         pts[e.pointerId] = { x: e.clientX, y: e.clientY };
         var ids = Object.keys(pts), v = self.view;
         if (g0.n === 1 && ids.length === 1) {
           var dx = e.clientX - g0.x, dy = e.clientY - g0.y;
-          if (cv === self.c3 && !self.panMode && !e.shiftKey) { v.az = g0.az + dx * 0.5; v.el = Math.max(10, Math.min(89, g0.el + dy * 0.3)); }
+          if ((cv === self.c3 || cv === self.cg) && !self.panMode && !e.shiftKey) { v.az = g0.az + dx * 0.5; v.el = Math.max(10, Math.min(89, g0.el + dy * 0.3)); }
           else { v.panX = g0.px + dx; v.panY = g0.py + dy; }
         } else if (g0.n === 2 && ids.length >= 2) {
           var a1 = pts[ids[0]], b1 = pts[ids[1]], d = Math.hypot(a1.x - b1.x, a1.y - b1.y) || 1;
@@ -396,7 +396,9 @@
     el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); });
     el.querySelector('[data-a=fixbtn]').addEventListener('click', function () { var fp = el.querySelector('.fixpanel'); fp.classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); if (!fp.classList.contains('hidden')) fp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
     // fixação: adicionar, editar, girar, remover e arrastar no 3D
-    el.querySelectorAll('[data-fadd]').forEach(function (b) { b.addEventListener('click', function () { self.addFix(b.dataset.fadd); }); });
+    this.fixCat = 'morsas';
+    el.querySelectorAll('[data-fc]').forEach(function (b) { b.addEventListener('click', function () { self.fixCat = b.dataset.fc; el.querySelectorAll('[data-fc]').forEach(function (x) { x.classList.toggle('on', x === b); }); self.renderCards(); }); });
+    el.querySelector('.fixcards').addEventListener('click', function (e) { var b = e.target.closest('[data-fadd]'); if (b) self.addFix(b.dataset.fadd); });
     el.querySelector('[data-a=fixdrag]').addEventListener('click', function () { self.setFixDrag(!self.fixDrag); });
     el.querySelector('.fixlist').addEventListener('change', function (e) {
       var i = e.target.closest('[data-fi]'); if (!i || !e.target.dataset.fk) return;
@@ -462,7 +464,7 @@
     var ln = segs[idx].ln, n = 0;
     while (idx + n < total && segs[idx + n].ln === ln) n++;
     if (this.mode === 'xy') { this.xyIdx = idx + n; drawPlot(this.cxy, this.sim, this.xyIdx, this.st ? this.st.r : 5, this.view); idx = this.xyIdx; }
-    else { Stock3D.advance(this.st, n); Stock3D.render(this.c3, this.st, this.view, true); idx = this.st.idx; if (this.st.fixStop) { this.endAnim(); return; } }
+    else { Stock3D.advance(this.st, n); this.render3(true); idx = this.st.idx; if (this.st.fixStop) { this.endAnim(); return; } }
     this.bar.style.width = (100 * idx / Math.max(1, total)).toFixed(1) + '%';
     this.updatePanel(idx);
   };
@@ -524,7 +526,7 @@
     var pb0 = this.el.querySelector('[data-a=pause]'); if (pb0) { pb0.disabled = true; pb0.textContent = '⏸ Pausar'; }
     this.mode = m;
     this.el.querySelectorAll('.simtabs button').forEach(function (x) { x.classList.toggle('on', x.dataset.v === m); });
-    this.c3.classList.toggle('hidden', m !== '3d'); this.cxy.classList.toggle('hidden', m === '3d');
+    this.c3.classList.toggle('hidden', m !== '3d' || !!this.v3); this.cg.classList.toggle('hidden', m !== '3d' || !this.v3); this.cxy.classList.toggle('hidden', m === '3d');
     // mantém o ponto da usinagem ao trocar de vista
     var total = this.sim.segs.length, idx;
     if (m === 'xy') { idx = this.st ? this.st.idx : 0; this.xyIdx = idx >= total ? null : idx; }
@@ -556,11 +558,16 @@
   SimView.prototype.saveStock = function () { store.set(this.stockKey(), this.manual); };
   /* ---------- fixação ---------- */
   SimView.prototype.fixKey = function () { return 'fix2.' + (this.p ? this.p.id : progName(this.text, 'editor')); };
-  var FIXNAME = { morsa: 'Morsa', garra: 'Garra com tirante e porca', placa: 'Placa 3 castanhas', calco: 'Calço' };
+  var FIXNAME = { morsa: 'Morsa de precisão', garra: 'Grampo escalonado', placa: 'Placa de 3 castanhas', placa4: 'Placa de 4 castanhas', calco: 'Calço paralelo', blocov: 'Bloco em V' };
+  var FIXCAT = { morsas: ['morsa'], grampos: ['garra'], placas: ['placa', 'placa4'], disp: ['calco', 'blocov'] };
+  var FIXDESC = { morsa: 'Mordentes, fuso e manivela, presa na mesa', garra: 'Bloco de degraus, barra, prisioneiro e porca T', placa: 'Castanhas escalonadas', placa4: 'Castanhas escalonadas', calco: 'Embaixo da peça', blocov: 'Para peça redonda' };
+  var THUMBS = {};
   var FIXF = {
     morsa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['a', 'Abertura'], ['w', 'Largura dos mordentes'], ['zt', 'Topo dos mordentes Z'], ['zb', 'Apoio da peça Z']],
     garra: [['x', 'Ponta da garra X'], ['y', 'Ponta da garra Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['e', 'Espessura'], ['zp', 'Apoio na peça Z'], ['zb', 'Mesa Z']],
     placa: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
+    placa4: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['D', 'Diâmetro da placa'], ['rg', 'Raio de aperto'], ['hj', 'Altura das castanhas'], ['zf', 'Face da placa Z']],
+    blocov: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['w', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']],
     calco: [['x', 'Centro X'], ['y', 'Centro Y'], ['ang', 'Ângulo °'], ['L', 'Comprimento'], ['e', 'Largura'], ['h', 'Altura'], ['zt', 'Topo Z']]
   };
   function r1(v) { return Math.round(v * 10) / 10; }
@@ -569,18 +576,32 @@
     var LX = rd ? si.d : si.lx, LY = rd ? si.d : si.ly, H = si.top - si.bottom, it;
     if (type === 'morsa') it = { type: type, x: si.cx, y: si.cy, ang: 0, a: r1(LX), w: r1(Math.max(120, Math.min(200, LY + 40))), zt: r1(si.top - Math.min(10, H * 0.4)), zb: si.bottom };
     else if (type === 'garra') it = { type: type, x: r1(si.cx - LX / 2 + 15), y: si.cy, ang: 180, L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
-    else if (type === 'placa') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
+    else if (type === 'placa' || type === 'placa4') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
+    else if (type === 'blocov') it = { type: type, x: si.cx, y: si.cy, ang: 0, L: r1(Math.min(100, Math.max(40, LX * 0.5))), w: 70, h: 50, zt: si.bottom };
     else it = { type: 'calco', x: si.cx, y: r1(si.cy - LY / 4), ang: 0, L: r1(LX + 20), e: 10, h: 30, zt: si.bottom };
     this.fix.push(it); this.fixSel = this.fix.length - 1;
     this.fixChanged();
     toast('Adicionado. Ligue "Arrastar no 3D" e arraste até o lugar, ou digite a posição.');
   };
+  function defItem(type) {   // item no tamanho padrão, só para a miniatura do catálogo
+    var b = { morsa: { a: 90, w: 150, zt: 30, zb: 0 }, garra: { L: 100, w: 30, e: 16, zp: 30, zb: 0 }, placa: { D: 200, rg: 40, hj: 25, zf: 0 }, placa4: { D: 200, rg: 40, hj: 25, zf: 0 }, calco: { L: 150, e: 12, h: 35, zt: 0 }, blocov: { L: 80, w: 70, h: 50, zt: 0 } }[type];
+    var o = { type: type, x: 0, y: 0, ang: 0, zT: type === 'morsa' ? -73 : type === 'placa' || type === 'placa4' ? -86 : type === 'garra' ? 0 : type === 'calco' ? -35 : -50 }; for (var k in b) o[k] = b[k]; return o;
+  }
+  SimView.prototype.renderCards = function () {
+    var box = this.el.querySelector('.fixcards'), gl = !!this.v3;
+    box.innerHTML = FIXCAT[this.fixCat].map(function (t) {
+      if (gl && !THUMBS[t]) { try { THUMBS[t] = Sim3D.thumb(t, defItem(t)); } catch (e) { THUMBS[t] = ''; } }
+      return '<button type="button" class="fixcard" data-fadd="' + t + '">' + (THUMBS[t] ? '<img alt="" src="' + THUMBS[t] + '">' : '<span class="fixph"></span>') +
+        '<b>' + esc(T(FIXNAME[t])) + '</b><small>' + esc(T(FIXDESC[t])) + '</small><span class="fixplus">' + esc(T('Adicionar à mesa')) + '</span></button>';
+    }).join('');
+  };
   SimView.prototype.renderFix = function () {
+    if (this.renderCards) this.renderCards();
     var self = this, box = this.el.querySelector('.fixlist'), n = this.fix.length;
     this.el.querySelector('.fixcount').textContent = n ? '(' + n + ')' : '';
     var cnt = {};
     box.innerHTML = this.fix.map(function (it, i) {
-      cnt[it.type] = (cnt[it.type] || 0) + 1;
+      cnt[it.type] = (cnt[it.type] || 0) + 1; if (!FIXF[it.type]) return '';
       return '<div class="fixitem' + (self.fixSel === i ? ' on' : '') + '" data-fi="' + i + '"><div class="row"><b>' + esc(T(FIXNAME[it.type])) + ' ' + cnt[it.type] + '</b><span class="sp"></span>' +
         '<button type="button" class="btn sm" data-fx="sel">' + esc(T(self.fixSel === i ? 'Selecionado' : 'Selecionar')) + '</button><button type="button" class="btn sm" data-fx="rot">' + esc(T('Girar 90°')) + '</button><button type="button" class="btn sm danger" data-fx="del">' + esc(T('Remover')) + '</button></div>' +
         '<div class="grid2">' + FIXF[it.type].map(function (f) { return '<label class="field"><span>' + esc(T(f[1])) + '</span><input class="input" inputmode="decimal" data-fk="' + f[0] + '" value="' + (it[f[0]] != null ? String(it[f[0]]) : '') + '"></label>'; }).join('') + '</div></div>';
@@ -588,6 +609,7 @@
   };
   SimView.prototype.fixChanged = function (quick) {
     store.set(this.fixKey(), this.fix);
+    this.v3st = null;
     if (quick) { this.st = Stock3D.build(this.sim, this.opts()); this.st.fixSel = this.fixSel; var s0 = this.sim.segs[0]; if (s0) this.st.tool = { x: s0.x2, y: s0.y2, z: s0.z }; this.draw(true); return; }
     this.renderFix(); this.rebuild(false);
   };
@@ -606,6 +628,12 @@
   };
   SimView.prototype.fixGrab = function (e) {
     var st = this.st; if (!st || !st.fc) return;
+    if (this.v3) {
+      var r0 = this.cg.getBoundingClientRect(), W0 = this.cg.clientWidth, H0 = this.cg.clientHeight, u0 = e.clientX - r0.left, w0 = e.clientY - r0.top;
+      var hp = this.v3.pick(u0, w0, W0, H0); if (!hp || !this.fix[hp.item]) return;
+      var p0 = this.v3.onPlane(u0, w0, W0, H0, hp.z), itg = this.fix[hp.item]; if (!p0) return;
+      this.fixSel = hp.item; this.fixDragging = { i: hp.item, z: hp.z, p0: p0, x0: itg.x, y0: itg.y, gl: true }; this.v3.mark(this.fixSel, null); this.render3(true); this.renderFix(); return;
+    }
     // anda do alto para baixo até achar um pedaço da fixação embaixo do dedo
     for (var z = st.vTop; z >= st.vBot; z -= Math.max(1, (st.vTop - st.vBot) / 60)) {
       var p = this.screenXY(e, z); if (!p) return;
@@ -617,7 +645,14 @@
     }
   };
   SimView.prototype.fixMove = function (e) {
-    var d = this.fixDragging, p = this.screenXY(e, d.z), it = this.fix[d.i]; if (!p || !it) return;
+    var d = this.fixDragging, it = this.fix[d.i]; if (!it) return;
+    if (d.gl && this.v3) {   // no 3D realista só move o item; a grade é refeita ao soltar
+      var r0 = this.cg.getBoundingClientRect(), q = this.v3.onPlane(e.clientX - r0.left, e.clientY - r0.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!q) return;
+      it.x = r1(d.x0 + q[0] - d.p0[0]); it.y = r1(d.y0 + q[1] - d.p0[1]);
+      var g = this.v3.fixG[d.i]; if (g) g.position.set(it.x, 0, -it.y);
+      this.v3.render(this.view, this.cg.clientWidth, this.cg.clientHeight); return;
+    }
+    var p = this.screenXY(e, d.z); if (!p) return;
     it.x = r1(d.x0 + p[0] - d.p0[0]); it.y = r1(d.y0 + p[1] - d.p0[1]);
     var self = this; if (!this.fixRaf) this.fixRaf = requestAnimationFrame(function () { self.fixRaf = 0; self.fixChanged(true); });
   };
@@ -632,6 +667,7 @@
     this.tcum = null;
     this.renderListing();
     this.rebuild(true);
+    this.initGL();
   };
   // bruto pelas medidas da macro (letras do G65) ou do paramétrico (variáveis #)
   function programStock(p, text) {
@@ -757,9 +793,29 @@
     this.draw(true);
     this.updatePanel(0);
   };
+  // 3D realista (WebGL) quando o aparelho permite; senão o relevo simples
+  SimView.prototype.initGL = function () {
+    var self = this;
+    if (this.v3 || this.glTried || !window.Sim3D || !Sim3D.webglOk() || store.get('sim.simple', false)) return;
+    this.glTried = true;
+    Sim3D.load('vendor/three-bundle.js').then(function () {
+      try { self.v3 = new Sim3D.Viewer(self.cg); } catch (e) { self.v3 = null; return; }
+      self.v3st = null; self.setMode(self.mode); self.draw(true); self.renderFix();
+    }).catch(function () {});
+  };
+  SimView.prototype.render3 = function (showTool) {
+    var st = this.st; if (!st) return;
+    if (!this.v3) { Stock3D.render(this.c3, st, this.view, showTool); return; }
+    var v = this.v3, cv = this.cg, W = cv.clientWidth || 600, H = cv.clientHeight || Math.round(W * 0.75);
+    if (this.v3st !== st) { v.setup(st, this.fix); this.v3st = st; }
+    else v.updateStock(st);
+    v.setTool(st.tool, st.D, st.toolShape, showTool || !!st.fixStop);
+    v.mark(this.fixSel, st.fixStop ? st.fixStop.item : null); v.setHit(st.fixStop);
+    v.render(this.view, W, H);
+  };
   SimView.prototype.draw = function (showTool) {
     if (!this.sim) return;
-    if (this.mode === '3d') Stock3D.render(this.c3, this.st, this.view, showTool);
+    if (this.mode === '3d') this.render3(showTool);
     else if (this.xyIdx != null) drawPlot(this.cxy, this.sim, this.xyIdx, this.st ? this.st.r : 5, this.view);
     else drawPlot(this.cxy, this.sim, null, null, this.view);
   };
@@ -807,7 +863,7 @@
         drawPlot(self.cxy, self.sim, idx, self.st ? self.st.r : 5, self.view);
       } else {
         done = Stock3D.advance(self.st, n); idx = self.st.idx;
-        Stock3D.render(self.c3, self.st, self.view, !done);
+        self.render3(!done);
       }
       self.bar.style.width = (100 * idx / Math.max(1, self.total)).toFixed(1) + '%';
       self.updatePanel(idx);
