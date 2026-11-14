@@ -13,7 +13,7 @@
   function fixSolids(items) {
     var S = [];
     (items || []).forEach(function (it, idx) {
-      var a = ((+it.ang || 0) + (it.type === 'morsa' ? 90 : 0)) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), X = +it.x || 0, Y = +it.y || 0;
+      var a = ((+it.ang || 0) + (it.type === 'morsa' ? 90 : it.type === 'garra' ? 180 : 0)) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), X = +it.x || 0, Y = +it.y || 0;
       function box(u, v, hu, hv, z0, z1, col) { S.push({ k: 'b', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, ca: ca, sa: sa, hu: hu, hv: hv, z0: z0, z1: z1, col: col, id: idx }); }
       function cyl(u, v, r, z0, z1, col) { S.push({ k: 'c', cx: X + u * ca - v * sa, cy: Y + u * sa + v * ca, r: r, z0: z0, z1: z1, col: col, id: idx }); }
       if (it.type === 'morsa') {   // mesmas medidas do 3D: corpo, mordente fixo, mordente móvel, fuso e manivela

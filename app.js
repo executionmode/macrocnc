@@ -258,7 +258,8 @@
       '<div class="simleft">' +
       '<div class="seg simtabs"><button type="button" data-v="3d" class="on">3D</button><button type="button" data-v="xy">Caminho XY</button></div>' +
       '<div class="canvwrap"><canvas class="plot3d"></canvas><canvas class="plot3d glv hidden"></canvas><canvas class="plot hidden"></canvas>' +
-      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button><div class="dragpos hidden"></div></div>' +
+      '<div class="glload hidden">Carregando 3D…</div><button type="button" class="setupbtn" data-a="setup">Montar setup</button><div class="dragpos hidden"></div>' +
+      '<div class="fixtools hidden"><b class="ftname"></b><button type="button" data-ft="rot">Girar 90°</button><button type="button" data-ft="dup">Duplicar</button><button type="button" data-ft="edit">Medidas</button><button type="button" data-ft="del" class="del">Excluir</button><button type="button" data-ft="x" class="x">✕</button></div></div>' +
       '<div class="progress"><div></div></div>' +
       '<div class="row wrap simbar">' +
       '<button type="button" class="btn primary" data-a="anim">▶ Animar</button>' +
@@ -396,6 +397,14 @@
     el.querySelector('[data-a=stockbtn]').addEventListener('click', function () { el.querySelector('.stockpanel').classList.toggle('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); });
     el.querySelector('[data-a=msgbtn]').addEventListener('click', function () { el.querySelector('.msgpanel').classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.fixpanel').classList.add('hidden'); });
     el.querySelector('[data-a=setup]').addEventListener('click', function () { self.openSetup(); });
+    // barra do item escolhido, em cima do 3D: girar, duplicar, medidas, excluir
+    el.querySelector('.fixtools').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ft]'); if (!b) return; var i = self.fixSel, it = self.fix[i];
+      if (b.dataset.ft === 'x' || !it) { self.fixSel = null; self.fixChanged(); return; }
+      if (b.dataset.ft === 'edit') { self.openSetup(); setTimeout(function () { var c = el.querySelector('.fixitem[data-fi="' + i + '"]'); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 120); return; }
+      var btn = el.querySelector('.fixitem[data-fi="' + i + '"] [data-fx="' + (b.dataset.ft === 'del' ? 'del' : b.dataset.ft) + '"]');
+      if (btn) btn.click();
+    });
     el.querySelector('[data-a=fixbtn]').addEventListener('click', function () { var fp = el.querySelector('.fixpanel'); fp.classList.toggle('hidden'); el.querySelector('.stockpanel').classList.add('hidden'); el.querySelector('.msgpanel').classList.add('hidden'); if (!fp.classList.contains('hidden')) fp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
     // fixação: adicionar, editar, girar, remover e arrastar no 3D
     this.fixCat = 'morsas';
@@ -592,7 +601,7 @@
     else if (type === 'garra') {   // cada garra nova vai para um lado da peça: esquerda, direita, frente, fundo (depois repete mais para o lado)
       var ng = this.fix.filter(function (f) { return f.type === 'garra'; }).length, sd = ng % 4, rnd = Math.floor(ng / 4), off = rnd ? (rnd % 2 ? 1 : -1) * Math.ceil(rnd / 2) * 45 : 0;
       var GX = [si.cx - LX / 2 + 15, si.cx + LX / 2 - 15, si.cx + off, si.cx + off][sd], GY = [si.cy + off, si.cy + off, si.cy - LY / 2 + 15, si.cy + LY / 2 - 15][sd];
-      it = { type: type, x: r1(GX), y: r1(GY), ang: [180, 0, 270, 90][sd], L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
+      it = { type: type, v: 2, x: r1(GX), y: r1(GY), ang: [0, 180, 90, 270][sd], L: 100, w: 30, e: 16, zp: si.top, zb: si.bottom };
     }
     else if (type === 'placa' || type === 'placa4') it = { type: type, x: si.cx, y: si.cy, ang: 90, D: r1(Math.max(160, Math.max(LX, LY) * (rd ? 1.7 : 1.5))), rg: r1(Math.max(LX, LY) / 2), hj: r1(Math.min(25, H * 0.5)), zf: si.bottom };
     else if (type === 'taco') {   // um em cada canto embaixo da peça (o próximo vai para o canto seguinte)
@@ -640,6 +649,8 @@
   };
   SimView.prototype.renderFix = function () {
     if (this.renderCards) this.renderCards();
+    var ftl = this.el.querySelector('.fixtools'), its = this.fix[this.fixSel];
+    if (ftl) { ftl.classList.toggle('hidden', !its); if (its) ftl.querySelector('.ftname').textContent = T(FIXNAME[its.type]); }
     var self = this, box = this.el.querySelector('.fixlist'), n = this.fix.length;
     this.el.querySelector('.fixcount').textContent = n ? '(' + n + ')' : '';
     var cnt = {};
@@ -685,7 +696,14 @@
     var st = this.st; if (!st || !st.fc) return;
     if (this.v3) {
       var r0 = this.cg.getBoundingClientRect(), W0 = this.cg.clientWidth, H0 = this.cg.clientHeight, u0 = e.clientX - r0.left, w0 = e.clientY - r0.top;
-      var hp = this.v3.pick(u0, w0, W0, H0); if (!hp || !this.fix[hp.item]) return;
+      var hp = this.v3.pick(u0, w0, W0, H0);
+      if (!hp || !this.fix[hp.item]) {   // montando o setup: arrastar a peça (a fixação fica, a peça muda de lugar em cima dela)
+        var fpv = this.el.querySelector('.fixpanel');
+        if (fpv.classList.contains('hidden') || !this.fix.length) return;
+        var hs = this.v3.pickStock(u0, w0, W0, H0); if (!hs) return;
+        var ps = this.v3.onPlane(u0, w0, W0, H0, hs.z); if (!ps) return;
+        this.fixDragging = { stock: true, z: hs.z, p0: ps, xy: this.fix.map(function (f) { return [f.x, f.y]; }), gl: true }; return;
+      }
       var p0 = this.v3.onPlane(u0, w0, W0, H0, hp.z), itg = this.fix[hp.item]; if (!p0) return;
       this.fixSel = hp.item; this.fixDragging = { i: hp.item, z: hp.z, p0: p0, x0: itg.x, y0: itg.y, gl: true }; this.v3.mark(this.fixSel, null); this.render3(true); this.renderFix(); return;
     }
@@ -700,7 +718,14 @@
     }
   };
   SimView.prototype.fixMove = function (e) {
-    var d = this.fixDragging, it = this.fix[d.i]; if (!it) return;
+    var d = this.fixDragging, it = d.stock ? null : this.fix[d.i]; if (!it && !d.stock) return;
+    if (d.stock && this.v3) {   // a peça anda: na tela a peça fica e a fixação vai para o outro lado (mesmo efeito)
+      var rs = this.cg.getBoundingClientRect(), qs = this.v3.onPlane(e.clientX - rs.left, e.clientY - rs.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!qs) return;
+      var dx = Math.round(qs[0] - d.p0[0]), dy = Math.round(qs[1] - d.p0[1]), v3 = this.v3, self = this;
+      this.fix.forEach(function (f, i) { f.x = r1(d.xy[i][0] - dx); f.y = r1(d.xy[i][1] - dy); var g = v3.fixG[i]; if (g) { g.position.set(f.x, 0, -f.y); g.updateMatrixWorld(true); } });
+      var dps = this.el.querySelector('.dragpos'); if (dps) { dps.textContent = T('Peça') + '  ΔX ' + dx + '  ΔY ' + dy; dps.classList.remove('hidden'); }
+      v3.mark(this.fixSel, null); v3.render(this.view, this.cg.clientWidth, this.cg.clientHeight); return;
+    }
     if (d.gl && this.v3) {   // no 3D realista só move o item; a grade é refeita ao soltar
       var r0 = this.cg.getBoundingClientRect(), q = this.v3.onPlane(e.clientX - r0.left, e.clientY - r0.top, this.cg.clientWidth, this.cg.clientHeight, d.z); if (!q) return;
       it.x = Math.round(d.x0 + q[0] - d.p0[0]); it.y = Math.round(d.y0 + q[1] - d.p0[1]);
@@ -723,7 +748,12 @@
     this.text = text; this.p = p || null;
     this.manual = store.get(this.stockKey(), null);
     this.fix = store.get(this.fixKey(), null) || []; this.fixSel = null;
-    this.fix.forEach(function (it) { if (it.type === 'morsa' && it.v !== 2) { it.ang = (((+it.ang || 0) - 90) % 360 + 360) % 360; it.v = 2; } });   // morsa salva antes: mantém a mesma posição no novo ângulo 0 this.setFixDrag(false, true);
+    // itens salvos antes da mudança do ângulo 0 (morsa +90°, grampo +180°): continuam na mesma posição
+    this.fix.forEach(function (it) {
+      if (it.type === 'morsa' && it.v !== 2) { it.ang = (((+it.ang || 0) - 90) % 360 + 360) % 360; it.v = 2; }
+      if (it.type === 'garra' && it.v !== 2) { it.ang = (((+it.ang || 0) - 180) % 360 + 360) % 360; it.v = 2; }
+    });
+    this.setFixDrag(false, true);
     this.sim = runSim(text, this.simP());
     this.tcum = null;
     this.renderListing();

@@ -475,6 +475,8 @@ I18N.add({
   "Duplicado. Encoste no item no 3D e arraste até o lugar.": "Duplicated. Touch the item in 3D and drag it into place.",
   "Tarugo": "Bar",
   "Usar em todos": "Use on all",
+  "Medidas": "Sizes",
+  "Excluir": "Delete",
   "Linear": "Linear",
   "Linha horizontal": "Horizontal line",
   "Linha vertical": "Vertical line",

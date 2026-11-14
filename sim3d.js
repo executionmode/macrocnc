@@ -76,7 +76,7 @@
     g.add(mesh(hex(14, 12), M.dark, u, zTop + 3, -v));
   }
   // morsa: ângulo 0 = mordentes apertando em Y, corpo e fuso ao longo de X (posição de trabalho na mesa)
-  function ANG0(it) { return it.type === 'morsa' ? 90 : 0; }
+  function ANG0(it) { return it.type === 'morsa' ? 90 : it.type === 'garra' ? 180 : 0; }   // grampo: ângulo 0 = barra para -X, ponta apertando para +X
   var BUILD = {
     morsa: function (it, M, zTable) {
       var g = new THREE.Group(), A = Math.max(1, +it.a || 100), W = Math.max(40, +it.w || 150), zt = +it.zt, zb = +it.zb;
@@ -374,6 +374,11 @@
     if (!hit) return null;
     if (!ghost && this.stock) { var hs = this.ray.intersectObject(this.stock, false)[0]; if (hs && hs.distance < hit.distance - 0.5) return null; }   // a peça está na frente
     return { item: hit.object.userData.fix, x: hit.point.x, y: -hit.point.z, z: hit.point.y };
+  };
+  Viewer.prototype.pickStock = function (u, v, W, H) {   // toque na peça
+    if (!this.stock) return null;
+    this.ray.setFromCamera(new THREE.Vector2(u / W * 2 - 1, -(v / H) * 2 + 1), this.cam);
+    var h = this.ray.intersectObject(this.stock, false)[0]; return h ? { x: h.point.x, y: -h.point.z, z: h.point.y } : null;
   };
   // ponto da tela -> X Y na altura z
   Viewer.prototype.onPlane = function (u, v, W, H, z) {

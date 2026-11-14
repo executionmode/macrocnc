@@ -475,6 +475,8 @@ I18N.add({
   "Duplicado. Encoste no item no 3D e arraste até o lugar.": "Dupliqué. Touchez l'élément en 3D et glissez-le en place.",
   "Tarugo": "Barre",
   "Usar em todos": "Utiliser sur tous",
+  "Medidas": "Dimensions",
+  "Excluir": "Supprimer",
   "Linear": "Linéaire",
   "Linha horizontal": "Ligne horizontale",
   "Linha vertical": "Ligne verticale",
